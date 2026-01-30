@@ -98,7 +98,7 @@ amounts of previously generated AI content from the internet, such systems behav
 become the equivalent of perpetual motion. This may fool for a while, but always stop working when the reservoir is exchausted.
 
 You don't need information theory to understand this. The reason why digital computers cannot create information from nothing
-is precisely because they are deterministic systems in which everything is **pre-determined* on the outside. This is simply what
+is precisely because they are deterministic systems in which everything is *pre-determined* on the outside. This is simply what
 determinism means. In other words, digital devices are merely transformers of that which had to exist prior. Information cannot
 be created, but it can be lost, however. Hence, things degenerate.
 
