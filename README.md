@@ -20,7 +20,9 @@ Above, initial version 0.1 in dark mode.
 
 
 ## Linux & Windows
+
 [Downloads](https://github.com/kuiperzone/Marklet/releases/latest)<br>
+
 Runable Linux AppImage and simple Windows zip are provided only for this release.
 
 The purpose of this release is to get feedback. Please do follow this project to be notified as it develops.
@@ -30,7 +32,7 @@ Marklet is, for the time being, a personal project. It may not remain so in the 
 
 The author's perception of modern AI is somewhat nuanced. If you have negative feelings towards AI, then the author is likely
 to share at least some of them. He does not believe, for example, that AI is conscious or that we have reached some kind of
-super-singularity. Nevertheless AI is powerful and transformative. After all the disruption has payed out, we are still going to
+super-singularity. Nevertheless AI is powerful and transformative. After all the disruption has played out, we are still going to
 be left with AI in some form. If you can accept this, then this project might be for you. If you are more enthusiastic about AI,
 then this may also be for you but you are free to regard it as "quirky".
 
@@ -120,8 +122,8 @@ It initially supports:
 * Linux
 * Windows
 
-The intention is to deliver a user interface which feels at home on any Linux desktop. It will be familiar out of the box,
-but offers configuration without being overly complicated.
+The intention is to deliver a user interface which feels at home on any Linux desktop and other systems. It will be familiar out
+of the box, but offers configuration without being overly complicated. In use, it is intended to frictionless.
 
 <img src="MARKLET-SCREENSHOT2.png" style="width:65%;max-width:800px;margin-bottom:2em;"/>
 
@@ -143,7 +145,7 @@ An approximate roadmap is as follows:
 3. Implement connection to model runners (this encompasses many things obviously)
 4. Syntax high-lighting for fenced code
 5. LaTeX math symbols in markdown
-6. Support for attachments and RAG
+6. Support for attachments, images and RAG
 7. Text to speech
 8. Yet undecided features
 
