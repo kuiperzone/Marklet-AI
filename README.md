@@ -122,8 +122,8 @@ It initially supports:
 * Linux
 * Windows
 
-The intention is to deliver a user interface which feels at home on any Linux desktop and other systems. It will be familiar out
-of the box, but offers configuration without being overly complicated. In use, it is intended to frictionless.
+The intention is to deliver a user interface which feels at home on any Linux desktop or other system. It will be familiar out
+of the box, but offers configuration without being overly complicated.
 
 <img src="MARKLET-SCREENSHOT2.png" style="width:65%;max-width:800px;margin-bottom:2em;"/>
 
