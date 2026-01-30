@@ -32,7 +32,7 @@
 
     <Target Name="CopyNoticesToPublish" AfterTargets="Publish">
         <!-- Use relative as $SolutionDir may be unknown during publish -->
-        <Copy SourceFiles="$(ProjectDir)../../README;$(ProjectDir)../../LICENSE;$(ProjectDir)../../NOTICE" DestinationFolder="$(PublishDir)" />
+        <Copy SourceFiles="$(ProjectDir)../../README.md;$(ProjectDir)../../LICENSE;$(ProjectDir)../../NOTICE" DestinationFolder="$(PublishDir)" />
     </Target>
 
 </Project>

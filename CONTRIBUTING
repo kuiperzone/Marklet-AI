@@ -1,0 +1,30 @@
+# CONTRIBUTING
+
+Marklet is open-source software, but that does not mean the author(s) must accept contributions from the public internet.
+
+
+## What is Wanted
+
+Feedback in the form of discussion is appreciated and helps the author(s) understand how people use the software and what can be
+improved.
+
+Create or contribute to a discussion here:
+
+https://github.com/kuiperzone/Marklet/discussions
+
+You are free to express your thoughts as you wish. Comments will be seen and understood by a real human being and not treated as
+checkbox "aggregate data". The software does not collect or send back data. It is better to listen and to understand.
+
+
+## Pull Requests
+
+If you spot a bug and wish to submit a pull request that fixes it, despite what is said above, please do so. Such contributions
+will be treated as suggestions and may or may not be accepted. PR code may be re-written.
+
+For small changes (e.g. a few lines or minor fixes), by submitting a pull request, you agree to place your contribution in the
+public domain. This keeps the project free of predatory copyright claims and entanglements.
+
+It is suggested that you do not submit large unsolicited pull requests involving design changes, significant new features, or
+major ideas. Better to discuss those first.
+
+Please do not submit AI-generated code. Despite being an "AI project", AI is something which should be treated with care.
