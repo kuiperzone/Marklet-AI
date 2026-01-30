@@ -1,0 +1,31 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+    <!-- Inherits Directory.Build.props -->
+    <PropertyGroup>
+        <IsPackable>false</IsPackable>
+        <GeneratePackageOnBuild>false</GeneratePackageOnBuild>
+        <GenerateDocumentationFile>false</GenerateDocumentationFile>
+    </PropertyGroup>
+
+    <ItemGroup>
+
+        <!-- Assets -->
+        <AvaloniaResource Include="Assets\**" />
+
+        <!-- Internal -->
+        <ProjectReference Include="..\KuiperZone.Marklet.Tooling\KuiperZone.Marklet.Tooling.csproj" />
+        <InternalsVisibleTo Include="KuiperZone.Marklet.PixieChrome.Test" />
+
+        <!-- Third Party -->
+        <!-- Versions defined in Directory.Packages.props -->
+        <PackageReference Include="Avalonia" />
+        <PackageReference Include="Avalonia.Desktop" />
+        <PackageReference Include="Avalonia.Themes.Fluent" />
+        <PackageReference Include="Avalonia.Fonts.Inter" />
+        <PackageReference Include="ReactiveUI.Avalonia" />
+    </ItemGroup>
+
+    <ItemGroup Condition="'$(Configuration)' == 'Debug'">
+        <PackageReference Include="Avalonia.Diagnostics" />
+    </ItemGroup>
+
+</Project>

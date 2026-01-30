@@ -1,0 +1,38 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+    <!-- Inherits Directory.Build.props -->
+    <PropertyGroup>
+        <OutputType>WinExe</OutputType>
+
+        <ApplicationIcon>Assets/marklet.ico</ApplicationIcon>
+
+        <BuiltInComInteropSupport>true</BuiltInComInteropSupport>
+        <ApplicationManifest>app.manifest</ApplicationManifest>
+        <AvaloniaUseCompiledBindingsByDefault>true</AvaloniaUseCompiledBindingsByDefault>
+    </PropertyGroup>
+
+    <ItemGroup>
+
+        <!-- Assets -->
+        <AvaloniaResource Include="Assets\**" />
+
+        <!-- Internal -->
+        <ProjectReference Include="..\KuiperZone.Marklet.Stack\KuiperZone.Marklet.Stack.csproj" />
+        <ProjectReference Include="..\KuiperZone.Marklet.PixieChrome\KuiperZone.Marklet.PixieChrome.csproj" />
+        <InternalsVisibleTo Include="KuiperZone.Marklet.Test" />
+
+        <!-- Third Party -->
+        <!-- Versions defined in Directory.Packages.props -->
+        <PackageReference Include="Avalonia" />
+        <PackageReference Include="Avalonia.Desktop" />
+        <PackageReference Include="Avalonia.Themes.Fluent" />
+        <PackageReference Include="Avalonia.Fonts.Inter" />
+        <PackageReference Include="ReactiveUI.Avalonia" />
+
+    </ItemGroup>
+
+    <Target Name="CopyNoticesToPublish" AfterTargets="Publish">
+        <!-- Use relative as $SolutionDir may be unknown during publish -->
+        <Copy SourceFiles="$(ProjectDir)../../README;$(ProjectDir)../../LICENSE;$(ProjectDir)../../NOTICE" DestinationFolder="$(PublishDir)" />
+    </Target>
+
+</Project>

@@ -1,0 +1,73 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+
+        xmlns:local-controls="clr-namespace:KuiperZone.Marklet.Controls"
+        xmlns:chrome="clr-namespace:KuiperZone.Marklet.PixieChrome;assembly=KuiperZone.Marklet.PixieChrome"
+        xmlns:pixie-controls="clr-namespace:KuiperZone.Marklet.PixieChrome.Controls;assembly=KuiperZone.Marklet.PixieChrome"
+
+        x:CompileBindings="True"
+        x:DataType="chrome:ChromeStyling"
+        x:Class="KuiperZone.Marklet.MainWindow"
+
+        mc:Ignorable="d"
+        d:DesignWidth="800"
+        d:DesignHeight="800"
+
+        Width="1200"
+        MinWidth="500"
+
+        Height="800"
+        MinHeight="400"
+
+        Icon="/Assets/marklet.128.png"
+    >
+
+    <Border Name="outerBorder"
+        BorderBrush="{Binding BorderBrush}"
+        BorderThickness="0 1 0 0">
+
+        <Grid RowDefinitions="*"
+            ColumnDefinitions="Auto Auto, 1.5*"
+            Name="outerHorzGrid">
+
+            <local-controls:MissionControl Grid.Row="0" Grid.Column="0"
+                Name="mission"
+                Background="{Binding BackgroundLow}"
+                BorderBrush="{Binding BorderBrush}"
+                BorderThickness="0 0 1 0"
+                />
+
+            <Grid Grid.Row="0" Grid.Column="1" Grid.ColumnSpan="2"
+                Name="innerVertGrid"
+                RowDefinitions="* Auto"
+                ColumnDefinitions="*">
+
+                <!-- CONTENT VIEW -->
+                <local-controls:ContentViewer Grid.Row="0" Grid.Column="0"
+                    Name="contentViewer"/>
+
+                <!-- PROMPT AREA -->
+                <Border Grid.Row="1" Grid.Column="0"
+                    Name="promptBar"
+                    Padding="{x:Static chrome:ChromeSizes.HugePadding}"
+                    Background="{Binding BackgroundLow}"
+                    BorderBrush="{Binding BorderBrush}"
+                    BorderThickness="0 1 0 0">
+
+                    <local-controls:Prompter Name="prompter" />
+
+                </Border>
+            </Grid>
+
+            <pixie-controls:HighSplitter Grid.Row="0" Grid.Column="1"
+                Name="vertSplitter"
+                Classes="vertical"
+                Highlight="{Binding AccentBrush}"/>
+
+        </Grid>
+
+    </Border>
+
+</Window>

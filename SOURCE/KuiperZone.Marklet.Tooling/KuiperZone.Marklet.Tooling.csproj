@@ -1,0 +1,19 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+    <!-- Inherits Directory.Build.props -->
+    <PropertyGroup>
+        <IsPackable>false</IsPackable>
+        <GeneratePackageOnBuild>false</GeneratePackageOnBuild>
+        <GenerateDocumentationFile>false</GenerateDocumentationFile>
+    </PropertyGroup>
+
+    <ItemGroup>
+
+        <!-- Internal -->
+        <PackageReference Include="Markdig.Signed"/>
+
+        <InternalsVisibleTo Include="KuiperZone.Marklet.Tooling.Test" />
+
+    </ItemGroup>
+
+
+</Project>

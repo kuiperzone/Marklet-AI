@@ -1,0 +1,25 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+    <!-- Inherits Directory.Build.props -->
+    <PropertyGroup>
+        <IsPackable>false</IsPackable>
+        <GeneratePackageOnBuild>false</GeneratePackageOnBuild>
+        <GenerateDocumentationFile>false</GenerateDocumentationFile>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <InternalsVisibleTo Include="KuiperZone.Marklet.Stack.Test" />
+    </ItemGroup>
+
+    <ItemGroup>
+
+        <!-- Internal -->
+        <ProjectReference Include="..\KuiperZone.Marklet.Tooling\KuiperZone.Marklet.Tooling.csproj" />
+        <InternalsVisibleTo Include="KuiperZone.Marklet.Stack.Test" />
+
+        <!-- Third Party -->
+        <!-- Versions defined in Directory.Packages.props -->
+        <PackageReference Include="Markdig.Signed" />
+        <PackageReference Include="Microsoft.Data.Sqlite" />
+    </ItemGroup>
+
+</Project>

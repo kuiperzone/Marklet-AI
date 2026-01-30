@@ -1,0 +1,131 @@
+<Styles xmlns="https://github.com/avaloniaui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:vm="using:KuiperZone.Marklet.PixieChrome"
+    xmlns:controls="clr-namespace:KuiperZone.Marklet.PixieChrome.Controls"
+
+    x:CompileBindings="True"
+    x:DataType="vm:ChromeStyling"
+    >
+
+    <!-- PIXIE GROUP -->
+    <!-- PixieGroup requires classes for selectors -->
+    <Style Selector="controls|PixieGroup.chrome-corner-small">
+        <Setter Property="IsCornerGrouped" Value="false"/>
+        <Setter Property="ChildCorner" Value="{Binding SmallCornerRadius, Source={x:Static vm:ChromeStyling.Global}}"/>
+        <Setter Property="Spacing" Value="1"/>
+    </Style>
+
+    <Style Selector="controls|PixieGroup.chrome-indented">
+        <Setter Property="ChildIndent" Value="{x:Static vm:ChromeSizes.TwoCh}"/>
+    </Style>
+
+    <Style Selector="
+        controls|PixieGroup.chrome-low">
+        <Setter Property="ChildBorder" Value="{Binding GroupBorder, Source={x:Static vm:ChromeStyling.Global}}"/>
+        <Setter Property="ChildBackground" Value="{Binding BackgroundLow, Source={x:Static vm:ChromeStyling.Global}}"/>
+    </Style>
+    <Style Selector="controls|PixieGroup.chrome-high">
+        <Setter Property="ChildBorder" Value="{Binding GroupBorder, Source={x:Static vm:ChromeStyling.Global}}"/>
+        <Setter Property="ChildBackground" Value="{Binding BackgroundHigh, Source={x:Static vm:ChromeStyling.Global}}"/>
+    </Style>
+    <Style Selector="controls|PixieGroup.chrome-corner-grouped">
+        <Setter Property="IsCornerGrouped" Value="true"/>
+        <Setter Property="ChildCorner" Value="{Binding LargeCornerRadius, Source={x:Static vm:ChromeStyling.Global}}"/>
+    </Style>
+
+
+    <!-- LIGHTBUTTON -->
+    <Style Selector="controls|LightButton">
+        <Setter Property="CornerRadius" Value="{Binding SmallCornerRadius, Source={x:Static vm:ChromeStyling.Global}}"/>
+
+        <!-- LightButton defaults to these and provided colors are static we don't need to style them, but keep for reference.
+        <Setter Property="HoverBackground" Value="{Binding ButtonHover, Source={x:Static vm:ChromeStyling.Global}}"/>
+        <Setter Property="CheckedPressedBackground" Value="{Binding ButtonCheckedPressed, Source={x:Static vm:ChromeStyling.Global}}"/>
+        -->
+    </Style>
+
+    <Style Selector=":is(controls|LightButton).checked-accent">
+        <Setter Property="CheckedPressedBackground" Value="{Binding SemiAccent, Source={x:Static vm:ChromeStyling.Global}}"/>
+    </Style>
+
+    <Style Selector=":is(controls|LightButton).regular-background">
+        <Setter Property="Background" Value="{x:Static vm:ChromeStyling.ButtonBrush}"/>
+    </Style>
+
+    <Style Selector=":is(controls|LightButton).dialog-button">
+        <Setter Property="Background" Value="{x:Static vm:ChromeStyling.ButtonBrush}"/>
+        <Setter Property="MinWidth" Value="{x:Static vm:ChromeSizes.MinDialogButtonWidth}"/>
+        <Setter Property="MinHeight" Value="{x:Static vm:ChromeSizes.MinDialogButtonHeight}"/>
+    </Style>
+
+    <!-- CROSSTEXT -->
+    <Style Selector="controls|CrossTextBlock">
+        <Setter Property="SelectionBrush" Value="{Binding SemiAccent, Source={x:Static vm:ChromeStyling.Global}}"/>
+    </Style>
+
+
+    <!-- TEXTEDITOR / TEXTBOX -->
+    <!-- TextEditor must share StyleKey with TextBox (we must style both) -->
+    <Style Selector="TextBox">
+        <Setter Property="SelectionBrush" Value="{Binding SemiAccent, Source={x:Static vm:ChromeStyling.Global}}"/>
+        <Setter Property="CornerRadius" Value="{Binding SmallCornerRadius, Source={x:Static vm:ChromeStyling.Global}}"/>
+    </Style>
+
+
+    <!-- REGULAR CONTROLS -->
+    <Style Selector=":is(TemplatedControl).corner-styling">
+        <Setter Property="CornerRadius" Value="{Binding SmallCornerRadius, Source={x:Static vm:ChromeStyling.Global}}"/>
+    </Style>
+    <Style Selector=":is(Border).corner-styling">
+        <Setter Property="CornerRadius" Value="{Binding SmallCornerRadius, Source={x:Static vm:ChromeStyling.Global}}"/>
+    </Style>
+
+
+    <!-- SPLITTERS -->
+    <Style Selector="GridSplitter.horizontal">
+        <Setter Property="ResizeDirection" Value="Rows"/>
+        <Setter Property="ResizeBehavior" Value="PreviousAndNext"/>
+        <Setter Property="Height" Value="{x:Static vm:ChromeSizes.SplitterSize}"/>
+    </Style>
+
+    <Style Selector="GridSplitter.vertical">
+        <Setter Property="ResizeDirection" Value="Columns"/>
+        <Setter Property="ResizeBehavior" Value="PreviousAndNext"/>
+        <Setter Property="Width" Value="{x:Static vm:ChromeSizes.SplitterSize}"/>
+    </Style>
+
+    <!-- SCROLLBAR -->
+    <Style Selector="ScrollBar /template/ Thumb">
+        <Setter Property="CornerRadius" Value="{Binding SmallCornerRadius, Source={x:Static vm:ChromeStyling.Global}}"/>
+    </Style>
+
+    <!-- POPUPS -->
+    <Style Selector="
+        ToolTip,
+        ContextMenu,
+        FlyoutPresenter">
+        <Setter Property="FontSize" Value="{x:Static vm:ChromeFonts.DefaultFontSize}"/>
+        <Setter Property="FontFamily" Value="{x:Static vm:ChromeFonts.DefaultFamily}"/>
+        <Setter Property="BorderThickness" Value="1"/>
+        <Setter Property="BorderBrush" Value="{Binding WindowBorder, Source={x:Static vm:ChromeStyling.Global}}"/>
+        <Setter Property="CornerRadius" Value="{Binding SmallCornerRadius, Source={x:Static vm:ChromeStyling.Global}}"/>
+    </Style>
+
+    <!-- ITEMS -->
+    <Style Selector="MenuItem">
+        <Setter Property="Border.CornerRadius" Value="{Binding SmallCornerRadius, Source={x:Static vm:ChromeStyling.Global}}"/>
+        <Setter Property="Margin" Value="{x:Static vm:ChromeSizes.RegularLeftRight}"/>
+    </Style>
+
+    <Style Selector="ListBoxItem">
+        <Setter Property="Border.Margin" Value="1"/>
+        <Setter Property="Border.Padding" Value="{x:Static vm:ChromeSizes.RegularPadding}"/>
+        <Setter Property="Border.CornerRadius" Value="{Binding SmallCornerRadius, Source={x:Static vm:ChromeStyling.Global}}"/>
+    </Style>
+
+    <Style Selector="TreeViewItem">
+        <Setter Property="Border.Margin" Value="1"/>
+        <Setter Property="Border.CornerRadius" Value="{Binding SmallCornerRadius, Source={x:Static vm:ChromeStyling.Global}}"/>
+    </Style>
+
+</Styles>
