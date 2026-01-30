@@ -1,4 +1,4 @@
-# MARKLET OPEN AI
+# MARKLET AI
 
 **Marklet** is an open source AI client primarily intended for use with local AI models (i.e. in conjunction with Ollama or similar
 runners). Its primary purpose is to do this simply and to do it well.
