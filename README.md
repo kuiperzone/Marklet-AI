@@ -30,11 +30,16 @@ The purpose of this release is to get feedback. Please do follow this project to
 ## Background
 Marklet is, for the time being, a personal project. It may not remain so in the future.
 
-The author's perception of modern AI is somewhat nuanced. If you have negative feelings towards AI, then the author is likely
-to share at least some of them. He does not believe, for example, that AI is conscious or that we have reached some kind of
-super-singularity. Nevertheless AI is powerful and transformative. After all the disruption has played out, we are still going to
-be left with AI in some form. If you can accept this, then this project might be for you. If you are more enthusiastic about AI,
-then this may also be for you but you are free to regard it as "quirky".
+There's been significant push-back against AI--and for good reason. Many are rightly concerned about hype, job displacement,
+misinformation, and the rush to treat models as conscious or saviours.
+
+The author shares much of that skepticism: AI is not conscious, we haven't reached any super-singularity, and deterministic systems
+can't generate genuine novelty without human consciousness at the core.
+
+Yet AI is undeniably powerful and here to stay. After the current wave of disruption, we'll live with it in some form. Marklet is
+for those who want to engage on their own terms: local models, personal data, no deception or manipulation. If you're wary of
+cloud monopolies and agentic overreach but see value in thoughtful local tools, this may resonate. If you're more bullish on AI,
+you're welcome too.
 
 Three quotations summarize the motivations for this project, as follows:
 
