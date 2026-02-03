@@ -100,7 +100,7 @@ The next three stem from *information theory*.
 For example, if you wish to understand why AI models collapse when fed with their own content, it is because information is a
 fundamental quantity -- like energy which cannot be created by deterministic processes. As AI models are trained on increasing
 amounts of previously generated AI content from the internet, such systems behave more like closed loops. In other words, they
-become the equivalent of perpetual motion. This may fool for a while, but always stop working when the reservoir is exchausted.
+become the equivalent of perpetual motion. This may fool for a while, but always stop working when the reservoir is exhausted.
 
 You don't need information theory to understand this. The reason why digital computers cannot create information from nothing
 is precisely because they are deterministic systems in which everything is *pre-determined* on the outside. This is simply what
