@@ -75,7 +75,7 @@ hardware, but not behind monolithic oneway mirrors. There must be valid separati
 to maintain an entropy differential. Without this, the flow of information ceases (i.e. informational heat death).
 
 
-4. **Without Consciousness Automony Entropy Cannot be Regulated**
+4. **Without Consciousness Autonomy Entropy Cannot be Regulated**
 
     The use of AI and automated systems to manipulate, restrict, subvert or otherwise control autonomous beings is destructive in
 the long-term. Without conscious autonomy, nothing new can be created and entropy cannot locally be reversed. The effect is one
