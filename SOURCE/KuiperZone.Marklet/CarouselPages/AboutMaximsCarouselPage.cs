@@ -71,7 +71,7 @@ in its outcome.
 
     AI and automated processing should be local and under the control of those who are to receive its benefit or suffer
 its consequences (i,e. invested in it). AI should be embedded within the personal device, the robot, or employed as on-prem
-hardware, but not behind monolithic oneway mirrors. There must be valid separation at the level of conscious control so as
+hardware, but not behind monolithic one-way mirrors. There must be valid separation at the level of conscious control so as
 to maintain an entropy differential. Without this, the flow of information ceases (i.e. informational heat death).
 
 
@@ -85,8 +85,8 @@ of slow degeneration.
 5. **Responsibility Without Control is Merely to Suffer Consequences**
 
     Where autonomy is taken from you, you cannot be responsible for decisions made for you by others. Likewise, if you take
-autonomy from others, you therefore become responsible. If you seek to direct others, it is only valid where by conscious
-consent exists which can always be withdrawn.
+autonomy from others, you therefore become responsible. If you seek to direct others, it is valid only where conscious
+consent exists that can be freely and truly withdrawn.
 
 The first one of these can easily be understood.
 
