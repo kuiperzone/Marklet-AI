@@ -1,8 +1,10 @@
 // -----------------------------------------------------------------------------
-// PROJECT   : KuiperZone.Marklet
-// AUTHOR    : Andrew Thomas
-// COPYRIGHT : Andrew Thomas © 2025-2026 All rights reserved
-// LICENSE   : AGPL-3.0-only
+// SPDX-FileNotice: KuiperZone.Marklet - Local AI Client
+// SPDX-License-Identifier: AGPL-3.0-only
+// SPDX-FileCopyrightText: © 2025-2026 Andrew Thomas <kuiperzone@users.noreply.github.com>
+// SPDX-ProjectHomePage: https://kuiper.zone/marklet-ai/
+// SPDX-FileType: Source
+// SPDX-FileComment: This is NOT AI generated source code but was created with human thinking and effort.
 // -----------------------------------------------------------------------------
 
 // Marklet is free software: you can redistribute it and/or modify it under
@@ -41,13 +43,13 @@ public class PixieControl<T> : PixieControl
     protected PixieControl(bool isTitleVisible, VerticalAlignment verticalAlignment)
         : base(isTitleVisible, verticalAlignment)
     {
-        SetChildControl(ChildControl);
+        SetSubject(Subject);
     }
 
     /// <summary>
-    /// Gets the control item of generic type T.
+    /// Gets the subject control of generic type T.
     /// </summary>
-    public T ChildControl { get; } = new();
+    public T Subject { get; } = new();
 
     /// <summary>
     /// Overridden by subclass to perform initialization of "value" and return "value".

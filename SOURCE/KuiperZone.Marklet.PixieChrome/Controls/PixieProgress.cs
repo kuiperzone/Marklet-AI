@@ -1,8 +1,10 @@
 // -----------------------------------------------------------------------------
-// PROJECT   : KuiperZone.Marklet
-// AUTHOR    : Andrew Thomas
-// COPYRIGHT : Andrew Thomas © 2025-2026 All rights reserved
-// LICENSE   : AGPL-3.0-only
+// SPDX-FileNotice: KuiperZone.Marklet - Local AI Client
+// SPDX-License-Identifier: AGPL-3.0-only
+// SPDX-FileCopyrightText: © 2025-2026 Andrew Thomas <kuiperzone@users.noreply.github.com>
+// SPDX-ProjectHomePage: https://kuiper.zone/marklet-ai/
+// SPDX-FileType: Source
+// SPDX-FileComment: This is NOT AI generated source code but was created with human thinking and effort.
 // -----------------------------------------------------------------------------
 
 // Marklet is free software: you can redistribute it and/or modify it under
@@ -23,7 +25,7 @@ namespace KuiperZone.Marklet.PixieChrome.Controls;
 /// <summary>
 /// A <see cref="PixieControl{T}"/> composite housing a <see cref="ProgressBar"/> instance.
 /// </summary>
-public sealed class PixieProgress : PixieControl<ProgressBar>
+public class PixieProgress : PixieControl<ProgressBar>
 {
     /// <summary>
     /// Default constructor.
@@ -31,6 +33,6 @@ public sealed class PixieProgress : PixieControl<ProgressBar>
     public PixieProgress()
         : base(true, Avalonia.Layout.VerticalAlignment.Center)
     {
-        ChildControl.ValueChanged += ValueChangedHandler;
+        Subject.ValueChanged += ValueChangedHandler;
     }
 }

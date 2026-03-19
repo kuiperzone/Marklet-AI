@@ -1,8 +1,10 @@
 // -----------------------------------------------------------------------------
-// PROJECT   : KuiperZone.Marklet
-// AUTHOR    : Andrew Thomas
-// COPYRIGHT : Andrew Thomas © 2025-2026 All rights reserved
-// LICENSE   : AGPL-3.0-only
+// SPDX-FileNotice: KuiperZone.Marklet - Local AI Client
+// SPDX-License-Identifier: AGPL-3.0-only
+// SPDX-FileCopyrightText: © 2025-2026 Andrew Thomas <kuiperzone@users.noreply.github.com>
+// SPDX-ProjectHomePage: https://kuiper.zone/marklet-ai/
+// SPDX-FileType: Source
+// SPDX-FileComment: This is NOT AI generated source code but was created with human thinking and effort.
 // -----------------------------------------------------------------------------
 
 // Marklet is free software: you can redistribute it and/or modify it under
@@ -78,66 +80,86 @@ sealed class StubMessages
     /// </summary>
     public static void Populate(MemoryGarden garden)
     {
-        // RECENT
-        garden.Insert(NewRecentMessage("Lorem ipsum dolor sit amet", MessageKind.Para));
-        garden.Insert(NewRecentMessage("Duis sapien sem", MessageKind.Table));
-        garden.Insert(NewRecentMessage("Etiam tempor", MessageKind.QuoteList));
+        // HOME
+        garden.Insert(NewRecentMessage("Lorem ipsum dolor sit amet", TimeSpan.FromDays(-29.99), MessageKind.Para, 100));
+        garden.Insert(NewRecentMessage("Duis sapien sem", TimeSpan.FromDays(-2.8), MessageKind.Table));
+        garden.Insert(NewRecentMessage("Etiam tempor", TimeSpan.FromDays(-0.4), MessageKind.QuoteList));
 
         // ARCHIVED
 
         // Grouped
-        var child = garden.Insert(BinKind.Archive);
+        var child = new GardenDeck(DeckKind.Chat, BasketKind.Recent, TimeSpan.FromDays(-35.2));
+        child.Basket = BasketKind.Archive;
         child.Model = Model;
         child.Title = "Boring Latin";
-        child.Topic = "Archived A";
+        child.Folder = "Archived A";
         child.Append(LeafKind.User, "Say something in a language everyone one understands.");
         child.Append(LeafKind.Assistant, GetMessage(MessageKind.Para));
+        garden.Insert(child);
+        child.ResetSpoof();
 
-        child = garden.Insert(BinKind.Archive);
+        child = new GardenDeck(DeckKind.Chat, BasketKind.Recent, TimeSpan.FromDays(-65.76));
+        child.Basket = BasketKind.Archive;
         child.Model = Model;
         child.Title = "Some data";
-        child.Topic = "Archived A";
+        child.Folder = "Archived A";
+        child.IsPinned = true;
         child.Append(LeafKind.User, "Show me some data.");
         child.Append(LeafKind.Assistant, GetMessage(MessageKind.Table));
+        garden.Insert(child);
+        child.ResetSpoof();
 
-        child = garden.Insert(BinKind.Archive);
+        child = new GardenDeck(DeckKind.Chat, BasketKind.Recent, TimeSpan.FromDays(-8.32));
+        child.Basket = BasketKind.Archive;
         child.Model = Model;
         child.Title = "Stuff";
-        child.Topic = "Archived B";
+        child.Folder = "Archived B";
         child.Append(LeafKind.User, "Say something else.");
         child.Append(LeafKind.Assistant, GetMessage(MessageKind.QuoteList));
+        garden.Insert(child);
+        child.ResetSpoof();
 
-        child = garden.Insert(BinKind.Archive);
+        child = new GardenDeck(DeckKind.Note, BasketKind.Notes, TimeSpan.FromDays(-1.63));
+        child.Basket = BasketKind.Archive;
         child.Model = Model;
         child.Title = "More stuff";
-        child.Topic = "Archived B";
+        child.Folder = "Archived B";
         child.Append(LeafKind.User, "Say more.");
         child.Append(LeafKind.Assistant, GetMessage(MessageKind.Indented));
+        garden.Insert(child);
+        child.ResetSpoof();
 
         // Floating
-        child = garden.Insert(BinKind.Archive);
-        child.Title = "Mend it. Fix it.";
+        child = new GardenDeck(DeckKind.Chat, BasketKind.Recent, TimeSpan.FromDays(-29.99));
+        child.Basket = BasketKind.Archive;
         child.Model = Model;
-        child.Topic = null;
+        child.Title = "Mend it. Fix it.";
+        child.Folder = null;
         child.Append(LeafKind.User, "I have some code. It no work. Make it work. Mend it. Fix it!");
         child.Append(LeafKind.Assistant, GetMessage(MessageKind.Fenced));
+        garden.Insert(child);
+        child.ResetSpoof();
 
         // WASTE
-        child = garden.Insert(BinKind.Archive);
+        child = new GardenDeck(DeckKind.Chat, BasketKind.Recent, TimeSpan.FromDays(-29.99));
+        child.Basket = BasketKind.Waste;
         child.Title = "Indented text";
         child.Model = Model;
-        child.Topic = null;
-        child.IsWaste = true;
+        child.Folder = null;
         child.Append(LeafKind.User, "Show me some indented text");
         child.Append(LeafKind.Assistant, GetMessage(MessageKind.Indented));
+        garden.Insert(child);
+        child.ResetSpoof();
 
-        child = garden.Insert(BinKind.Home);
-        child.Title = "Yet more Latin";
+        child = new GardenDeck(DeckKind.Chat, BasketKind.Recent, TimeSpan.FromDays(-32.9));
+        child.Basket = BasketKind.Waste;
         child.Model = Model;
-        child.Topic = null;
-        child.IsWaste = true;
+        child.Title = "Yet more Latin";
+        child.Folder = null;
         child.Append(LeafKind.User, "Show me more latin");
         child.Append(LeafKind.Assistant, GetMessage(MessageKind.Para));
+        garden.Insert(child);
+        child.ResetSpoof();
     }
 
     public static string GetMessage(MessageKind kind)
@@ -276,9 +298,9 @@ Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.";
         return kind;
     }
 
-    private static GardenSession NewRecentMessage(string title, MessageKind start, int iter = 1)
+    private static GardenDeck NewRecentMessage(string title, TimeSpan offset, MessageKind start, int iter = 1)
     {
-        var child = new GardenSession(BinKind.Home);
+        var child = new GardenDeck(DeckKind.Chat, BasketKind.Recent, offset);
         child.Model = Model;
         child.Title = title;
 
@@ -304,6 +326,7 @@ Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.";
             child.Append(LeafKind.Assistant, GetMessage(start));
         }
 
+        child.ResetSpoof();
         return child;
     }
 

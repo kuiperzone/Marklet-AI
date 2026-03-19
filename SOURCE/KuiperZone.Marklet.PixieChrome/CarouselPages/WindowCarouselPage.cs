@@ -1,8 +1,10 @@
 // -----------------------------------------------------------------------------
-// PROJECT   : KuiperZone.Marklet
-// AUTHOR    : Andrew Thomas
-// COPYRIGHT : Andrew Thomas © 2025-2026 All rights reserved
-// LICENSE   : AGPL-3.0-only
+// SPDX-FileNotice: KuiperZone.Marklet - Local AI Client
+// SPDX-License-Identifier: AGPL-3.0-only
+// SPDX-FileCopyrightText: © 2025-2026 Andrew Thomas <kuiperzone@users.noreply.github.com>
+// SPDX-ProjectHomePage: https://kuiper.zone/marklet-ai/
+// SPDX-FileType: Source
+// SPDX-FileComment: This is NOT AI generated source code but was created with human thinking and effort.
 // -----------------------------------------------------------------------------
 
 // Marklet is free software: you can redistribute it and/or modify it under
@@ -36,7 +38,7 @@ public sealed class WindowCarouselPage : SettingsCarouselPage<WindowSettings>
     private readonly PixieCombo _styleCombo = new();
     private readonly PixieCombo _backgroundCombo = new();
 
-    private readonly PixieSwitch _dialogFollowsSwitch = new();
+    private readonly PixieSwitch _dialogAccentSwitch = new();
     private readonly PixieSwitch _taskbarSwitch = new();
 
     /// <summary>
@@ -64,12 +66,14 @@ public sealed class WindowCarouselPage : SettingsCarouselPage<WindowSettings>
         group.Children.Add(_compactSwitch);
 
         _styleCombo.Title = "Control Buttons";
+        _styleCombo.IsTranslateFriendly = true;
         _styleCombo.LeftSymbol = Symbols.ExpandContent;
         _styleCombo.Footer = "Customize minimize, maximize and close buttons to align with desktop";
         _styleCombo.SetItemsAs<ChromeControlStyle>();
         group.Children.Add(_styleCombo);
 
         _backgroundCombo.Title = "Button Background";
+        _backgroundCombo.IsTranslateFriendly = true;
         _backgroundCombo.LeftSymbol = Symbols.DisabledByDefault;
         _backgroundCombo.Footer = "Window control button background";
         _backgroundCombo.SetItemsAs<ChromeControlBackground>();
@@ -81,16 +85,16 @@ public sealed class WindowCarouselPage : SettingsCarouselPage<WindowSettings>
         group.TopTitle = "Child Windows";
         Children.Add(group);
 
-        _dialogFollowsSwitch.Title = "Dialogs Follow Main Window";
-        _dialogFollowsSwitch.LeftSymbol = Symbols.SelectWindow;
-        _dialogFollowsSwitch.Footer = "Dialog windows align with main window settings where possible";
-        group.Children.Add(_dialogFollowsSwitch);
-
         _taskbarSwitch.Title = "Show in Taskbar";
         _taskbarSwitch.LeftSymbol = Symbols.Ad;
         _taskbarSwitch.Footer = "Child windows are shown in taskbar when opened";
         group.Children.Add(_taskbarSwitch);
 
+
+        _dialogAccentSwitch.Title = "Dialog Border Accent";
+        _dialogAccentSwitch.LeftSymbol = Symbols.Palette;
+        _dialogAccentSwitch.Footer = "Dialog windows use accent color for the border";
+        group.Children.Add(_dialogAccentSwitch);
 
         // RESET
         Children.Add(NewResetGroup($"Reset {Title} defaults"));
@@ -111,8 +115,8 @@ public sealed class WindowCarouselPage : SettingsCarouselPage<WindowSettings>
         _styleCombo.SelectedIndex = (int)settings.ControlStyle;
         _backgroundCombo.SelectedIndex = (int)settings.ControlBackground;
 
-        _dialogFollowsSwitch.IsChecked = settings.DialogFollows;
         _taskbarSwitch.IsChecked = settings.ShowDialogInTaskbar;
+        _dialogAccentSwitch.IsChecked = settings.DialogAccentBorder;
 
         UpdateControlEnabledStates();
     }
@@ -128,8 +132,8 @@ public sealed class WindowCarouselPage : SettingsCarouselPage<WindowSettings>
         settings.ControlStyle = _styleCombo.GetSelectedIndexAs<ChromeControlStyle>();
         settings.ControlBackground = _backgroundCombo.GetSelectedIndexAs<ChromeControlBackground>();
 
-        settings.DialogFollows = _dialogFollowsSwitch.IsChecked;
         settings.ShowDialogInTaskbar = _taskbarSwitch.IsChecked;
+        settings.DialogAccentBorder = _dialogAccentSwitch.IsChecked;
     }
 
     /// <summary>
@@ -141,8 +145,8 @@ public sealed class WindowCarouselPage : SettingsCarouselPage<WindowSettings>
         _compactSwitch.ValueChanged += ControlValueChangedHandler;
         _styleCombo.ValueChanged += ControlValueChangedHandler;
         _backgroundCombo.ValueChanged += ControlValueChangedHandler;
-        _dialogFollowsSwitch.ValueChanged += ControlValueChangedHandler;
         _taskbarSwitch.ValueChanged += ControlValueChangedHandler;
+        _dialogAccentSwitch.ValueChanged += ControlValueChangedHandler;
     }
 
     /// <summary>
@@ -152,6 +156,7 @@ public sealed class WindowCarouselPage : SettingsCarouselPage<WindowSettings>
     {
         base.UpdateControlEnabledStates();
         bool chrome = _chromeSwitch.IsChecked;
+        _compactSwitch.IsEnabled = chrome;
         _styleCombo.IsEnabled = chrome;
         _backgroundCombo.IsEnabled = chrome;
     }

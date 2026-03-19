@@ -1,8 +1,10 @@
 // -----------------------------------------------------------------------------
-// PROJECT   : KuiperZone.Marklet
-// AUTHOR    : Andrew Thomas
-// COPYRIGHT : Andrew Thomas © 2025-2026 All rights reserved
-// LICENSE   : AGPL-3.0-only
+// SPDX-FileNotice: KuiperZone.Marklet - Local AI Client
+// SPDX-License-Identifier: AGPL-3.0-only
+// SPDX-FileCopyrightText: © 2025-2026 Andrew Thomas <kuiperzone@users.noreply.github.com>
+// SPDX-ProjectHomePage: https://kuiper.zone/marklet-ai/
+// SPDX-FileType: Source
+// SPDX-FileComment: This is NOT AI generated source code but was created with human thinking and effort.
 // -----------------------------------------------------------------------------
 
 // Marklet is free software: you can redistribute it and/or modify it under
@@ -24,6 +26,7 @@ using Avalonia.Controls;
 using Avalonia.Platform;
 using Avalonia.Media.Imaging;
 using KuiperZone.Marklet.Shared;
+using KuiperZone.Marklet.Windows;
 
 namespace KuiperZone.Marklet.CarouselPages;
 
@@ -45,41 +48,41 @@ public sealed class AboutHomeCarouselPage : CarouselPage
         var group = new PixieGroup();
         Children.Add(group);
 
-        var button = new PixieButton();
+        var button = new PixieCard();
         button.Title = "Website";
         button.TitleWeight = FontWeight.Bold;
         button.RightSymbol = Symbols.OpenInNew;
-        button.BackgroundClick += (_, __) => owner.OnLink(App.WebUrl);
+        button.Click += (_, __) => owner.OnLink(App.WebUrl);
         group.Children.Add(button);
 
-        button = new PixieButton();
+        button = new PixieCard();
         button.Title = "Public Repository";
         button.RightSymbol = Symbols.OpenInNew;
-        button.BackgroundClick += (_, __) => owner.OnLink(App.RepoUrl);
+        button.Click += (_, __) => owner.OnLink(App.RepoUrl);
         group.Children.Add(button);
 
-        button = new PixieButton();
+        button = new PixieCard();
         button.Title = "X/Twitter";
         button.RightSymbol = Symbols.OpenInNew;
-        button.BackgroundClick += (_, __) => owner.OnLink(App.XUrl);
+        button.Click += (_, __) => owner.OnLink(App.XUrl);
         group.Children.Add(button);
 
-        button = new PixieButton();
+        button = new PixieCard();
         button.Title = "License: AGPL-3.0";
         button.RightSymbol = Symbols.OpenInNew;
-        button.BackgroundClick += (_, __) => owner.OnLink(new("app://license"));
+        button.Click += (_, __) => owner.OnLink(new("app://license"));
         group.Children.Add(button);
 
         group = new PixieGroup();
         group.CollapseTitle = "Provisions & Acknowledgements";
-        group.IsCollapsable = true;
+        group.IsCollapsible = true;
         group.IsOpen = false;
         Children.Add(group);
 
         var provisions = new PixieMarkView();
-        provisions.ChildControl.IsChromeStyled = true;
-        provisions.ChildControl.Content = GetProvisionText();
-        provisions.ChildControl.LinkClick += owner.LinkClickHandler;
+        provisions.Subject.IsChromeStyled = true;
+        provisions.Subject.Content = GetProvisionText();
+        provisions.Subject.Tracker.LinkClick += owner.LinkClickHandler;
         group.Children.Add(provisions);
     }
 
@@ -112,12 +115,14 @@ This application is free software that comes with absolutely no warranty. See th
 
 ## Native desktop
 
-Marklet is a traditional desktop application rather than a web or browser application. Its primary purpose is to provide a
-native desktop interface (a viewer) to local AI models, while doing it simply and doing it well. It does not generate AI responses
-itself.
+Marklet is an AI desktop client application. Its primary purpose is to provide a native desktop interface (a viewer) to local AI
+models, while doing it simply and doing it well. It does not generate AI content itself.
 
-While it may facilitate connection to externally hosted services, the design of the software will always prioritise a single
-end-user employing local models and local data. It is unlikely to be suitable for use in enterprise environments.
+While it may facilitate connection to externally hosted services, the design of the software prioritises a single user employing
+a local runner, models and local data.
+
+### Sovereign Code
+The Marklet software is an original work that was created using native human thought and effort. It has not been 'vibe-coded'.
 
 ## Security
 
@@ -128,18 +133,13 @@ remotely hosted service, you must assume that all ""chat messages"", attachments
 remote services at some point. Any technical measure or option that may be provided to limit or restrict this will be
 ""best efforts"" only and likely to be imperfect.
 
-Marklet is not the place to store sensitive information that requires protection beyond that afforded by a local environment
-under your own control.
+Marklet is not the place to store sensitive information that requires protection beyond that afforded by a secure, local
+environment under your own control.
 
 ## Image Generation
 
-Marklet does not support generative image or generative video capabilities and was never designed to do so. Any text-to-speech
+Marklet does not support generative image or generative video capabilities and is not designed to do so. Any text-to-speech
 capability will be for accessibility only and not to mimic real human voices.
-
-## Hallucinations & Romantic Attachments
-It is well known that AI makes mistakes and ""hallucinates"" output. You must assess for yourself its accuracy and all consequences
-of use. If you do not feel competent to use AI applications, you should not do so. If you seek romantic attachment to AI, that
-is entirely up to you, but it is suggested that you should not.
 
 ## Acknowledgements
 The software leverages the following third-party libraries with thanks:
@@ -147,8 +147,7 @@ The software leverages the following third-party libraries with thanks:
 * Avalonia, AvaloniaUI OÜ
 * Markdig, Alexandre Mutel
 * Sqlite
-
-The Marklet code base is an original work that was created using native human thought. It has not been ""vibe-coded"".";
+";
     }
 
     private void LicenseClickHandler(object? _, EventArgs __)

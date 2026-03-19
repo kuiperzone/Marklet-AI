@@ -1,8 +1,10 @@
 // -----------------------------------------------------------------------------
-// PROJECT   : KuiperZone.Marklet
-// AUTHOR    : Andrew Thomas
-// COPYRIGHT : Andrew Thomas © 2025-2026 All rights reserved
-// LICENSE   : AGPL-3.0-only
+// SPDX-FileNotice: KuiperZone.Marklet - Local AI Client
+// SPDX-License-Identifier: AGPL-3.0-only
+// SPDX-FileCopyrightText: © 2025-2026 Andrew Thomas <kuiperzone@users.noreply.github.com>
+// SPDX-ProjectHomePage: https://kuiper.zone/marklet-ai/
+// SPDX-FileType: Source
+// SPDX-FileComment: This is NOT AI generated source code but was created with human thinking and effort.
 // -----------------------------------------------------------------------------
 
 // Marklet is free software: you can redistribute it and/or modify it under
@@ -28,10 +30,14 @@ namespace KuiperZone.Marklet.PixieChrome;
 // Implementation of color and brush related properties for partial class.
 public sealed partial class ChromeStyling
 {
+    private const double TintOpacity = 0.15;
     private Color _accentColor = ChromeBrushes.DefaultAccent.Color;
     private ImmutableSolidColorBrush? _accentBrush;
-    private ImmutableSolidColorBrush? _weakAccent;
-    private ImmutableSolidColorBrush? _semiAccent;
+    private ImmutableSolidColorBrush? _accent50;
+    private ImmutableSolidColorBrush? _accent35;
+    private ImmutableSolidColorBrush? _accent25;
+
+    private Color _tintColor;
 
     /// <summary>
     /// Gets the button background.
@@ -66,12 +72,20 @@ public sealed partial class ChromeStyling
     public static readonly ImmutableSolidColorBrush PixieHover = new(0x206F8396);
 
     /// <summary>
+    /// Gets the group shade background.
+    /// </summary>
+    /// <remarks>
+    /// The color is semi-transparent and intended to be light/dark independent.
+    /// </remarks>
+    public static readonly ImmutableSolidColorBrush GroupShade = new(0x206F8396);
+
+    /// <summary>
     /// Gets the (disabled) foreground gray.
     /// </summary>
     /// <remarks>
     /// The color is semi-transparent and intended to be light/dark independent.
     /// </remarks>
-    public static readonly ImmutableSolidColorBrush ForegroundGray = new(0xFFA0A0A0);
+    public static readonly ImmutableSolidColorBrush GrayForeground = new(0xFF909090);
 
     /// <summary>
     /// Gets whether the actual displayed theme is dark.
@@ -117,11 +131,6 @@ public sealed partial class ChromeStyling
     public ImmutableSolidColorBrush WindowBorder { get; private set; } = ChromeBrushes.Black;
 
     /// <summary>
-    /// Gets the group background brush.
-    /// </summary>
-    public ImmutableSolidColorBrush GroupBorder { get; private set; } = ChromeBrushes.Black;
-
-    /// <summary>
     /// Gets the background for a focused TextBox.
     /// </summary>
     public ImmutableSolidColorBrush FocusedBox { get; private set; } = ChromeBrushes.Black;
@@ -145,13 +154,15 @@ public sealed partial class ChromeStyling
                 ThemePalette.SetAccents(_accentColor);
 
                 _accentBrush = null;
-                _semiAccent = null;
-                _weakAccent = null;
+                _accent50 = null;
+                _accent35 = null;
+                _accent25 = null;
 
                 this.RaisePropertyChanged(nameof(AccentColor));
                 this.RaisePropertyChanged(nameof(AccentBrush));
-                this.RaisePropertyChanged(nameof(SemiAccent));
-                this.RaisePropertyChanged(nameof(WeakAccent));
+                this.RaisePropertyChanged(nameof(Accent50));
+                this.RaisePropertyChanged(nameof(Accent35));
+                this.RaisePropertyChanged(nameof(Accent25));
 
                 // Now fixed
                 // this.RaisePropertyChanged(nameof(LinkForeground));
@@ -174,25 +185,36 @@ public sealed partial class ChromeStyling
     }
 
     /// <summary>
-    /// Gets the "text selection" background brush.
+    /// Gets the "text selection" accent background brush with 50% opacity.
     /// </summary>
     /// <remarks>
     /// The color is derived from <see cref="AccentColor"/>.
     /// </remarks>
-    public ImmutableSolidColorBrush SemiAccent
+    public ImmutableSolidColorBrush Accent50
     {
-        get { return _semiAccent ??= new ImmutableSolidColorBrush(_accentColor, 0.25); }
+        get { return _accent50 ??= new ImmutableSolidColorBrush(_accentColor, 0.50); }
     }
 
     /// <summary>
-    /// Gets a semi-transparent (Opacity ~ 0.1) accent brush which may serve as a background.
+    /// Gets the "text selection" accent background brush with 35% opacity.
     /// </summary>
     /// <remarks>
     /// The color is derived from <see cref="AccentColor"/>.
     /// </remarks>
-    public ImmutableSolidColorBrush WeakAccent
+    public ImmutableSolidColorBrush Accent35
     {
-        get { return _weakAccent ??= new ImmutableSolidColorBrush(_accentColor, 0.25); }
+        get { return _accent35 ??= new ImmutableSolidColorBrush(_accentColor, 0.35); }
+    }
+
+    /// <summary>
+    /// Gets the "text selection" accent background brush with 20% opacity.
+    /// </summary>
+    /// <remarks>
+    /// The color is derived from <see cref="AccentColor"/>.
+    /// </remarks>
+    public ImmutableSolidColorBrush Accent25
+    {
+        get { return _accent25 ??= new ImmutableSolidColorBrush(_accentColor, 0.25); }
     }
 
     /// <summary>
@@ -209,7 +231,38 @@ public sealed partial class ChromeStyling
     /// <remarks>
     /// Currently a fixed value.
     /// </remarks>
-    public ImmutableSolidColorBrush LinkHover{ get; private set; } = ChromeBrushes.BlueLightAccent;
+    public ImmutableSolidColorBrush LinkHover { get; private set; } = ChromeBrushes.BlueLightAccent;
+
+    /// <summary>
+    /// Gets or sets the tint color
+    /// </summary>
+    public Color TintColor
+    {
+        get { return _tintColor; }
+
+        set
+        {
+            if (_tintColor != value)
+            {
+                _tintColor = value;
+
+                this.RaisePropertyChanged(nameof(TintColor));
+
+                RaiseTint(value);
+                OnStylingChanged();
+            }
+        }
+    }
+
+    /// <summary>
+    /// Gets an overlay tint brush.
+    /// </summary>
+    public IBrush? TintBrush { get; private set; }
+
+    /// <summary>
+    /// Gets an overlay tint brush.
+    /// </summary>
+    public IBrush? TintBackground { get; private set; }
 
     /// <summary>
     /// Gets a contrasting foreground color to given background.
@@ -232,7 +285,6 @@ public sealed partial class ChromeStyling
         BufferBarBrush = palette.BufferBarBrush;
         BorderBrush = palette.BorderBrush;
         WindowBorder = palette.WindowBorder;
-        GroupBorder = palette.GroupBorder;
         FocusedBox = palette.FocusedBox;
 
         // Don't raise Accent related properties
@@ -244,7 +296,25 @@ public sealed partial class ChromeStyling
         this.RaisePropertyChanged(nameof(BufferBarBrush));
         this.RaisePropertyChanged(nameof(BorderBrush));
         this.RaisePropertyChanged(nameof(WindowBorder));
-        this.RaisePropertyChanged(nameof(GroupBorder));
         this.RaisePropertyChanged(nameof(FocusedBox));
+
+        RaiseTint(_tintColor);
+    }
+
+    private void RaiseTint(Color value)
+    {
+        if (value != default)
+        {
+            TintBrush = new ImmutableSolidColorBrush(value, TintOpacity);
+            TintBackground = new ImmutableSolidColorBrush(value.Blend(TintOpacity, BackgroundLow.Color));
+        }
+        else
+        {
+            TintBrush = null;
+            TintBackground = BackgroundLow;
+        }
+
+        this.RaisePropertyChanged(nameof(TintBrush));
+        this.RaisePropertyChanged(nameof(TintBackground));
     }
 }

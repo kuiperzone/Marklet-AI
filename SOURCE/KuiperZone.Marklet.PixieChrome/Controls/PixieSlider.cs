@@ -1,8 +1,10 @@
 // -----------------------------------------------------------------------------
-// PROJECT   : KuiperZone.Marklet
-// AUTHOR    : Andrew Thomas
-// COPYRIGHT : Andrew Thomas © 2025-2026 All rights reserved
-// LICENSE   : AGPL-3.0-only
+// SPDX-FileNotice: KuiperZone.Marklet - Local AI Client
+// SPDX-License-Identifier: AGPL-3.0-only
+// SPDX-FileCopyrightText: © 2025-2026 Andrew Thomas <kuiperzone@users.noreply.github.com>
+// SPDX-ProjectHomePage: https://kuiper.zone/marklet-ai/
+// SPDX-FileType: Source
+// SPDX-FileComment: This is NOT AI generated source code but was created with human thinking and effort.
 // -----------------------------------------------------------------------------
 
 // Marklet is free software: you can redistribute it and/or modify it under
@@ -26,7 +28,7 @@ namespace KuiperZone.Marklet.PixieChrome.Controls;
 /// <summary>
 /// A <see cref="PixieControl{T}"/> composite housing a <see cref="Slider"/> instance.
 /// </summary>
-public sealed class PixieSlider : PixieControl<Slider>
+public class PixieSlider : PixieControl<Slider>
 {
     private string? _footer;
 
@@ -36,10 +38,10 @@ public sealed class PixieSlider : PixieControl<Slider>
     public PixieSlider()
         : base(true, Avalonia.Layout.VerticalAlignment.Center)
     {
-        SetPseudoFocusControl(ChildControl);
-        ChildControl.BorderThickness = default;
-        ChildControl.BorderBrush = Brushes.Transparent;
-        ChildControl.ValueChanged += SliderChangedHandler;
+        SetPseudoFocusControl(Subject);
+        Subject.BorderThickness = default;
+        Subject.BorderBrush = Brushes.Transparent;
+        Subject.ValueChanged += SliderChangedHandler;
     }
 
     /// <summary>
@@ -96,9 +98,9 @@ public sealed class PixieSlider : PixieControl<Slider>
     {
         if (!string.IsNullOrEmpty(_footer))
         {
-            var v0 = GetVariable(ChildControl.Value, format);
-            var min = GetVariable(ChildControl.Minimum, format);
-            var max = GetVariable(ChildControl.Maximum, format);
+            var v0 = GetVariable(Subject.Value, format);
+            var min = GetVariable(Subject.Minimum, format);
+            var max = GetVariable(Subject.Maximum, format);
             base.Footer = _footer?.Replace("{VALUE}", v0).Replace("{MIN}", min).Replace("{MAX}", max);
             return;
         }
@@ -110,17 +112,17 @@ public sealed class PixieSlider : PixieControl<Slider>
     {
         if (string.IsNullOrEmpty(format))
         {
-            if (ChildControl?.SmallChange < 1.0)
+            if (Subject?.SmallChange < 1.0)
             {
                 format = "#,##0.###";
             }
             else
-            if (ChildControl?.SmallChange < 10.0)
+            if (Subject?.SmallChange < 10.0)
             {
                 format = "#,##0.##";
             }
             else
-            if (ChildControl?.SmallChange < 100.0)
+            if (Subject?.SmallChange < 100.0)
             {
                 format = "#,##0.#";
             }

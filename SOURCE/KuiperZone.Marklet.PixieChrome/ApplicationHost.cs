@@ -1,8 +1,10 @@
 // -----------------------------------------------------------------------------
-// PROJECT   : KuiperZone.Marklet
-// AUTHOR    : Andrew Thomas
-// COPYRIGHT : Andrew Thomas © 2025-2026 All rights reserved
-// LICENSE   : AGPL-3.0-only
+// SPDX-FileNotice: KuiperZone.Marklet - Local AI Client
+// SPDX-License-Identifier: AGPL-3.0-only
+// SPDX-FileCopyrightText: © 2025-2026 Andrew Thomas <kuiperzone@users.noreply.github.com>
+// SPDX-ProjectHomePage: https://kuiper.zone/marklet-ai/
+// SPDX-FileType: Source
+// SPDX-FileComment: This is NOT AI generated source code but was created with human thinking and effort.
 // -----------------------------------------------------------------------------
 
 // Marklet is free software: you can redistribute it and/or modify it under
@@ -184,9 +186,15 @@ public sealed class ApplicationHost
     /// <remarks>
     /// The result is true if the instance holds an exclusive lock file.
     /// </remarks>
+    /// <exception cref="InvalidOperationException">Already initialized</exception>
     public bool Initialize()
     {
         const string NSpace = $"{nameof(ApplicationHost)}.{nameof(Initialize)}";
+
+        if (_lockHandle != null)
+        {
+            throw new InvalidOperationException("Already initialized");
+        }
 
         if (_lockHandle == null)
         {

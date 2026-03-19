@@ -1,8 +1,10 @@
 // -----------------------------------------------------------------------------
-// PROJECT   : KuiperZone.Marklet
-// AUTHOR    : Andrew Thomas
-// COPYRIGHT : Andrew Thomas © 2025-2026 All rights reserved
-// LICENSE   : AGPL-3.0-only
+// SPDX-FileNotice: KuiperZone.Marklet - Local AI Client
+// SPDX-License-Identifier: AGPL-3.0-only
+// SPDX-FileCopyrightText: © 2025-2026 Andrew Thomas <kuiperzone@users.noreply.github.com>
+// SPDX-ProjectHomePage: https://kuiper.zone/marklet-ai/
+// SPDX-FileType: Source
+// SPDX-FileComment: This is NOT AI generated source code but was created with human thinking and effort.
 // -----------------------------------------------------------------------------
 
 // Marklet is free software: you can redistribute it and/or modify it under
@@ -75,17 +77,17 @@ public class CarouselWindow : ChromeWindow
         : base(true)
     {
         // See ChromeStyling.axaml
-        PageClasses.Add("chrome-corner-grouped");
+        PageClasses.Add("pill-list");
 
         _grid.RowDefinitions.Add(new(GridLength.Star));
         _grid.ColumnDefinitions.Add(new(GridLength.Auto));
         _grid.ColumnDefinitions.Add(new(GridLength.Star));
         Content = _grid;
 
-        _leftPanel.Classes.Add("chrome-corner-small");
+        _leftPanel.Classes.Add("corner-small");
         _leftPanel.MinWidth = DefaultLeftPanelMinWidth;
         _leftPanel.MaxWidth = DefaultLeftPanelMaxWidth;
-        _leftPanel.Margin = ChromeSizes.RegularPadding;
+        _leftPanel.Margin = ChromeSizes.StandardPadding;
 
         _leftScroller.Content = _leftPanel;
         _leftScroller.VerticalScrollBarVisibility = ScrollBarVisibility.Auto;
@@ -102,7 +104,7 @@ public class CarouselWindow : ChromeWindow
         _grid.Children.Add(_contentPanel);
         _contentPanel.ContentMaxWidth = DefaultContentMaxWidth;
         _contentPanel.ContentMargin = ChromeSizes.HugePadding;
-        _contentPanel.VerticalSpacing = ChromeSizes.HugeSpacerPx;
+        _contentPanel.VerticalSpacing = ChromeSizes.HugePx;
         _contentPanel.HorizontalScrollBarVisibility = ScrollBarVisibility.Auto;
 
         _leftPanel.Children.Add(_searchEditor);
@@ -111,12 +113,12 @@ public class CarouselWindow : ChromeWindow
         _searchEditor.Watermark = "Search...";
         _searchEditor.MinWidth = 0;
         _searchEditor.Width = double.NaN;
-        _searchEditor.Margin = new(0.0, ChromeSizes.MediumSpacerPx);
+        _searchEditor.Margin = new(0.0, ChromeSizes.LargePx);
         _searchEditor.HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Stretch;
         _searchEditor.KeyDown += SearchKeyDownHandler;
         _searchEditor.TextChanged += SearchTextChanged;
 
-        _searchButton = ChromeBar.LeftGroup.Add(Symbols.Search, "Search");
+        _searchButton = ChromeBar.LeftGroup.AddButton(Symbols.Search, "Search");
         _searchButton.IsVisible = false;
         _searchButton.Click += (_, __) => ToggleSearch();
 
@@ -312,7 +314,7 @@ public class CarouselWindow : ChromeWindow
             if (page != null)
             {
                 ChromeBar.Title = page.IndexButton.Title;
-                page.IndexButton.IsBackgroundChecked = true;
+                page.IndexButton.IsChecked = true;
                 _contentPanel.Children.AddRange(page.Children);
                 return;
             }
@@ -426,7 +428,7 @@ public class CarouselWindow : ChromeWindow
                 _leftPanel.Children.Add(item);
 
                 item.MaxWidth = width;
-                item.BackgroundClick += FindingClickHandler;
+                item.Click += FindingClickHandler;
             }
 
             return;
@@ -436,8 +438,8 @@ public class CarouselWindow : ChromeWindow
         {
             var none = new TextBlock();
             none.Text = "None";
-            none.Foreground = ChromeStyling.ForegroundGray;
-            none.Margin = new(0.0, ChromeSizes.HugeSpacerPx);
+            none.Foreground = ChromeStyling.GrayForeground;
+            none.Margin = new(0.0, ChromeSizes.HugePx);
             none.HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Center;
             _leftPanel.Children.Add(none);
         }

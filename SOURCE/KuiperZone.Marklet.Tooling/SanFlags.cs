@@ -1,8 +1,10 @@
 // -----------------------------------------------------------------------------
-// PROJECT   : KuiperZone.Marklet
-// AUTHOR    : Andrew Thomas
-// COPYRIGHT : Andrew Thomas © 2025-2026 All rights reserved
-// LICENSE   : AGPL-3.0-only
+// SPDX-FileNotice: KuiperZone.Marklet - Local AI Client
+// SPDX-License-Identifier: AGPL-3.0-only
+// SPDX-FileCopyrightText: © 2025-2026 Andrew Thomas <kuiperzone@users.noreply.github.com>
+// SPDX-ProjectHomePage: https://kuiper.zone/marklet-ai/
+// SPDX-FileType: Source
+// SPDX-FileComment: This is NOT AI generated source code but was created with human thinking and effort.
 // -----------------------------------------------------------------------------
 
 // Marklet is free software: you can redistribute it and/or modify it under
@@ -25,7 +27,7 @@ namespace KuiperZone.Marklet.Tooling;
 public enum SanFlags
 {
     /// <summary>
-    /// Removes any invalid unicode surrogate pairs, unassigned characters, substitutes '\x0' with U+FFFD and
+    /// Removes invalid unicode surrogate pairs, unassigned/private characters, substitutes '\x0' with U+FFFD and
     /// substitutes Windows CR/LF pairs with the interoperable U+000A (LF) character.
     /// </summary>
     /// <remarks>
@@ -43,7 +45,7 @@ public enum SanFlags
     /// Substitute alternate line feed characters with one or more U+000A (LF), as appropriate.
     /// </summary>
     /// <remarks>
-    /// If specified, the following are substituted with: U+000B (VT), U+000C (FF), U+0085 (NEL) and U+2029 (PS).
+    /// If specified, the following are substituted: U+000B (VT), U+000C (FF), U+0085 (NEL) and U+2029 (PS).
     /// </remarks>
     SubFeed = 0x0002,
 

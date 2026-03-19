@@ -1,8 +1,10 @@
 // -----------------------------------------------------------------------------
-// PROJECT   : KuiperZone.Marklet
-// AUTHOR    : Andrew Thomas
-// COPYRIGHT : Andrew Thomas © 2025-2026 All rights reserved
-// LICENSE   : AGPL-3.0-only
+// SPDX-FileNotice: KuiperZone.Marklet - Local AI Client
+// SPDX-License-Identifier: AGPL-3.0-only
+// SPDX-FileCopyrightText: © 2025-2026 Andrew Thomas <kuiperzone@users.noreply.github.com>
+// SPDX-ProjectHomePage: https://kuiper.zone/marklet-ai/
+// SPDX-FileType: Source
+// SPDX-FileComment: This is NOT AI generated source code but was created with human thinking and effort.
 // -----------------------------------------------------------------------------
 
 // Marklet is free software: you can redistribute it and/or modify it under
@@ -16,7 +18,6 @@
 // You should have received a copy of the GNU Affero General Public License along
 // with Marklet. If not, see <https://www.gnu.org/licenses/>.
 
-using Avalonia;
 using Avalonia.Controls;
 using KuiperZone.Marklet.PixieChrome.Controls;
 using KuiperZone.Marklet.PixieChrome;
@@ -25,11 +26,10 @@ using Avalonia.Input;
 namespace KuiperZone.Marklet.Controls;
 
 /// <summary>
-/// Subclass of <see cref="MarkView"/> for use by <see cref="ContentViewer"/>.
+/// Subclass of <see cref="MarkView"/> for use by <see cref="DeckViewer"/>.
 /// </summary>
 public sealed class PromptBar : Border
 {
-    private readonly static ChromeStyling Styling = ChromeStyling.Global;
     private readonly Grid _grid = new();
     private readonly LightBar _bar = new();
     private readonly LightButton _submit = new();
@@ -54,34 +54,33 @@ public sealed class PromptBar : Border
         _bar.VerticalAlignment = Avalonia.Layout.VerticalAlignment.Center;
         _grid.Children.Add(_bar);
 
-        Attach = _bar.Add(Symbols.AttachFile, "Attach");
+        Attach = _bar.AddButton(Symbols.AttachFile, "Attach");
         Attach.Gesture = new(Key.A, KeyModifiers.Control | KeyModifiers.Shift);
 
-        Copy = _bar.Add(Symbols.ContentCopy, "Copy");
+        Copy = _bar.AddButton(Symbols.ContentCopy, "Copy");
         Copy.Gesture = new(Key.C, KeyModifiers.Control);
 
-        Paste = _bar.Add(Symbols.ContentPaste, "Paste");
+        Paste = _bar.AddButton(Symbols.ContentPaste, "Paste");
         Paste.Gesture = new(Key.V, KeyModifiers.Control);
 
-        SelectAll = _bar.Add(Symbols.SelectAll, "Select All");
+        SelectAll = _bar.AddButton(Symbols.SelectAll, "Select All");
         SelectAll.Gesture = new(Key.A, KeyModifiers.Control);
 
-        Monospace = _bar.Add(Symbols.Abc, "Monospace");
+        Monospace = _bar.AddButton(Symbols.Abc, "Monospace");
         Monospace.Gesture = new(Key.M, KeyModifiers.Control);
 
-        EditWindow = _bar.Add(Symbols.OpenInNew, "Edit in window");
+        EditWindow = _bar.AddButton(Symbols.OpenInNew, "Edit in window");
         EditWindow.Gesture = new(Key.F12);
 
         Submit = _submit;
-        Grid.SetColumn(_submit, SubmitColumn);
         _submit.Content = Symbols.Send;
         _submit.Tip = "Submit";
-        _submit.Foreground = ChromeBrushes.White;
-        _submit.IsChecked = true;
         _submit.Gesture = new(Key.Enter);
         _submit.Focusable = false;
+        _submit.Classes.Add("accent-background");
         _submit.MinWidth = ChromeFonts.SymbolFontSize * 3.0;
         _submit.VerticalAlignment = Avalonia.Layout.VerticalAlignment.Center;
+        Grid.SetColumn(_submit, SubmitColumn);
 
         _grid.Children.Add(_submit);
 
@@ -143,30 +142,6 @@ public sealed class PromptBar : Border
         }
 
         return false;
-    }
-
-    /// <summary>
-    /// Overrides.
-    /// </summary>
-    protected override void OnAttachedToVisualTree(VisualTreeAttachmentEventArgs e)
-    {
-        base.OnAttachedToVisualTree(e);
-        StylingChangedHandler(null, EventArgs.Empty);
-        Styling.StylingChanged += StylingChangedHandler;
-    }
-
-    /// <summary>
-    /// Overrides.
-    /// </summary>
-    protected override void OnDetachedFromVisualTree(VisualTreeAttachmentEventArgs e)
-    {
-        base.OnDetachedFromVisualTree(e);
-        Styling.StylingChanged -= StylingChangedHandler;
-    }
-
-    private void StylingChangedHandler(object? _, EventArgs __)
-    {
-        _submit.Background = Styling.AccentBrush;
     }
 
 }

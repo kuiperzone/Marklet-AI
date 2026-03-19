@@ -1,8 +1,10 @@
 // -----------------------------------------------------------------------------
-// PROJECT   : KuiperZone.Marklet
-// AUTHOR    : Andrew Thomas
-// COPYRIGHT : Andrew Thomas © 2025-2026 All rights reserved
-// LICENSE   : AGPL-3.0-only
+// SPDX-FileNotice: KuiperZone.Marklet - Local AI Client
+// SPDX-License-Identifier: AGPL-3.0-only
+// SPDX-FileCopyrightText: © 2025-2026 Andrew Thomas <kuiperzone@users.noreply.github.com>
+// SPDX-ProjectHomePage: https://kuiper.zone/marklet-ai/
+// SPDX-FileType: Source
+// SPDX-FileComment: This is NOT AI generated source code but was created with human thinking and effort.
 // -----------------------------------------------------------------------------
 
 // Marklet is free software: you can redistribute it and/or modify it under
@@ -31,14 +33,14 @@ public sealed class InspectWindow : CarouselWindow
     public InspectWindow()
     {
         // See ChromeStyling.axaml
-        PageClasses.Add("chrome-high");
+        PageClasses.Add("shade-background");
 
         Title = "Controls";
-        Pages.Add(new PixieGroupPage());
 
-        Pages.Add(new PixieButtonPage() { IsSectionStart = true });
-        Pages.Add(new PixieComboPage());
+        Pages.Add(new PixieGroupPage());
+        Pages.Add(new PixieCardPage());
         Pages.Add(new PixieColorPage());
+        Pages.Add(new PixieComboPage());
         Pages.Add(new PixieControlPage());
         Pages.Add(new PixieEditorPage());
         Pages.Add(new PixieNumericPage());
@@ -48,6 +50,7 @@ public sealed class InspectWindow : CarouselWindow
         Pages.Add(new PixieSliderPage());
         Pages.Add(new PixieTogglePage());
 
-        Pages.Add(new DialogPage() { IsSectionStart = true });
+        Pages.Add(new ChromeDialogPage() { IsSectionStart = true });
+        Pages.Add(new LightButtonPage());
     }
 }

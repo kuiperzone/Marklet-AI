@@ -1,8 +1,10 @@
 // -----------------------------------------------------------------------------
-// PROJECT   : KuiperZone.Marklet
-// AUTHOR    : Andrew Thomas
-// COPYRIGHT : Andrew Thomas © 2025-2026 All rights reserved
-// LICENSE   : AGPL-3.0-only
+// SPDX-FileNotice: KuiperZone.Marklet - Local AI Client
+// SPDX-License-Identifier: AGPL-3.0-only
+// SPDX-FileCopyrightText: © 2025-2026 Andrew Thomas <kuiperzone@users.noreply.github.com>
+// SPDX-ProjectHomePage: https://kuiper.zone/marklet-ai/
+// SPDX-FileType: Source
+// SPDX-FileComment: This is NOT AI generated source code but was created with human thinking and effort.
 // -----------------------------------------------------------------------------
 
 // Marklet is free software: you can redistribute it and/or modify it under
@@ -151,13 +153,14 @@ public sealed class MarkDocument : IReadOnlyList<IReadOnlyMarkBlock>, IEquatable
     [return: NotNullIfNotNull(nameof(str))]
     public static string? Sanitize(string? str, MarkOptions opts, int maxLength = int.MaxValue)
     {
-        if (opts.HasFlag(MarkOptions.Presan))
+        const SanFlags Flags = SanFlags.SubControl | SanFlags.NormC;
+
+        if (!opts.HasFlag(MarkOptions.Presan))
         {
-            return str;
+            return Sanitizer.Sanitize(str, Flags, maxLength);
         }
 
-        const SanFlags Flags = SanFlags.SubControl | SanFlags.NormC;
-        return Sanitizer.Sanitize(str, Flags, maxLength);
+        return str;
     }
 
     /// <summary>
@@ -380,12 +383,12 @@ public sealed class MarkDocument : IReadOnlyList<IReadOnlyMarkBlock>, IEquatable
                 ConditionalDebug.ThrowIfNegative(index);
 
                 index += 1;
-                int count = n - index;
+                int c = n - index;
 
-                if (count > 0)
+                if (c > 0)
                 {
                     n = index - 1;
-                    clone.RemoveRange(index, count);
+                    clone.RemoveRange(index, c);
                 }
 
                 index = -1;

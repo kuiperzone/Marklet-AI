@@ -1,8 +1,10 @@
 // -----------------------------------------------------------------------------
-// PROJECT   : KuiperZone.Marklet
-// AUTHOR    : Andrew Thomas
-// COPYRIGHT : Andrew Thomas © 2025-2026 All rights reserved
-// LICENSE   : AGPL-3.0-only
+// SPDX-FileNotice: KuiperZone.Marklet - Local AI Client
+// SPDX-License-Identifier: AGPL-3.0-only
+// SPDX-FileCopyrightText: © 2025-2026 Andrew Thomas <kuiperzone@users.noreply.github.com>
+// SPDX-ProjectHomePage: https://kuiper.zone/marklet-ai/
+// SPDX-FileType: Source
+// SPDX-FileComment: This is NOT AI generated source code but was created with human thinking and effort.
 // -----------------------------------------------------------------------------
 
 // Marklet is free software: you can redistribute it and/or modify it under
@@ -25,6 +27,7 @@ using Avalonia.Media;
 using Avalonia.Metadata;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
+using KuiperZone.Marklet.PixieChrome.Controls;
 using KuiperZone.Marklet.PixieChrome.Settings;
 using KuiperZone.Marklet.PixieChrome.Windows.Internal;
 using KuiperZone.Marklet.Tooling;
@@ -45,9 +48,9 @@ public class ChromeWindow : Window
     /// </summary>
     protected static readonly ChromeStyling Styling = ChromeStyling.Global;
 
-    private const int GrabPixels = 8;
     private const int TitleRow = 0;
     private const int ContentRow = 1;
+    private const int TintZ = int.MaxValue - 1;
     private const int DeactiveZ = int.MaxValue;
 
     private readonly bool _initialized;
@@ -64,6 +67,7 @@ public class ChromeWindow : Window
     private bool _isSettingBase;
     private Cursor? _cursor;
 
+    private Border? _tintOverlay;
     private Border? _deactiveOverlay;
 
     // Direct properties
@@ -450,7 +454,29 @@ public class ChromeWindow : Window
         UpdateBorder(WindowState);
         _chromeBar.RefreshStyling();
         _outerWrap.Background = Styling.Background;
-        _outerWrap.BorderBrush = Styling.WindowBorder;
+
+        if (Styling.TintBrush != null)
+        {
+            if (_tintOverlay == null)
+            {
+                _tintOverlay = new();
+                _tintOverlay.IsHitTestVisible = false;
+                _tintOverlay.ZIndex = TintZ;
+
+                Grid.SetRow(_tintOverlay, TitleRow);
+                Grid.SetRowSpan(_tintOverlay, int.MaxValue);
+
+                _contentGrid.Children.Add(_tintOverlay);
+            }
+
+            _tintOverlay.Background = Styling.TintBrush;
+        }
+        else
+        if (_tintOverlay != null)
+        {
+            _contentGrid.Children.Remove(_tintOverlay);
+            _tintOverlay = null;
+        }
     }
 
     /// <summary>
@@ -535,7 +561,7 @@ public class ChromeWindow : Window
         ConditionalDebug.WriteLine(NSpace, $"Key: {e.Key}, {e.PhysicalKey}");
         ConditionalDebug.WriteLine(NSpace, $"Handled: {e.Handled}, {IsActive}");
 
-        if (!IsActive)
+        if (!IsActive || e.Handled)
         {
             // Shouldn't really need to check, but had
             // situation where window behind is receiving keys.
@@ -552,7 +578,7 @@ public class ChromeWindow : Window
             return;
         }
 
-        if (e.PhysicalKey == PhysicalKey.Escape && IsEscapeToClose && IsActive && !e.Handled)
+        if (e.PhysicalKey == PhysicalKey.Escape && IsEscapeToClose && IsActive)
         {
             ConditionalDebug.WriteLine(NSpace, "Escape accepted");
             e.Handled = true;
@@ -640,6 +666,11 @@ public class ChromeWindow : Window
 
         if (p == WindowStateProperty)
         {
+            if (change.GetNewValue<WindowState>() == WindowState.Maximized)
+            {
+                Topmost = false;
+            }
+
             UpdateBorder(change.GetNewValue<WindowState>());
             return;
         }
@@ -677,13 +708,13 @@ public class ChromeWindow : Window
         switch (edge)
         {
             case WindowEdge.North:
-            case WindowEdge.South: return ChromeCursors.SizeNorthSouthCursor;
+            case WindowEdge.South: return ChromeCursors.SizeNorthSouth;
             case WindowEdge.West:
-            case WindowEdge.East: return ChromeCursors.SizeWestEastCursor;
-            case WindowEdge.NorthWest: return ChromeCursors.TopLeftCornerCursor;
-            case WindowEdge.NorthEast: return ChromeCursors.TopRightCornerCursor;
-            case WindowEdge.SouthWest: return ChromeCursors.BottomLeftCornerCursor;
-            case WindowEdge.SouthEast: return ChromeCursors.BottomRightCornerCursor;
+            case WindowEdge.East: return ChromeCursors.SizeWestEast;
+            case WindowEdge.NorthWest: return ChromeCursors.TopLeftCorner;
+            case WindowEdge.NorthEast: return ChromeCursors.TopRightCorner;
+            case WindowEdge.SouthWest: return ChromeCursors.BottomLeftCorner;
+            case WindowEdge.SouthEast: return ChromeCursors.BottomRightCorner;
             default: throw new ArgumentException("Invalid edge", nameof(edge));
         }
     }
@@ -699,6 +730,7 @@ public class ChromeWindow : Window
         if (IsChromeWindow != _chromeWindowLast || !_initialized)
         {
             _chromeWindowLast = IsChromeWindow;
+            Topmost = false;
 
             if (IsChromeWindow)
             {
@@ -714,7 +746,7 @@ public class ChromeWindow : Window
 
                 // Need to intercept event over child controls for resizing.
                 // We may get multiple firings on the handler method.
-                AddHandler(PointerPressedEvent, PointerPressedHandler,
+                AddHandler(PointerPressedEvent, DragResizePressedHandler,
                     RoutingStrategies.Tunnel | RoutingStrategies.Bubble,
                     handledEventsToo: true);
             }
@@ -730,7 +762,7 @@ public class ChromeWindow : Window
                 _chromeBar.DoubleTapped -= ChromeDoubleTappedHandler;
                 _chromeBar.PointerPressed -= ChromePointerPressedHandler;
 
-                RemoveHandler(PointerPressedEvent, PointerPressedHandler);
+                RemoveHandler(PointerPressedEvent, DragResizePressedHandler);
             }
         }
 
@@ -743,22 +775,17 @@ public class ChromeWindow : Window
     private bool TryEdge(PointerEventArgs e, out WindowEdge edge)
     {
         var p = e.GetPosition(this);
+        var grab = GetGrabPixels(p);
 
-        if (IsOverInteractiveElement(p))
+        if (p.X < grab)
         {
-            edge = default;
-            return false;
-        }
-
-        if (p.X < GrabPixels)
-        {
-            if (p.Y < GrabPixels)
+            if (p.Y < grab)
             {
                 edge = WindowEdge.NorthWest;
                 return true;
             }
 
-            if (p.Y > Bounds.Height - GrabPixels)
+            if (p.Y > Bounds.Height - grab)
             {
                 edge = WindowEdge.SouthWest;
                 return true;
@@ -768,15 +795,15 @@ public class ChromeWindow : Window
             return true;
         }
 
-        if (p.X > Bounds.Width - GrabPixels)
+        if (p.X > Bounds.Width - grab)
         {
-            if (p.Y < GrabPixels)
+            if (p.Y < grab)
             {
                 edge = WindowEdge.NorthEast;
                 return true;
             }
 
-            if (p.Y > Bounds.Height - GrabPixels)
+            if (p.Y > Bounds.Height - grab)
             {
                 edge = WindowEdge.SouthEast;
                 return true;
@@ -786,13 +813,13 @@ public class ChromeWindow : Window
             return true;
         }
 
-        if (p.Y < GrabPixels)
+        if (p.Y < grab)
         {
             edge = WindowEdge.North;
             return true;
         }
 
-        if (p.Y > Bounds.Height - GrabPixels)
+        if (p.Y > Bounds.Height - grab)
         {
             edge = WindowEdge.South;
             return true;
@@ -800,6 +827,29 @@ public class ChromeWindow : Window
 
         edge = default;
         return false;
+    }
+
+    private double GetGrabPixels(Point p)
+    {
+        const int DefaultPixels = 10;
+        const int ConflictPixels = 4;
+        const int MaxWalk = 8;
+
+        int count = 0;
+        var v = this.GetVisualAt(p);
+
+        while (v != null && ++count < MaxWalk)
+        {
+            if (v is LightButton or Button or TextBox or Slider or ScrollBar or LightDismissOverlayLayer)
+            {
+                // Still allow but small grab so as not to interfer
+                return ConflictPixels;
+            }
+
+            v = v.Parent as Control;
+        }
+
+        return DefaultPixels;
     }
 
     private void SetBaseValue(AvaloniaProperty property, object? value)
@@ -817,6 +867,8 @@ public class ChromeWindow : Window
 
     private void UpdateBorder(WindowState state)
     {
+        _outerWrap.BorderBrush = Settings.GetWindowBorder(IsDialog);
+
         if (IsChromeWindow && state == WindowState.Normal)
         {
             _outerWrap.BorderThickness = new(1.0);
@@ -863,18 +915,6 @@ public class ChromeWindow : Window
         return false;
     }
 
-    private bool IsOverInteractiveElement(Point p)
-    {
-        var v = this.GetVisualAt(p);
-
-        if (v != null)
-        {
-            return v is LightDismissOverlayLayer or Button or TextBox or ScrollBar or Slider;
-        }
-
-        return v != this;
-    }
-
     private void StylingChangedHandler(object? _, EventArgs __)
     {
         OnStylingChanged(false);
@@ -903,6 +943,12 @@ public class ChromeWindow : Window
     {
         const string NSpace = $"{nameof(ChromeWindow)}.{nameof(ChromePointerPressedHandler)}";
         ConditionalDebug.WriteLine(NSpace, $"Class type: {GetType().Name}");
+        ConditionalDebug.WriteLine(NSpace, $"Handled: {e.Handled}");
+
+        if (e.Handled)
+        {
+            return;
+        }
 
         // Need to handle as right-click to fix quirk/bug on windows
         // Handle this here because otherwise conflicts with drag move below.
@@ -928,18 +974,18 @@ public class ChromeWindow : Window
     private void ChromeDoubleTappedHandler(object? _, TappedEventArgs e)
     {
         // Modern drag move
-        if (IsChromeWindow && CanMaximize)
+        if (IsChromeWindow && CanMaximize && !e.Handled)
         {
             WindowState = WindowState == WindowState.Maximized ? WindowState.Normal : WindowState.Maximized;
         }
     }
 
-    private void PointerPressedHandler(object? _, PointerPressedEventArgs e)
+    private void DragResizePressedHandler(object? _, PointerPressedEventArgs e)
     {
         // Drag resize
-        const string NSpace = $"{nameof(ChromeWindow)}.{nameof(PointerPressedHandler)}";
+        const string NSpace = $"{nameof(ChromeWindow)}.{nameof(OnPointerPressed)}";
 
-        if (IsChromeWindow && CanResize)
+        if (IsChromeWindow && CanResize && !e.Handled)
         {
             var pos = e.GetPosition(this);
 

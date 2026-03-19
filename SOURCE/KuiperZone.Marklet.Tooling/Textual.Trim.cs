@@ -1,8 +1,10 @@
 // -----------------------------------------------------------------------------
-// PROJECT   : KuiperZone.Marklet
-// AUTHOR    : Andrew Thomas
-// COPYRIGHT : Andrew Thomas © 2025-2026 All rights reserved
-// LICENSE   : AGPL-3.0-only
+// SPDX-FileNotice: KuiperZone.Marklet - Local AI Client
+// SPDX-License-Identifier: AGPL-3.0-only
+// SPDX-FileCopyrightText: © 2025-2026 Andrew Thomas <kuiperzone@users.noreply.github.com>
+// SPDX-ProjectHomePage: https://kuiper.zone/marklet-ai/
+// SPDX-FileType: Source
+// SPDX-FileComment: This is NOT AI generated source code but was created with human thinking and effort.
 // -----------------------------------------------------------------------------
 
 // Marklet is free software: you can redistribute it and/or modify it under
@@ -183,7 +185,7 @@ public static partial class Textual
 
         if (src.Length > maxLength)
         {
-            return TrimSurrogate(src.Substring(0, maxLength));
+            return TrimSurrogateEnd(src.AsSpan(0, maxLength)).ToString();
         }
 
         return src;
@@ -202,74 +204,74 @@ public static partial class Textual
         const string Ellipses = "\u2026";
         ArgumentOutOfRangeException.ThrowIfNegative(maxLength, nameof(maxLength));
 
-        if (src.Length > maxLength)
+        if (src.Length <= maxLength)
         {
-            string ellipses = unicode ? Ellipses : "...";
-
-            if (style == TruncStyle.CenterEllipses)
-            {
-                if (maxLength > ellipses.Length + 1)
-                {
-                    // 01234567   -> 0...7 [5], or 01…67
-                    // 01234567   -> 01...7 [6], or 012…67
-
-                    // 012345678  -> 01...78 [7], or 012…678
-                    // 0123456789 -> 01...89 [7], or 012…789
-                    // 0123456789 -> 012...89 [8], or 0123…789
-                    // 0123456789 -> 012...789 [9], or 0123…6789
-                    int x0 = maxLength / 2 - (unicode ? 0 : 1);
-                    int x1 = src.Length - x0 + (maxLength % 2 == 0 ? 1 : 0);
-                    return TrimSurrogate(string.Concat(src.AsSpan(0, x0), ellipses, src.AsSpan(x1)));
-                }
-
-                style = TruncStyle.EndEllipses;
-            }
-
-            if (style == TruncStyle.EndEllipses)
-            {
-                // Debatable whether this should check for
-                // "greater than" or "greater than or equals".
-                // With ">", at len of 1, it will return
-                // just a single char which can be misleading
-                // as no truncation indicated. With ">=", it
-                // returns only "…" which gives no info other
-                // it has been truncated.
-                if (maxLength >= ellipses.Length)
-                {
-                    // len=6, max=5
-                    // 012345  -> 01...
-                    return TrimSurrogate(string.Concat(src.AsSpan(0, maxLength - ellipses.Length), ellipses));
-                }
-
-                style = TruncStyle.End;
-            }
-            else
-            if (style == TruncStyle.StartEllipses)
-            {
-                // See note above.
-                if (maxLength >= ellipses.Length)
-                {
-                    // len=6, max=5
-                    // 012345  -> ...45
-                    return TrimSurrogate(string.Concat(ellipses, src.AsSpan(src.Length - maxLength + ellipses.Length)));
-                }
-
-                style = TruncStyle.Start;
-            }
-
-            if (style == TruncStyle.Start)
-            {
-                // len=6, max=5
-                // 012345  -> 12345
-                return TrimSurrogate(src.Substring(src.Length - maxLength));
-            }
-
-            // len=6, max=5
-            // 012345  -> 01234
-            return TrimSurrogate(src.Substring(0, maxLength));
+            return src;
         }
 
-        return src;
+        string ellipses = unicode ? Ellipses : "...";
+
+        if (style == TruncStyle.CenterEllipses)
+        {
+            if (maxLength > ellipses.Length + 1)
+            {
+                // 01234567   -> 0...7 [5], or 01…67
+                // 01234567   -> 01...7 [6], or 012…67
+
+                // 012345678  -> 01...78 [7], or 012…678
+                // 0123456789 -> 01...89 [7], or 012…789
+                // 0123456789 -> 012...89 [8], or 0123…789
+                // 0123456789 -> 012...789 [9], or 0123…6789
+                int x0 = maxLength / 2 - (unicode ? 0 : 1);
+                int x1 = src.Length - x0 + (maxLength % 2 == 0 ? 1 : 0);
+                return string.Concat(TrimSurrogateEnd(src.AsSpan(0, x0)), ellipses, TrimSurrogateStart(src.AsSpan(x1)));
+            }
+
+            style = TruncStyle.EndEllipses;
+        }
+
+        if (style == TruncStyle.EndEllipses)
+        {
+            // Debatable whether this should check for
+            // "greater than" or "greater than or equals".
+            // With ">", at len of 1, it will return
+            // just a single char which can be misleading
+            // as no truncation indicated. With ">=", it
+            // returns only "…" which gives no info other
+            // than it has been truncated.
+            if (maxLength >= ellipses.Length)
+            {
+                // len=6, max=5
+                // 012345  -> 01...
+                return string.Concat(TrimSurrogateEnd(src.AsSpan(0, maxLength - ellipses.Length)), ellipses);
+            }
+
+            style = TruncStyle.End;
+        }
+        else
+        if (style == TruncStyle.StartEllipses)
+        {
+            // See note above.
+            if (maxLength >= ellipses.Length)
+            {
+                // len=6, max=5
+                // 012345  -> ...45
+                return string.Concat(ellipses, TrimSurrogateStart(src.AsSpan(src.Length - maxLength + ellipses.Length)));
+            }
+
+            style = TruncStyle.Start;
+        }
+
+        if (style == TruncStyle.Start)
+        {
+            // len=6, max=5
+            // 012345  -> 12345
+            return TrimSurrogateStart(src.AsSpan(src.Length - maxLength)).ToString();
+        }
+
+        // len=6, max=5
+        // 012345  -> 01234
+        return TrimSurrogateEnd(src.AsSpan(0, maxLength)).ToString();
     }
 
     private static bool IsSpaceTabOrFeed(string src, int index, bool preserveLines)
@@ -277,11 +279,21 @@ public static partial class Textual
         return IsSpaceOrTabAt(src, index, false) || (!preserveLines && IsLineTermAt(src, index, false));
     }
 
-    private static string TrimSurrogate(string src)
+    private static ReadOnlySpan<char> TrimSurrogateStart(ReadOnlySpan<char> src)
+    {
+        if (src.Length != 0 && char.IsLowSurrogate(src[0]))
+        {
+            return src.Slice(1);
+        }
+
+        return src;
+    }
+
+    private static ReadOnlySpan<char> TrimSurrogateEnd(ReadOnlySpan<char> src)
     {
         if (src.Length != 0 && char.IsHighSurrogate(src[^1]))
         {
-            return src.Substring(0, src.Length - 1);
+            return src.Slice(0, src.Length - 1);
         }
 
         return src;

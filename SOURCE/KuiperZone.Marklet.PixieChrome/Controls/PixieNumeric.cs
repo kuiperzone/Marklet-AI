@@ -1,8 +1,10 @@
 // -----------------------------------------------------------------------------
-// PROJECT   : KuiperZone.Marklet
-// AUTHOR    : Andrew Thomas
-// COPYRIGHT : Andrew Thomas © 2025-2026 All rights reserved
-// LICENSE   : AGPL-3.0-only
+// SPDX-FileNotice: KuiperZone.Marklet - Local AI Client
+// SPDX-License-Identifier: AGPL-3.0-only
+// SPDX-FileCopyrightText: © 2025-2026 Andrew Thomas <kuiperzone@users.noreply.github.com>
+// SPDX-ProjectHomePage: https://kuiper.zone/marklet-ai/
+// SPDX-FileType: Source
+// SPDX-FileComment: This is NOT AI generated source code but was created with human thinking and effort.
 // -----------------------------------------------------------------------------
 
 // Marklet is free software: you can redistribute it and/or modify it under
@@ -28,7 +30,7 @@ namespace KuiperZone.Marklet.PixieChrome.Controls;
 /// <summary>
 /// A subclass of <see cref="PixieControl"/> displaying an up-down numeric control.
 /// </summary>
-public sealed partial class PixieNumeric : PixieControl
+public partial class PixieNumeric : PixieControl
 {
     /// <summary>
     /// Maximum text input length.
@@ -68,7 +70,7 @@ public sealed partial class PixieNumeric : PixieControl
     public PixieNumeric()
         : base(true, Avalonia.Layout.VerticalAlignment.Center)
     {
-        SetChildControl(_itemPanel);
+        SetSubject(_itemPanel);
 
         _itemPanel.Orientation = Avalonia.Layout.Orientation.Horizontal;
         _itemPanel.HorizontalAlignment = ControlAlignment;
@@ -547,7 +549,7 @@ public sealed partial class PixieNumeric : PixieControl
             {
                 _unitsBlock = new();
                 _unitsBlock.FontSize = ChromeFonts.SmallFontSize;
-                _unitsBlock.Foreground = ChromeStyling.ForegroundGray;
+                _unitsBlock.Foreground = ChromeStyling.GrayForeground;
                 _unitsBlock.VerticalAlignment = Avalonia.Layout.VerticalAlignment.Center;
 
                 const double delta = (ChromeFonts.DefaultFontSize - ChromeFonts.SmallFontSize) / 2.0;

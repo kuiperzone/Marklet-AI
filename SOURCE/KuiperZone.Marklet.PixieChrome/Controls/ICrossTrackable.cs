@@ -1,8 +1,10 @@
 // -----------------------------------------------------------------------------
-// PROJECT   : KuiperZone.Marklet
-// AUTHOR    : Andrew Thomas
-// COPYRIGHT : Andrew Thomas © 2025-2026 All rights reserved
-// LICENSE   : AGPL-3.0-only
+// SPDX-FileNotice: KuiperZone.Marklet - Local AI Client
+// SPDX-License-Identifier: AGPL-3.0-only
+// SPDX-FileCopyrightText: © 2025-2026 Andrew Thomas <kuiperzone@users.noreply.github.com>
+// SPDX-ProjectHomePage: https://kuiper.zone/marklet-ai/
+// SPDX-FileType: Source
+// SPDX-FileComment: This is NOT AI generated source code but was created with human thinking and effort.
 // -----------------------------------------------------------------------------
 
 // Marklet is free software: you can redistribute it and/or modify it under
@@ -16,24 +18,59 @@
 // You should have received a copy of the GNU Affero General Public License along
 // with Marklet. If not, see <https://www.gnu.org/licenses/>.
 
-using Avalonia.Controls.Documents;
+using Avalonia;
 
 namespace KuiperZone.Marklet.PixieChrome.Controls;
+
 /// <summary>
 /// Interface for objects possessing cross-text selection capability..
 /// </summary>
 public interface ICrossTrackable : ICrossTrackOwner
 {
     /// <summary>
-    /// Gets a logical ID value used by <see cref="CrossTracker"/>.
+    /// Gets a sort key used by <see cref="CrossTracker"/>.
     /// </summary>
     /// <remarks>
-    /// The value is not an index in a visual tree. The only requirement is that controls with higher <see
-    /// cref="TrackKey"/> values appear below (on screen) than those with lower ones. The value is assigned the moment
-    /// <see cref="ICrossTrackOwner.Tracker"/> is modified, and may be any incrementing value, but is always 0 when <see
-    /// cref="ICrossTrackOwner.Tracker"/> is null.
+    /// If the control is not in the visual true or not rendered, the value will be <see cref="CrossKey.Empty"/>.
     /// </remarks>
-    ulong TrackKey { get; }
+    CrossKey TrackKey { get; }
+
+    /// <summary>
+    /// Gets (or sets) a prefix when text is copied.
+    /// </summary>
+    /// <remarks>
+    /// If null or empty, nothing is inserted as a prefix. The value is typically left at null default.
+    /// </remarks>
+    string? TrackPrefix { get; }
+
+    /// <summary>
+    /// Gets (or sets) a separator suffix when text is copied.
+    /// </summary>
+    /// <remarks>
+    /// If null, a value is determined automatically (i.e. two line feeds for vertical separation and a space for
+    /// horizontal). The value is typically left at null default.
+    /// </remarks>
+    string? TrackSeparator { get; }
+
+    /// <summary>
+    /// Gets whether the content is empty.
+    /// </summary>
+    public bool IsEmpty { get; }
+
+    /// <summary>
+    /// Gets the text length.
+    /// </summary>
+    public int TextLength { get; }
+
+    /// <summary>
+    /// Gets (or sets) the character index for the selection start.
+    /// </summary>
+    public int SelectionStart { get; }
+
+    /// <summary>
+    /// Gets (or sets) the character index for the selection end.
+    /// </summary>
+    public int SelectionEnd { get; }
 
     /// <summary>
     /// Gets whether the selected text length is non-zero.
@@ -41,55 +78,16 @@ public interface ICrossTrackable : ICrossTrackOwner
     bool HasSelection { get; }
 
     /// <summary>
-    /// Gets whether the instance has styled inline content.
+    /// Gets whether the user can select text with the mouse pointer.
     /// </summary>
-    bool HasComplexContent { get; }
-
-    /// <summary>
-    /// Gets (or sets) the character index for the selection start.
-    /// </summary>
-    /// <remarks>
-    /// This value is not a XAML property with binding. Negative values are clamped.
-    /// </remarks>
-    public int SelectionStart { get; }
-
-    /// <summary>
-    /// Gets (or sets) the character index for the selection end.
-    /// </summary>
-    /// <remarks>
-    /// This value is not a XAML property with binding. Negative values are clamped.
-    /// </remarks>
-    public int SelectionEnd { get; }
-
-    /// <summary>
-    /// Gets whether the content is empty.
-    /// </summary>
-    /// <remarks>
-    /// Where <see cref="InlineUIContainer"/> is used, it is possible that <see cref="IsEmpty"/> gives false, while <see
-    /// cref="TextLength"/> gives 0.
-    /// </remarks>
-    public bool IsEmpty { get; }
-
-    /// <summary>
-    /// Gets the text length.
-    /// </summary>
-    /// <remarks>
-    /// Where <see cref="InlineUIContainer"/> is used, it is possible that <see cref="IsEmpty"/> gives false, while <see
-    /// cref="TextLength"/> gives 0.
-    /// </remarks>
-    public int TextLength { get; }
-
-    /// <summary>
-    /// Gets (or sets) the text.
-    /// </summary>
-    string? Text { get; }
+    bool IsPointerSelectEnabled { get; }
 
     /// <summary>
     /// Clears the selection.
     /// </summary>
     /// <remarks>
-    /// The result is true if the selection is changed. Calling this programmatically will always clear other selected
-    /// areas from <see cref="ICrossTrackOwner.Tracker"/>.
+    /// The result is true if the selection is changed. On success, other selected children of <see
+    /// cref="ICrossTrackOwner.Tracker"/> are de-selected.
     /// </remarks>
     bool SelectNone();
 
@@ -97,17 +95,17 @@ public interface ICrossTrackable : ICrossTrackOwner
     /// Sets the selection start and end positions in a single operation.
     /// </summary>
     /// <remarks>
-    /// The result is true if the selection is changed. Calling this programmatically will always clear other selected
-    /// areas from <see cref="ICrossTrackOwner.Tracker"/>.
+    /// The result is true if the selection is changed. On success, other selected children of <see
+    /// cref="ICrossTrackOwner.Tracker"/> are de-selected.
     /// </remarks>
     bool Select(int start, int end);
 
     /// <summary>
-    /// Selects all text in the <see cref="ICrossTrackable"/> instance only.
+    /// Selects all text in this <see cref="ICrossTrackable"/> instance only.
     /// </summary>
     /// <remarks>
-    /// The result is true if the selection is changed. Calling this programmatically will always clear other selected
-    /// areas from <see cref="ICrossTrackOwner.Tracker"/>.
+    /// The result is true if the selection is changed. On success, other selected children of <see
+    /// cref="ICrossTrackOwner.Tracker"/> are de-selected.
     /// </remarks>
     bool SelectAll();
 
@@ -117,10 +115,15 @@ public interface ICrossTrackable : ICrossTrackOwner
     string? GetEffectiveText(WhatText what);
 
     /// <summary>
+    /// Returns the text position at the given pixel point in the instances reference frame.
+    /// </summary>
+    int GetTextPosition(Point point);
+
+    /// <summary>
     /// For use by <see cref="CrossTracker"/> only.
     /// </summary>
     /// <remarks>
-    /// Calling this programmatically does not act on <see cref="ICrossTrackOwner.Tracker"/>.
+    /// It does not act on <see cref="ICrossTrackOwner.Tracker"/>. The result is true on change.
     /// </remarks>
     internal bool SelectInternal(int start, int end);
 }

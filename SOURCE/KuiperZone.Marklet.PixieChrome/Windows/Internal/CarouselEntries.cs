@@ -1,8 +1,10 @@
 // -----------------------------------------------------------------------------
-// PROJECT   : KuiperZone.Marklet
-// AUTHOR    : Andrew Thomas
-// COPYRIGHT : Andrew Thomas © 2025-2026 All rights reserved
-// LICENSE   : AGPL-3.0-only
+// SPDX-FileNotice: KuiperZone.Marklet - Local AI Client
+// SPDX-License-Identifier: AGPL-3.0-only
+// SPDX-FileCopyrightText: © 2025-2026 Andrew Thomas <kuiperzone@users.noreply.github.com>
+// SPDX-ProjectHomePage: https://kuiper.zone/marklet-ai/
+// SPDX-FileType: Source
+// SPDX-FileComment: This is NOT AI generated source code but was created with human thinking and effort.
 // -----------------------------------------------------------------------------
 
 // Marklet is free software: you can redistribute it and/or modify it under
@@ -100,7 +102,7 @@ internal sealed class CarouselEntries : IReadOnlyList<PageEntry>
                 var entry = new PageEntry(item, index++, classes);
 
                 entry.IndexButton.Tag = entry; // <- connect
-                entry.IndexButton.BackgroundClick += HeaderClickHandler;
+                entry.IndexButton.Click += HeaderClickHandler;
 
                 _list.Add(entry);
             }
@@ -214,7 +216,7 @@ internal sealed class CarouselEntries : IReadOnlyList<PageEntry>
 
     private void HeaderClickHandler(object? sender, EventArgs __)
     {
-        if (sender is PixieButton btn && btn.Tag is PageEntry page)
+        if (sender is PixieCard btn && btn.Tag is PageEntry page)
         {
             IndexClicked?.Invoke(sender, new(page));
         }

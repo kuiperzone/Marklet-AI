@@ -1,59 +1,64 @@
 # MARKLET AI
 
-**Marklet** is an open source AI client primarily intended for use with local AI models (i.e. in conjunction with Ollama or similar
-runners). Its primary purpose is to do this simply and to do it well.
-
-Follow [@KuiperZone](https://x.com/kuiperzone)
-
-
-## PRE-RELEASE PREVIEW ONLY
-
-IMPORTANT. This is an early preview release encompassing only the primary aspects of the user interface. It does NOT currently
-contain the code needed to connect it to a model. There is no actual "AI" in this release. It is yet to be written.
-
-That being said, you should hopefully find the user interface quite polished. You can download and run it, and it will
-generate stub response messages intended only to exercise the user interface.
+**Marklet** is an open source AI client primarily intended for use with local AI models (i.e. in conjunction with Ollama or
+similar runners). Its primary purpose is to do this simply and to do it well.
 
 <img src="MARKLET-SCREENSHOT1.png" style="width:75%;max-width:800px;margin-bottom:2em;"/>
 
-Above, initial version 0.1 in dark mode.
+Above, initial version 0.2 in dark mode.
 
+### PRE-RELEASE PREVIEW ONLY
 
-## Linux & Windows
+This is an early preview release encompassing only the primary aspects of the user interface. It does not currently
+contain the code needed to connect it to a model. There is no actual "AI" in this release. It is coming.
+
+That being said, you should hopefully find the user interface quite polished. You can download and run it, and it will
+generate stub response messages intended to exercise the user interface.
+
+It initially supports:
+
+* Linux
+* Windows
 
 [Downloads](https://github.com/kuiperzone/Marklet/releases/latest)<br>
 
 Runable Linux AppImage and simple Windows zip are provided only for this release.
 
-The purpose of this release is to get feedback. Please do follow this project to be notified as it develops.
+Follow author: [LinkedIn](https://www.linkedin.com/in/andythomas668/), [X @KuiperZone](https://x.com/kuiperzone), [Substack](https://kuiperzone.substack.com/)
+
 
 ## Background
 Marklet is, for the time being, a personal project. It may not remain so in the future.
 
-There's been significant push-back against AI--and for good reason. Many are rightly concerned about hype, job displacement,
-misinformation, and the rush to treat models as conscious or saviours.
+It is an experiment in "sovereign AI" predicated on the idea that, while the large AI services bring creative destruction,
+local AI will persist. Moreover, local AI will grant agency to those who can maintain autonomy in the face of overwhelming
+convenience.
 
-The author shares much of that skepticism: AI is not conscious, we haven't reached any super-singularity, and deterministic systems
-can't generate genuine novelty without human consciousness at the core.
+<img src="MARKLET-SCREENSHOT2.png" style="width:65%;max-width:800px;margin-bottom:2em;"/>
 
-Yet AI is undeniably powerful and here to stay. After the current wave of disruption, we'll live with it in some form. Marklet is
-for those who want to engage on their own terms: local models, personal data, no deception or manipulation. If you're wary of
-cloud monopolies and agentic overreach but see value in thoughtful local tools, this may resonate. If you're more bullish on AI,
-you're welcome too.
+Marklet is not intended to be all things to all people. The design of the software prioritizes personal use employing
+local models with local data. It may not be suited for enterprise environments or mobile devices.
 
-Three quotations summarize the motivations for this project, as follows:
+### Roadmap
 
-> *Consciousness cannot be accounted for in physical terms. For consciousness is absolutely fundamental. It cannot be accounted for in terms of anything else.*<br>
-> **Erwin Schrödinger, 1931**
+An approximate roadmap is as follows:
 
-> *I point out to you... a lesson learned from past over-machined societies which you appear not to have learned. The devices themselves condition the users to employ each other the way they employ machines.*<br>
-> **Leto II, God Emperor of Dune, Frank Herbert**
+1. Continued development of the user interface and data backend, including full search capability
+2. Completion of "note taking" interface
+3. Complete of "project" interface
+4. Implement connection to model runners and context generation
+5. Syntax high-lighting for fenced code
+6. LaTeX math symbols in markdown
+7. Support for attachments, images
+8. RAG, Text to speech, yet undecided features
 
-> *Any state, any entity, any ideology that fails to recognise the worth, the dignity, the rights of man... that state is obsolete.*<br>
-> **The Obsolete Man, The Twilight Zone, E65**
+There are likely to be several interim releases before an initial version 1.0. Work continues, but please don't expect to see daily
+updates or nightly builds in this repo. The code base is currently in-flux and may be subject to significant
+refactoring in the early phases.
 
-Marklet is not intended to be all things to all people. The design of the software prioritizes personal use employing local
-models with local data. It is not designed for use in enterprise environments or for mobile devices.
+### Sovereign Code Base
+
+Marklet is created using native human thought. It has not been "vibe-coded".
 
 
 ## Maxims of Marklet
@@ -92,85 +97,6 @@ The following principles are to guide the development of this software:
     Where autonomy is taken from you, you cannot be responsible for decisions made for you by others. Likewise, if you take
     autonomy from others, you therefore become responsible. If you seek to direct others, it is valid only where conscious
     consent exists that can be freely and truly withdrawn.
-
-The first one of these can easily be understood.
-
-The next three stem from *information theory*.
-
-For example, if you wish to understand why AI models collapse when fed with their own content, it is because information is a
-fundamental quantity -- like energy which cannot be created by deterministic processes. As AI models are trained on increasing
-amounts of previously generated AI content from the internet, such systems behave more like closed loops. In other words, they
-become the equivalent of perpetual motion. This may fool for a while, but always stop working when the reservoir is exhausted.
-
-You don't need information theory to understand this. The reason why digital computers cannot create information from nothing
-is precisely because they are deterministic systems in which everything is *pre-determined* on the outside. This is simply what
-determinism means. In other words, digital devices are merely transformers of that which had to exist prior. Information cannot
-be created, but it can be lost, however. Hence, things degenerate.
-
-Consciousness is that which reverses entropy. It is the only thing which can. You will go around in circles trying to define it
-further or break it apart because it is fundamental.
-
-It is essential, therefore, that local AI, under conscious control, plays a significant role in the future.
-
-The last one? Well, that's deeper.
-
-These maxims are not intended as "laws" to be imposed, but rather lessons which we must learn. Much of it is merely common
-sense of the past, but codified for modern times. This thinking guides the Marklet software.
-
-
-## Technical Introduction
-
-Marklet is a cross-platform desktop application written in C# using the Avalonia graphical framework. It is not a web-app.
-
-It initially supports:
-
-* Linux
-* Windows
-
-The intention is to deliver a user interface which feels at home on any Linux desktop or other system. It will be familiar out
-of the box, but offers configuration without being overly complicated.
-
-<img src="MARKLET-SCREENSHOT2.png" style="width:65%;max-width:800px;margin-bottom:2em;"/>
-
-It should also run out of the box when built on MacOS. At the time of writing, however, the author is lacking the facilities to
-test this or to build deployment packages. There may be a glitch on MacOS, but no major hurdles. The build is simple and
-lacks complex dependencies. Feedback in the [discussion section](https://github.com/kuiperzone/Marklet/discussions) would be
-appreciated. Macs may indeed have an interesting future as Apple appear to be targeting local AI rather than data centers.
-
-The software employs a Sqlite database for local data. In early pre-release versions, nothing is written to disk
-except a few configuration settings in OS specific but standard locations (i.e. under `~.config/`).
-
-
-## Roadmap
-
-An approximate roadmap is as follows:
-
-1. Implement full UI search capability
-2. Changes and fixes to the user interface and data backend
-3. Implement connection to model runners (this encompasses many things obviously)
-4. Syntax high-lighting for fenced code
-5. LaTeX math symbols in markdown
-6. Support for attachments, images and RAG
-7. Text to speech
-8. Yet undecided features
-
-The software is highly unlikely to support image or video generation by design. The software does not specially encrypt local
-data. Rather, security is provided by being in control of your own local device. If your device is compromised, no one else
-can be expected to mitigate this.
-
-There are likely to be several interim releases before an initial version 1.0. Work continues, but please don't expect to see daily
-updates or nightly builds in this repo. Fossil is its primary SCM. The code base is currently in-flux and may be subject to significant
-refactoring in the early phases. It should be noted that the author is also prone to re-inventing wheels for which he is not even
-sorry about. But this takes a time. To stand at least a chance of creating something even a little novel, copying and pasting is
-not the starting point.
-
-However, Marklet is just a client for runners and models created by others at the end of the day. It is appropriate, therefore, to
-take a moment to express gratitude to all those who have worked to make local AI possible, as well as those who have progressed
-AI over the decades for positive reasons. AI stands on the shoulders of many. Marklet is merely a front-end.
-
-<img src="MARKLET-SCREENSHOT3.png" style="width:65%;max-width:800px;margin-bottom:2em;"/>
-
-Finally, Marklet is created using native human thought. It has not been "vibe-coded".
 
 
 ### More Information

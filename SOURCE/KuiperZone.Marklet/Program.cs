@@ -1,8 +1,10 @@
 // -----------------------------------------------------------------------------
-// PROJECT   : KuiperZone.Marklet
-// AUTHOR    : Andrew Thomas
-// COPYRIGHT : Andrew Thomas © 2025-2026 All rights reserved
-// LICENSE   : AGPL-3.0-only
+// SPDX-FileNotice: KuiperZone.Marklet - Local AI Client
+// SPDX-License-Identifier: AGPL-3.0-only
+// SPDX-FileCopyrightText: © 2025-2026 Andrew Thomas <kuiperzone@users.noreply.github.com>
+// SPDX-ProjectHomePage: https://kuiper.zone/marklet-ai/
+// SPDX-FileType: Source
+// SPDX-FileComment: This is NOT AI generated source code but was created with human thinking and effort.
 // -----------------------------------------------------------------------------
 
 // Marklet is free software: you can redistribute it and/or modify it under
@@ -18,8 +20,13 @@
 
 using Avalonia;
 using KuiperZone.Marklet.Controls;
+using KuiperZone.Marklet.Controls.Internal;
+using KuiperZone.Marklet.Controls.Internal.Mission;
 using KuiperZone.Marklet.PixieChrome;
+using KuiperZone.Marklet.PixieChrome.Controls;
+using KuiperZone.Marklet.Stack.Garden;
 using KuiperZone.Marklet.Tooling;
+using KuiperZone.Marklet.Windows;
 
 namespace KuiperZone.Marklet;
 
@@ -37,20 +44,30 @@ class Program
         ConditionalDebug.EnableNamespace(nameof(App));
         ConditionalDebug.EnableNamespace(nameof(ChromeApplication));
         ConditionalDebug.EnableNamespace(nameof(MainWindow));
-        ConditionalDebug.EnableNamespace(nameof(ContentViewer));
-        ConditionalDebug.EnableNamespace(nameof(ContentLeaf));
-        ConditionalDebug.EnableNamespace(nameof(GardenBinView));
-        ConditionalDebug.EnableNamespace(nameof(SessionControl));
-        ConditionalDebug.EnableNamespace(nameof(TopicControl));
-
-        ConditionalDebug.EnableNamespace("ChromeWindow");
+        ConditionalDebug.EnableNamespace(nameof(MainMission));
+        // ConditionalDebug.EnableNamespace(nameof(ChatSessionViewer));
+        ConditionalDebug.EnableNamespace(nameof(BasketView));
+        ConditionalDebug.EnableNamespace(nameof(DeckCard));
+        ConditionalDebug.EnableNamespace(nameof(FolderView));
+        ConditionalDebug.EnableNamespace(nameof(CardMenu));
+        ConditionalDebug.EnableNamespace(nameof(MemoryGarden));
+        ConditionalDebug.EnableNamespace(nameof(GardenDeck));
+        ConditionalDebug.EnableNamespace(nameof(GardenLeaf));
+        ConditionalDebug.EnableNamespace(nameof(GardenBasket));
+        // ConditionalDebug.EnableNamespace("GroupRenamer");
+        ConditionalDebug.EnableNamespace(nameof(PixieCombo));
+        ConditionalDebug.EnableNamespace(nameof(LightButton));
+        ConditionalDebug.EnableNamespace(nameof(CardMenu));
+        ConditionalDebug.EnableNamespace(nameof(PruneWindow));
+        // ConditionalDebug.EnableNamespace(nameof(SessionLeaf));
+        // ConditionalDebug.EnableNamespace(nameof(ChromeWindow));
         // ConditionalDebug.EnableNamespace("CrossTracker");
         // ConditionalDebug.EnableNamespace("CrossTextBlock");
+        // ConditionalDebug.EnableNamespace("MarkView");
+        // ConditionalDebug.EnableNamespace("MarkTextHost");
+        // ConditionalDebug.EnableNamespace("MarkDocument");
         // ConditionalDebug.EnableNamespace("DispatchCoalescer");
         // ConditionalDebug.EnableNamespace("StyledContainer");
-        // ConditionalDebug.EnableNamespace("MarkDocument");
-        // ConditionalDebug.EnableNamespace("MarkTextHost");
-        // ConditionalDebug.EnableNamespace("MarkView");
 
         try
         {

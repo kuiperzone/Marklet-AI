@@ -1,8 +1,10 @@
 // -----------------------------------------------------------------------------
-// PROJECT   : KuiperZone.Marklet
-// AUTHOR    : Andrew Thomas
-// COPYRIGHT : Andrew Thomas © 2025-2026 All rights reserved
-// LICENSE   : AGPL-3.0-only
+// SPDX-FileNotice: KuiperZone.Marklet - Local AI Client
+// SPDX-License-Identifier: AGPL-3.0-only
+// SPDX-FileCopyrightText: © 2025-2026 Andrew Thomas <kuiperzone@users.noreply.github.com>
+// SPDX-ProjectHomePage: https://kuiper.zone/marklet-ai/
+// SPDX-FileType: Source
+// SPDX-FileComment: This is NOT AI generated source code but was created with human thinking and effort.
 // -----------------------------------------------------------------------------
 
 // Marklet is free software: you can redistribute it and/or modify it under
@@ -16,28 +18,17 @@
 // You should have received a copy of the GNU Affero General Public License along
 // with Marklet. If not, see <https://www.gnu.org/licenses/>.
 
-using Avalonia.Interactivity;
-
 namespace KuiperZone.Marklet.PixieChrome.Controls;
 
 /// <summary>
 /// Event arguments for <see cref="CrossTextBlock"/> link click.
 /// </summary>
-public sealed class LinkClickEventArgs : RoutedEventArgs
+public sealed class LinkClickEventArgs : EventArgs
 {
     /// <summary>
     /// Constructor.
     /// </summary>
     public LinkClickEventArgs(Uri link)
-    {
-        Uri = link;
-    }
-
-    /// <summary>
-    /// Constructor.
-    /// </summary>
-    public LinkClickEventArgs(RoutedEvent? routedEvent, object? source, Uri link)
-        : base(routedEvent, source)
     {
         Uri = link;
     }
@@ -50,9 +41,16 @@ public sealed class LinkClickEventArgs : RoutedEventArgs
     /// <summary>
     /// Gets whether the <see cref="Uri"/> scheme equals "app".
     /// </summary>
+    /// <remarks>
+    /// This scheme must be handled using the <see cref="CrossTracker.LinkClick"/> event.
+    /// </remarks>
     public bool IsAppLink
     {
         get { return Uri.Scheme == "app"; }
     }
 
+    /// <summary>
+    /// Gets or sets whether the URI was handled by the event subscriber.
+    /// </summary>
+    public bool Handled { get; set; }
 }

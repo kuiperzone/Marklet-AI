@@ -1,8 +1,10 @@
 // -----------------------------------------------------------------------------
-// PROJECT   : KuiperZone.Marklet
-// AUTHOR    : Andrew Thomas
-// COPYRIGHT : Andrew Thomas © 2025-2026 All rights reserved
-// LICENSE   : AGPL-3.0-only
+// SPDX-FileNotice: KuiperZone.Marklet - Local AI Client
+// SPDX-License-Identifier: AGPL-3.0-only
+// SPDX-FileCopyrightText: © 2025-2026 Andrew Thomas <kuiperzone@users.noreply.github.com>
+// SPDX-ProjectHomePage: https://kuiper.zone/marklet-ai/
+// SPDX-FileType: Source
+// SPDX-FileComment: This is NOT AI generated source code but was created with human thinking and effort.
 // -----------------------------------------------------------------------------
 
 // Marklet is free software: you can redistribute it and/or modify it under
@@ -36,30 +38,34 @@ internal sealed class PixieEditorPage : PixiePageBase
         var control = NewControl<PixieEditor>(group, "");
         AddAccoutrements(control);
         control.LeftSymbol = Symbols.Archive;
-        control.ChildControl.Text = nameof(PixieEditor);
+        control.Subject.Text = nameof(PixieEditor);
 
         control = NewControl<PixieEditor>(group);
         control.Title += " Left";
-        control.ChildControl.Text = nameof(PixieEditor);
+        control.Subject.Text = nameof(PixieEditor);
 
         control = NewControl<PixieEditor>(group);
         control.Title += " Right";
-        control.ChildControl.HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Right;
-        control.ChildControl.Text = nameof(PixieEditor);
+        control.Subject.HasCopyButton = true;
+        control.Subject.HasRevealButton = true;
+        control.Subject.HasMatchCaseButton = true;
+        control.Subject.HasMatchWordButton = true;
+        control.Subject.HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Right;
+        control.Subject.Text = nameof(PixieEditor);
 
         control = NewControl<PixieEditor>(group, "Long title Long title Long title Long title");
-        control.ChildControl.Text = nameof(PixieEditor);
+        control.Subject.Text = nameof(PixieEditor);
 
         control = NewControl<PixieEditor>(group);
         control.Title = null;
-        control.ChildControl.Text = nameof(PixieEditor) + "\nMultiline";
-        control.ChildControl.AcceptsReturn = true;
-        control.ChildControl.Width = double.NaN;
-        control.ChildControl.HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Stretch;
-        control.ChildControl.Height = 210;
+        control.Subject.Text = nameof(PixieEditor) + "\nMultiline";
+        control.Subject.AcceptsReturn = true;
+        control.Subject.Width = double.NaN;
+        control.Subject.HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Stretch;
+        control.Subject.Height = 210;
 
 
         control = NewControl<PixieEditor>(group, false);
-        control.ChildControl.Text = nameof(PixieEditor);
+        control.Subject.Text = nameof(PixieEditor);
     }
 }

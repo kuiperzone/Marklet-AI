@@ -1,8 +1,10 @@
 // -----------------------------------------------------------------------------
-// PROJECT   : KuiperZone.Marklet
-// AUTHOR    : Andrew Thomas
-// COPYRIGHT : Andrew Thomas © 2025-2026 All rights reserved
-// LICENSE   : AGPL-3.0-only
+// SPDX-FileNotice: KuiperZone.Marklet - Local AI Client
+// SPDX-License-Identifier: AGPL-3.0-only
+// SPDX-FileCopyrightText: © 2025-2026 Andrew Thomas <kuiperzone@users.noreply.github.com>
+// SPDX-ProjectHomePage: https://kuiper.zone/marklet-ai/
+// SPDX-FileType: Source
+// SPDX-FileComment: This is NOT AI generated source code but was created with human thinking and effort.
 // -----------------------------------------------------------------------------
 
 // Marklet is free software: you can redistribute it and/or modify it under
@@ -34,19 +36,19 @@ internal sealed class PixieProgressPage : PixiePageBase
 
         var control = NewControl<PixieProgress>(group, "");
         AddAccoutrements(control);
-        control.ChildControl.Value = 50;
-        control.ChildControl.ShowProgressText = true;
+        control.Subject.Value = 50;
+        control.Subject.ShowProgressText = true;
 
         control = NewControl<PixieProgress>(group, "");
         control.Header = null;
         control.Footer = null;
-        control.ChildControl.Value = 50;
+        control.Subject.Value = 50;
 
         control = NewControl<PixieProgress>(group, "");
-        control.ChildControl.IsIndeterminate = true;
+        control.Subject.IsIndeterminate = true;
         control.Footer += " Indeterminate";
 
         control = NewControl<PixieProgress>(group, false);
-        control.ChildControl.Value = 50;
+        control.Subject.Value = 50;
     }
 }

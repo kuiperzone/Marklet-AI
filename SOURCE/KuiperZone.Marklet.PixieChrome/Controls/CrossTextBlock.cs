@@ -1,8 +1,10 @@
 // -----------------------------------------------------------------------------
-// PROJECT   : KuiperZone.Marklet
-// AUTHOR    : Andrew Thomas
-// COPYRIGHT : Andrew Thomas © 2025-2026 All rights reserved
-// LICENSE   : AGPL-3.0-only
+// SPDX-FileNotice: KuiperZone.Marklet - Local AI Client
+// SPDX-License-Identifier: AGPL-3.0-only
+// SPDX-FileCopyrightText: © 2025-2026 Andrew Thomas <kuiperzone@users.noreply.github.com>
+// SPDX-ProjectHomePage: https://kuiper.zone/marklet-ai/
+// SPDX-FileType: Source
+// SPDX-FileComment: This is NOT AI generated source code but was created with human thinking and effort.
 // -----------------------------------------------------------------------------
 
 // Marklet is free software: you can redistribute it and/or modify it under
@@ -23,9 +25,7 @@ using Avalonia.Input;
 using Avalonia.Media;
 using Avalonia.Media.Immutable;
 using Avalonia.Media.TextFormatting;
-using Avalonia.Threading;
 using System.Text;
-using Avalonia.VisualTree;
 using KuiperZone.Marklet.Tooling;
 using KuiperZone.Marklet.PixieChrome.Controls.Internal;
 using Avalonia.Interactivity;
@@ -49,7 +49,7 @@ public class CrossTextBlock : TextBlock, ICrossTrackable, ICrossTrackOwner
     private TextDecorationCollection? _hoverDecorations;
 
     private CrossTracker? _tracker;
-    private int _textLengthChange;
+    private Visual? _rootTop;
 
     /// <summary>
     /// Default constructor.
@@ -65,30 +65,19 @@ public class CrossTextBlock : TextBlock, ICrossTrackable, ICrossTrackOwner
         FocusAdorner = null;
 
         ContextMenu = CrossContextMenu.Global;
-        Cursor = ChromeCursors.IBeamCursor;
-    }
-
-    /// <summary>
-    /// Constructor which assigns <see cref="Tracker"/>
-    /// </summary>
-    public CrossTextBlock(CrossTracker tracker)
-        : this()
-    {
-        _tracker = tracker;
-        TrackKey = CrossTracker.NextKey();
+        Cursor = ChromeCursors.IBeam;
     }
 
     /// <summary>
     /// Constructor with initial <see cref="CrossTracker"/> and menu.
     /// </summary>
     /// <remarks>
-    /// Intended where the instance is one of many children within a more sophisticated control.
+    /// The instance is not focusable. Intended where the instance is one of many children within a more sophisticated
+    /// control.
     /// </remarks>
-    public CrossTextBlock(CrossTracker tracker, ContextMenu? menu)
+    public CrossTextBlock(ContextMenu? menu)
     {
-        _tracker = tracker;
-        TrackKey = CrossTracker.NextKey();
-        Cursor = ChromeCursors.IBeamCursor;
+        Cursor = ChromeCursors.IBeam;
 
         if (menu != null)
         {
@@ -118,16 +107,10 @@ public class CrossTextBlock : TextBlock, ICrossTrackable, ICrossTrackOwner
     public static readonly ImmutableSolidColorBrush DefaultHoverLinkHoverBrush = new(0xB03584E4);
 
     /// <summary>
-    /// Defines the <see cref="LinkClick"/> event.
-    /// </summary>
-    public static readonly RoutedEvent<LinkClickEventArgs> LinkClickEvent =
-        RoutedEvent.Register<CrossTextBlock, LinkClickEventArgs>(nameof(LinkClick), RoutingStrategies.Direct);
-
-    /// <summary>
     /// Defines the <see cref="SelectionBrush"/> property.
     /// </summary>
-    public static readonly StyledProperty<IBrush?> SelectionBrushProperty =
-        AvaloniaProperty.Register<CrossTextBlock, IBrush?>(nameof(SelectionBrush), DefaultSelectionBrush);
+    public static readonly StyledProperty<IBrush> SelectionBrushProperty =
+        AvaloniaProperty.Register<CrossTextBlock, IBrush>(nameof(SelectionBrush), DefaultSelectionBrush);
 
     /// <summary>
     /// Defines the <see cref="LinkHoverBrush"/> property.
@@ -139,56 +122,44 @@ public class CrossTextBlock : TextBlock, ICrossTrackable, ICrossTrackOwner
     /// Defines the <see cref="LinkHoverUnderline"/> property.
     /// </summary>
     public static readonly StyledProperty<bool> LinkHoverUnderlineProperty =
-        AvaloniaProperty.Register<CrossTextBlock, bool>(nameof(LinkHoverBrush), true);
-
-    /// <summary>
-    /// Defines the <see cref="Tracker"/> property.
-    /// </summary>
-    public static readonly DirectProperty<CrossTextBlock, CrossTracker?> TrackerProperty =
-        AvaloniaProperty.RegisterDirect<CrossTextBlock, CrossTracker?>(nameof(Tracker),
-            o => o.Tracker, (o, v) => o.Tracker = v);
-
-    /// <summary>
-    /// Occurs when the user clicks on an URI within the text.
-    /// </summary>
-    /// <remarks>
-    /// When a link is clicked, the default behaviour is to attempt to open the link in an external browser. However,
-    /// this event is invoked first and, if <see cref="RoutedEventArgs.Handled"/> is set to true, the link will NOT be
-    /// opened when the event returns.
-    /// </remarks>
-    public event EventHandler<LinkClickEventArgs> LinkClick
-    {
-        add { AddHandler(LinkClickEvent, value); }
-        remove { RemoveHandler(LinkClickEvent, value); }
-    }
+        AvaloniaProperty.Register<CrossTextBlock, bool>(nameof(LinkHoverUnderline), true);
 
     /// <inheritdoc cref="ICrossTrackOwner.Tracker"/>
     public CrossTracker? Tracker
     {
         get { return _tracker; }
-        set { SetAndRaise(TrackerProperty, ref _tracker, value); }
+
+        set
+        {
+            if (_tracker != value)
+            {
+                _tracker?.RemoveInternal(this);
+
+                _tracker = value;
+                value?.AddInternal(this);
+            }
+        }
     }
 
     /// <inheritdoc cref="ICrossTrackable.TrackKey"/>
-    public ulong TrackKey { get; private set; }
-
-    /// <inheritdoc cref="ICrossTrackable.HasSelection"/>
-    public bool HasSelection
+    public CrossKey TrackKey
     {
-        get { return SelectionStart != SelectionEnd && !IsEmpty; }
+        get
+        {
+            if (_rootTop != null)
+            {
+                return CrossKey.GetKeyPoint(this, _tracker?.Container ?? _rootTop);
+            }
+
+            return CrossKey.Empty;
+        }
     }
 
-    /// <inheritdoc cref="ICrossTrackable.HasComplexContent"/>
-    public bool HasComplexContent
-    {
-        get { return Inlines != null && Inlines.Count != 0; }
-    }
+    /// <inheritdoc cref="ICrossTrackable.TrackPrefix"/>
+    public string? TrackPrefix { get; set; }
 
-    /// <inheritdoc cref="ICrossTrackable.SelectionStart"/>
-    public int SelectionStart { get; private set; }
-
-    /// <inheritdoc cref="ICrossTrackable.SelectionEnd"/>
-    public int SelectionEnd { get; private set; }
+    /// <inheritdoc cref="ICrossTrackable.TrackSeparator"/>
+    public string? TrackSeparator { get; set; }
 
     /// <inheritdoc cref="ICrossTrackable.IsEmpty"/>
     public bool IsEmpty
@@ -209,33 +180,62 @@ public class CrossTextBlock : TextBlock, ICrossTrackable, ICrossTrackOwner
     {
         get
         {
-            if (Inlines != null && Inlines.Count != 0)
+            if (Inlines?.Count > 0)
             {
                 int length = 0;
 
-                foreach (var item in Inlines)
+                var inlines = Inlines;
+                int count = inlines.Count;
+
+                for (int n = 0; n < count; ++n)
                 {
-                    if (item is Run run && run.Text != null)
+                    if (inlines[n] is Run run && run.Text != null)
                     {
                         length += run.Text.Length;
                     }
                 }
 
-                return length;
+                return Math.Max(length, 0);
             }
 
             return Text?.Length ?? 0;
         }
     }
 
+    /// <inheritdoc cref="ICrossTrackable.SelectionStart"/>
+    public int SelectionStart { get; private set; }
+
+    /// <inheritdoc cref="ICrossTrackable.SelectionEnd"/>
+    public int SelectionEnd { get; private set; }
+
+    /// <inheritdoc cref="ICrossTrackable.HasSelection"/>
+    public bool HasSelection
+    {
+        get { return SelectionStart != SelectionEnd && !IsEmpty; }
+    }
+
+    /// <inheritdoc cref="ICrossTrackable.IsPointerSelectEnabled"/>
+    public bool IsPointerSelectEnabled
+    {
+        get { return IsEffectivelyEnabled; }
+    }
+
+    /// <summary>
+    /// Gets whether the instance has styled inline content.
+    /// </summary>
+    public bool HasComplexContent
+    {
+        get { return Inlines != null && Inlines.Count != 0; }
+    }
+
     /// <summary>
     /// Gets or sets the selection background brush.
     /// </summary>
     /// <remarks>
-    /// Note that there is no "SelectionForeground" property. Instead, the <see cref="SelectionBrush"/> should always be
-    /// set to a semi-opaque (approx 50%) brush. Setting to null disables selection of text.
+    /// Note that there is no "SelectionForeground" property. Instead, <see cref="SelectionBrush"/> should always be set
+    /// to a semi-opaque (approx 50%) brush.
     /// </remarks>
-    public IBrush? SelectionBrush
+    public IBrush SelectionBrush
     {
         get { return GetValue(SelectionBrushProperty); }
         set { SetValue(SelectionBrushProperty, value); }
@@ -245,7 +245,7 @@ public class CrossTextBlock : TextBlock, ICrossTrackable, ICrossTrackOwner
     /// Gets or sets the foreground brush for hover links.
     /// </summary>
     /// <remarks>
-    /// A value of null shows implies no color change on hover. The default is a shade of blue.
+    /// A value of null implies no color change on hover. The default is a shade of blue.
     /// </remarks>
     public IBrush? LinkHoverBrush
     {
@@ -265,7 +265,12 @@ public class CrossTextBlock : TextBlock, ICrossTrackable, ICrossTrackOwner
     /// <inheritdoc cref="ICrossTrackable.SelectNone"/>
     public bool SelectNone()
     {
-        return Select(0, 0);
+        if (SelectionStart != 0 || SelectionEnd != 0)
+        {
+            return Select(0, 0);
+        }
+
+        return false;
     }
 
     /// <inheritdoc cref="ICrossTrackable.Select(int, int)"/>
@@ -276,7 +281,7 @@ public class CrossTextBlock : TextBlock, ICrossTrackable, ICrossTrackOwner
 
         if (Tracker != null)
         {
-            return Tracker.SelectInternal(this, start, end);
+            return Tracker.SelectSingle(this, start, end);
         }
 
         return SelectInternal(start, end);
@@ -299,8 +304,7 @@ public class CrossTextBlock : TextBlock, ICrossTrackable, ICrossTrackOwner
         if (HasSelection)
         {
             // No need to call tracker
-            var hit = TextLayout.HitTestPoint(GetContentPoint(endPoint));
-            return SelectInternal(SelectionStart, hit.TextPosition);
+            return SelectInternal(SelectionStart, GetTextPosition(endPoint));
         }
 
         return false;
@@ -343,6 +347,21 @@ public class CrossTextBlock : TextBlock, ICrossTrackable, ICrossTrackOwner
         return text?.Substring(start, end - start);
     }
 
+    /// <inheritdoc cref="ICrossTrackable.GetTextPosition(Point)"/>
+    public int GetTextPosition(Point point)
+    {
+        point -= new Point(Padding.Left, Padding.Top);
+        return TextLayout.HitTestPoint(point).TextPosition;
+    }
+
+    /// <summary>
+    /// Implements internal interface method.
+    /// </summary>
+    bool ICrossTrackable.SelectInternal(int start, int end)
+    {
+        return SelectInternal(start, end);
+    }
+
     /// <summary>
     /// Copies either all or selected text to the clipboard according to "what" and returns true on
     /// success, or false if nothing was copied.
@@ -363,27 +382,13 @@ public class CrossTextBlock : TextBlock, ICrossTrackable, ICrossTrackOwner
         return GetNormalizedSelectedRange(out start, out end, out _);
     }
 
-    bool ICrossTrackable.SelectInternal(int start, int end)
-    {
-        return SelectInternal(start, end);
-    }
-
     /// <summary>
     /// Overrides.
     /// </summary>
     protected override void OnAttachedToVisualTree(VisualTreeAttachmentEventArgs e)
     {
-        const string NSpace = $"{nameof(CrossTextBlock)}.{nameof(OnAttachedToVisualTree)}";
-
         base.OnAttachedToVisualTree(e);
-        Tracker?.AddInternal(this);
-
-        if (e.Root is TopLevel top)
-        {
-            ConditionalDebug.WriteLine(NSpace, "ATTACHED TO TOP");
-            top.PointerMoved += TopLevelMovedHandler;
-            top.PointerPressed += TopLevelPressedHandler;
-        }
+       _rootTop = e.Root as Visual;
     }
 
     /// <summary>
@@ -391,100 +396,8 @@ public class CrossTextBlock : TextBlock, ICrossTrackable, ICrossTrackOwner
     /// </summary>
     protected override void OnDetachedFromVisualTree(VisualTreeAttachmentEventArgs e)
     {
-        // Important or we could have a memory leak
-        // Also called if IsVisible property is set to false.
-        const string NSpace = $"{nameof(CrossTextBlock)}.{nameof(OnDetachedFromVisualTree)}";
-
         base.OnDetachedFromVisualTree(e);
-        Tracker?.RemoveInternal(this);
-
-        if (e.Root is TopLevel top)
-        {
-            ConditionalDebug.WriteLine(NSpace, "DETACHED FROM TOP");
-            top.PointerMoved -= TopLevelMovedHandler;
-            top.PointerPressed -= TopLevelPressedHandler;
-        }
-    }
-
-    /// <summary>
-    /// Overrides.
-    /// </summary>
-    protected override void OnPropertyChanged(AvaloniaPropertyChangedEventArgs e)
-    {
-        const string NSpace = $"{nameof(CrossTextBlock)}.{nameof(OnPropertyChanged)}";
-
-        var p = e.Property;
-        base.OnPropertyChanged(e);
-
-        if (p == TrackerProperty)
-        {
-            ConditionalDebug.WriteLine(NSpace, "ASSIGN NEW TRACKER");
-
-            // Remove old
-            e.GetOldValue<CrossTracker?>()?.RemoveInternal(this);
-
-            var tracker = e.GetNewValue<CrossTracker?>();
-
-            if (tracker != null)
-            {
-                TrackKey = CrossTracker.NextKey();
-                ConditionalDebug.WriteLine(NSpace, $"New track key: {TrackKey}");
-
-                if (this.IsAttachedToVisualTree())
-                {
-                    ConditionalDebug.WriteLine(NSpace, "Within visual tree");
-                    tracker.AddInternal(this);
-                }
-            }
-            else
-            {
-                ConditionalDebug.WriteLine(NSpace, "Tracker is null");
-                TrackKey = 0;
-            }
-
-            return;
-        }
-
-        if (p == TextProperty ||
-            p == IsEffectivelyEnabledProperty && !e.GetNewValue<bool>() ||
-            (p == SelectionBrushProperty && e.GetNewValue<IBrush?>() == null))
-        {
-            ResetHover();
-
-            if (HasSelection)
-            {
-                SelectNone();
-            }
-
-            return;
-        }
-    }
-
-    /// <summary>
-    /// Overrides.
-    /// </summary>
-    protected override void OnPointerMoved(PointerEventArgs e)
-    {
-        const string NSpace = $"{nameof(CrossTextBlock)}.{nameof(OnPointerMoved)}";
-
-        base.OnPointerMoved(e);
-
-        if (_hoverLink == null)
-        {
-            var info = e.GetCurrentPoint(this);
-            var props = info.Properties;
-
-            if (props.IsLeftButtonPressed &&
-                e.Pointer.Captured == this &&
-                SelectionBrush != null &&
-                _tracker?.SelectingCount != 0)
-            {
-                // Selection movement
-                var point = GetContentPoint(info.Position);
-                var hit = TextLayout.HitTestPoint(point);
-                SelectInternal(SelectionStart, hit.TextPosition);
-            }
-        }
+        _rootTop = null;
     }
 
     /// <summary>
@@ -494,72 +407,88 @@ public class CrossTextBlock : TextBlock, ICrossTrackable, ICrossTrackOwner
     {
         const string NSpace = $"{nameof(CrossTextBlock)}.{nameof(OnPointerPressed)}";
 
-        // Needed!!!!
-        e.Handled = true;
+        base.OnPointerPressed(e);
         var info = e.GetCurrentPoint(this);
+        var props = info.Properties;
 
-        if (!info.Properties.IsLeftButtonPressed)
+        if (!props.IsLeftButtonPressed)
         {
             return;
         }
 
         if (_hoverLink?.Uri != null)
         {
+            // Must get copy before reset
             var uri = _hoverLink.Uri;
 
             ResetHover();
             SelectNone();
 
-            var le = new LinkClickEventArgs(LinkClickEvent, this, uri);
-
-            RaiseEvent(le);
-
-            if (le.Handled)
+            if (Tracker?.OnLinkClick(uri) != true)
             {
-                return;
+                ChromeApplication.SafeLaunchUri(uri);
             }
 
-            var top = TopLevel.GetTopLevel(this);
-
-            if (top == null)
-            {
-                return;
-            }
-
-            Dispatcher.UIThread.Post(async () => await top.Launcher.LaunchUriAsync(uri) );
+            return;
         }
 
-        if (e.Pointer.Captured == this && SelectionBrush != null)
+        if (IsPointerSelectEnabled)
         {
             ConditionalDebug.WriteLine(NSpace, $"Left press for {nameof(TrackKey)}: {TrackKey}");
             ConditionalDebug.WriteLine(NSpace, $"Input point: {info.Position}");
 
-            // Important bit
+            // Important to get key
+            // strokes if we are focusable
             Focus();
-            _tracker?.StartSelect(this, true);
 
-            var adjPoint = GetContentPoint(info.Position);
-            ConditionalDebug.WriteLine(NSpace, $"Point in text: {adjPoint}");
+            var pos = GetTextPosition(info.Position);
+            ConditionalDebug.WriteLine(NSpace, $"Hit Pos: {pos}");
 
-            var hitPos = TextLayout.HitTestPoint(adjPoint).TextPosition;
-            ConditionalDebug.WriteLine(NSpace, $"Hit Pos: {hitPos}");
+            // Order important.
+            // Call public in order to force clear on tracker and set this instance.
+            Select(pos, pos);
 
-            Select(hitPos, hitPos);
+            // Do this last
+            _tracker?.SetAnchor(this, pos);
         }
-
-        base.OnPointerPressed(e);
     }
 
     /// <summary>
     /// Overrides.
     /// </summary>
-    protected override void OnPointerReleased(PointerReleasedEventArgs e)
+    protected override void OnPointerMoved(PointerEventArgs e)
     {
-        base.OnPointerReleased(e);
+        base.OnPointerMoved(e);
 
-        if (e.Pointer.Captured == this)
+        var info = e.GetCurrentPoint(this);
+        var props = info.Properties;
+
+        if (props.IsRightButtonPressed)
         {
-            e.Pointer.Capture(null);
+            return;
+        }
+
+        // Do not replace IsInsideBounds() for IsPointerOver
+        if (!props.IsLeftButtonPressed)
+        {
+            if (IsInsideContent(info.Position))
+            {
+                // LINK HOVER
+                // Not easy to get right (care needed with resets)
+                SetHoverCursor(GetLinkAtIndex(GetTextPosition(info.Position)));
+                return;
+            }
+
+            ResetHover();
+            return;
+        }
+
+        // LEFT BUTTON IS PRESSED HERE
+        ResetHover();
+
+        if (IsPointerSelectEnabled)
+        {
+            SelectInternal(SelectionStart, GetTextPosition(info.Position));
         }
     }
 
@@ -579,6 +508,11 @@ public class CrossTextBlock : TextBlock, ICrossTrackable, ICrossTrackOwner
     {
         base.OnLostFocus(e);
         ResetHover();
+
+        if (_tracker == null)
+        {
+            SelectNone();
+        }
     }
 
     /// <summary>
@@ -586,20 +520,7 @@ public class CrossTextBlock : TextBlock, ICrossTrackable, ICrossTrackOwner
     /// </summary>
     protected override void RenderTextLayout(DrawingContext context, Point origin)
     {
-        var length = TextLength;
-
-        // Normally, we allow changes to Text without updating
-        // the selection range. This works well, but here is
-        // the only place where we should reset selection.
-        if (_textLengthChange != length)
-        {
-            // We must take care not invalidate the instance here.
-            _textLengthChange = length;
-            SelectionStart = 0;
-            SelectionEnd = 0;
-            _tracker?.RemoveSelection(this);
-        }
-
+        // We must take care not invalidate the instance here.
         if (SelectionStart != SelectionEnd)
         {
             var brush = SelectionBrush;
@@ -608,16 +529,15 @@ public class CrossTextBlock : TextBlock, ICrossTrackable, ICrossTrackOwner
             {
                 // Presumably we don't need to clamp range here.
                 var start = Math.Min(SelectionStart, SelectionEnd);
-                length = Math.Max(SelectionStart, SelectionEnd) - start;
+                var length = Math.Max(SelectionStart, SelectionEnd) - start;
 
-                // Avalonia 11.3.5 breaks this
                 var rects = TextLayout.HitTestTextRange(start, length);
 
                 using (context.PushTransform(Matrix.CreateTranslation(origin)))
                 {
                     foreach (var items in rects)
                     {
-                        context.FillRectangle(brush, PixelRect.FromRect(items, 1.0).ToRect(1));
+                        context.FillRectangle(brush, PixelRect.FromRect(items, 1.0).ToRect(1.0));
                     }
                 }
             }
@@ -657,98 +577,6 @@ public class CrossTextBlock : TextBlock, ICrossTrackable, ICrossTrackOwner
         }
     }
 
-    /// <summary>
-    /// Needed to capture new blocks.
-    /// </summary>
-    private void TopLevelMovedHandler(object? _, PointerEventArgs e)
-    {
-        const string NSpace = $"{nameof(CrossTextBlock)}.{nameof(TopLevelMovedHandler)}";
-        var info = e.GetCurrentPoint(this);
-        var props = info.Properties;
-
-        // Do not replace IsInsideBounds() for IsPointerOver
-        if (IsInsideBounds(info.Position) &&
-            IsEffectivelyEnabled &&
-            !props.IsRightButtonPressed &&
-            !props.IsMiddleButtonPressed &&
-            !props.IsBarrelButtonPressed)
-        {
-            if (!props.IsLeftButtonPressed && IsInsideContent(info.Position))
-            {
-                // LINK HOVER
-                // Not easy to get right (care needed with resets)
-                var adjPoint = GetContentPoint(info.Position);
-                var index = TextLayout.HitTestPoint(adjPoint).TextPosition;
-                SetHoverCursor(GetLinkAtIndex(index));
-                return;
-            }
-
-
-            if (props.IsLeftButtonPressed &&
-                SelectionBrush != null &&
-                e.Pointer.Captured != this &&
-                _tracker != null &&
-                e.Pointer.Captured is CrossTextBlock lastCap && _tracker == lastCap.Tracker)
-            {
-                // CAPTURE
-                e.Handled = true;
-                info.Pointer.Capture(this);
-                ConditionalDebug.WriteLine(NSpace, $"DRAG CAPTURE ON {nameof(TrackKey)}: {TrackKey}");
-                ConditionalDebug.WriteLine(NSpace, $"Tracker selecting: {_tracker.HasValidSelection}");
-
-                if (_tracker.SelectingCount != 0)
-                {
-                    // START DRAG
-                    var index = TextLayout.HitTestPoint(GetContentPoint(info.Position)).TextPosition;
-
-                    switch (_tracker.DragSelect(this))
-                    {
-                        case DragDirection.FromStart:
-                            ConditionalDebug.WriteLine(NSpace, DragDirection.FromStart);
-                            SelectInternal(SelectionStart, index);
-                            break;
-                        case DragDirection.FromEnd:
-                            ConditionalDebug.WriteLine(NSpace, DragDirection.FromEnd);
-                            SelectInternal(SelectionEnd, index);
-                            break;
-                        case DragDirection.LeftToRight:
-                            ConditionalDebug.WriteLine(NSpace, DragDirection.LeftToRight);
-                            SelectInternal(0, index);
-                            break;
-                        case DragDirection.RightToLeft:
-                            ConditionalDebug.WriteLine(NSpace, DragDirection.RightToLeft);
-                            SelectInternal(TextLength, index);
-                            break;
-                        default:
-                            throw new InvalidOperationException($"Unexpected drag result");
-                    }
-                }
-
-                ResetHover();
-                return;
-            }
-        }
-
-        ResetHover();
-    }
-
-    /// <summary>
-    /// Needed to de-select when clicked outside of block.
-    /// </summary>
-    private void TopLevelPressedHandler(object? _, PointerPressedEventArgs e)
-    {
-        if (e.Pointer.Captured != this && IsEffectivelyEnabled)
-        {
-            var pos = e.GetPosition(this);
-            var visual = this.GetVisualAt(pos);
-
-            if (visual == null || visual == this)
-            {
-                SelectNone();
-            }
-        }
-    }
-
     private bool SetHoverCursor(CrossRun? link)
     {
         const string NSpace = $"{nameof(CrossTextBlock)}.{nameof(SetHoverCursor)}";
@@ -767,7 +595,7 @@ public class CrossTextBlock : TextBlock, ICrossTrackable, ICrossTrackOwner
                 _hoverDecorations = link.TextDecorations;
 
                 // Temporary
-                Cursor = ChromeCursors.HandCursor;
+                Cursor = ChromeCursors.Hand;
 
                 if (LinkHoverUnderline)
                 {
@@ -857,10 +685,10 @@ public class CrossTextBlock : TextBlock, ICrossTrackable, ICrossTrackOwner
                         int subLen = Math.Min(fragLen - t0, total);
 
                         total -= subLen;
-                        ConditionalDebug.WriteLine(NSpace, $"Substring: {t0}, {subLen}, where total now: {total}");
+                        // ConditionalDebug.WriteLine(NSpace, $"Substring: {t0}, {subLen}, where total now: {total}");
 
                         frag = frag.Substring(t0, subLen);
-                        ConditionalDebug.WriteLine(NSpace, $"Frag: `{frag}`");
+                        // ConditionalDebug.WriteLine(NSpace, $"Frag: `{frag}`");
 
                         buffer ??= new(Math.Max(subLen, 64));
 
@@ -891,7 +719,7 @@ public class CrossTextBlock : TextBlock, ICrossTrackable, ICrossTrackOwner
 
     private CrossRun? GetLinkAtIndex(int index)
     {
-        if (Inlines != null)
+        if (Inlines != null && Inlines.Count != 0)
         {
             int count = 0;
             var inlines = Inlines;
@@ -932,19 +760,6 @@ public class CrossTextBlock : TextBlock, ICrossTrackable, ICrossTrackOwner
         return null;
     }
 
-    private Point GetContentPoint(Point point)
-    {
-        // Result could be negative
-        return point - new Point(Padding.Left, Padding.Top);
-    }
-
-    private bool IsInsideBounds(Point point)
-    {
-        // Point is relative to Control (not its parent)
-        var b = Bounds;
-        return point.X >= 0 && point.X < b.Width && point.Y >= 0 && point.Y < b.Height;
-    }
-
     private bool IsInsideContent(Point point)
     {
         // Point is relative to Control (not its parent)
@@ -957,16 +772,20 @@ public class CrossTextBlock : TextBlock, ICrossTrackable, ICrossTrackOwner
     {
         // Do not call tracker
         const string NSpace = $"{nameof(CrossTextBlock)}.{nameof(SelectInternal)}";
-        ConditionalDebug.WriteLine(NSpace, $"start: {start}, {SelectionStart}");
-        ConditionalDebug.WriteLine(NSpace, $"end: {end}, {SelectionEnd}");
 
+        // We can clamp against 0 which is cheap.
+        // But we do not want to clamp on text length
+        // which could be expensive and doesn't appear necessary.
         start = Math.Max(start, 0);
         end = Math.Max(end, 0);
 
         if (SelectionStart != start || SelectionEnd != end)
         {
+            ConditionalDebug.WriteLine(NSpace, $"start: {start}, {SelectionStart}");
+            ConditionalDebug.WriteLine(NSpace, $"end: {end}, {SelectionEnd}");
             SelectionStart = start;
             SelectionEnd = end;
+
             InvalidateVisual();
             return true;
         }

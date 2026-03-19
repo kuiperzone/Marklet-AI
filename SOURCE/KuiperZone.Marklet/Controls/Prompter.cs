@@ -1,8 +1,10 @@
 // -----------------------------------------------------------------------------
-// PROJECT   : KuiperZone.Marklet
-// AUTHOR    : Andrew Thomas
-// COPYRIGHT : Andrew Thomas © 2025-2026 All rights reserved
-// LICENSE   : AGPL-3.0-only
+// SPDX-FileNotice: KuiperZone.Marklet - Local AI Client
+// SPDX-License-Identifier: AGPL-3.0-only
+// SPDX-FileCopyrightText: © 2025-2026 Andrew Thomas <kuiperzone@users.noreply.github.com>
+// SPDX-ProjectHomePage: https://kuiper.zone/marklet-ai/
+// SPDX-FileType: Source
+// SPDX-FileComment: This is NOT AI generated source code but was created with human thinking and effort.
 // -----------------------------------------------------------------------------
 
 // Marklet is free software: you can redistribute it and/or modify it under
@@ -36,24 +38,21 @@ public sealed class Prompter : Panel
     /// <summary>
     /// Gets the maximum <see cref="Text"/> length.
     /// </summary>
-    public const int MaxTextLength = 16 * 1024;
+    public static readonly int MaxTextLength = Math.Min(64 * 1024, MemoryGarden.MaxContentLength);
 
-    private static readonly ChromeStyling Styling = ChromeStyling.Global;
     private readonly TextEditor _editor = new();
     private readonly PromptBar _bar = new();
 
     // Backing fields
     private bool _isAttachButtonVisible;
     private bool _isSelectAllButtonVisible;
+    private IBrush? _disabledEditBackground;
 
     /// <summary>
     /// Default constructor.
     /// </summary>
     public Prompter()
     {
-        // Sanity
-        ConditionalDebug.ThrowIfGreaterThan(MaxTextLength, GardenLeaf.MaxContentLength);
-
         Children.Add(_editor);
 
         _bar.ZIndex = int.MaxValue;
@@ -83,6 +82,9 @@ public sealed class Prompter : Panel
         _bar.Submit.Click += SubmitClickHandler;
 
         _bar.VerticalAlignment = Avalonia.Layout.VerticalAlignment.Bottom;
+
+        // Align values
+        _disabledEditBackground = _editor.DisabledBackground;
     }
 
     /// <summary>
@@ -133,6 +135,13 @@ public sealed class Prompter : Panel
         o => o.IsSelectAllButtonVisible, (o, v) => o.IsSelectAllButtonVisible = v);
 
     /// <summary>
+    /// Defines the <see cref="DisabledEditBackground"/> property.
+    /// </summary>
+    public static readonly DirectProperty<Prompter, IBrush?> DisabledEditBackgroundProperty =
+        AvaloniaProperty.RegisterDirect<Prompter, IBrush?>(nameof(DisabledEditBackground),
+        o => o.DisabledEditBackground, (o, v) => o.DisabledEditBackground = v);
+
+    /// <summary>
     /// Occurs when the user clicks the "Submit" or hits ENTER in the edit box.
     /// </summary>
     public event EventHandler<RoutedEventArgs> SubmitClick
@@ -181,6 +190,18 @@ public sealed class Prompter : Panel
     }
 
     /// <summary>
+    /// Gets or sets the background editor when disabled.
+    /// </summary>
+    /// <remarks>
+    /// The default is null.
+    /// </remarks>
+    public IBrush? DisabledEditBackground
+    {
+        get { return _disabledEditBackground; }
+        set { SetAndRaise(DisabledEditBackgroundProperty, ref _disabledEditBackground, value); }
+    }
+
+    /// <summary>
     /// Gets or sets the editor text.
     /// </summary>
     public string? Text
@@ -194,6 +215,14 @@ public sealed class Prompter : Panel
                 _editor.Text = value;
             }
         }
+    }
+
+    /// <summary>
+    /// Calls focus on the editor.
+    /// </summary>
+    public void FocusEditor()
+    {
+        _editor.Focus();
     }
 
     /// <summary>
@@ -213,6 +242,23 @@ public sealed class Prompter : Panel
         if (p == IsSelectAllButtonVisibleProperty)
         {
             _bar.SelectAll.IsVisible = change.GetNewValue<bool>();
+            return;
+        }
+
+        if (p == DisabledEditBackgroundProperty)
+        {
+            _editor.DisabledBackground = change.GetNewValue<IBrush?>();
+            return;
+        }
+
+        if (p == IsEffectivelyEnabledProperty)
+        {
+            // Clear on disable
+            if (!change.GetNewValue<bool>())
+            {
+                _editor.Clear();
+            }
+
             return;
         }
     }

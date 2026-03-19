@@ -1,8 +1,10 @@
 // -----------------------------------------------------------------------------
-// PROJECT   : KuiperZone.Marklet
-// AUTHOR    : Andrew Thomas
-// COPYRIGHT : Andrew Thomas © 2025-2026 All rights reserved
-// LICENSE   : AGPL-3.0-only
+// SPDX-FileNotice: KuiperZone.Marklet - Local AI Client
+// SPDX-License-Identifier: AGPL-3.0-only
+// SPDX-FileCopyrightText: © 2025-2026 Andrew Thomas <kuiperzone@users.noreply.github.com>
+// SPDX-ProjectHomePage: https://kuiper.zone/marklet-ai/
+// SPDX-FileType: Source
+// SPDX-FileComment: This is NOT AI generated source code but was created with human thinking and effort.
 // -----------------------------------------------------------------------------
 
 // Marklet is free software: you can redistribute it and/or modify it under
@@ -87,14 +89,6 @@ internal sealed class ThemePalette : ColorPaletteResources
     public ImmutableSolidColorBrush WindowBorder { get; private set; } = ChromeBrushes.Black;
 
     /// <summary>
-    /// Gets the group background brush.
-    /// </summary>
-    /// <remarks>
-    /// Currently light/dark independent.
-    /// </remarks>
-    public ImmutableSolidColorBrush GroupBorder { get; private set; } = ChromeBrushes.Black;
-
-    /// <summary>
     /// Gets the background for a focused TextBox.
     /// </summary>
     public ImmutableSolidColorBrush FocusedBox { get; private set; } = ChromeBrushes.Black;
@@ -128,10 +122,9 @@ internal sealed class ThemePalette : ColorPaletteResources
         Foreground = ChromeBrushes.White;
         BackgroundLow = ChromeBrushes.Black;
         BackgroundHigh = ChromeBrushes.VeryDarkGray;
-        BorderBrush = ChromeBrushes.DarkGray;
+        BorderBrush = ChromeBrushes.VeryDarkGray;
         WindowBorder = ChromeBrushes.DarkGray;
         BufferBarBrush = ChromeBrushes.Black;
-        GroupBorder = ChromeBrushes.Transparent;
 
         // PRIMARY FOREGROUND
         // BaseHigh ="White"
@@ -154,7 +147,6 @@ internal sealed class ThemePalette : ColorPaletteResources
         BorderBrush = ChromeBrushes.DarkGray;
         WindowBorder = new(0xFF555557);
         BufferBarBrush = ChromeBrushes.Black;
-        GroupBorder = ChromeBrushes.Transparent;
 
         // Same as expected AltHigh
         FocusedBox = ChromeBrushes.Black;
@@ -225,7 +217,7 @@ internal sealed class ThemePalette : ColorPaletteResources
 
         // Disabled Slider foreground
         // ChromeDisabledHigh ="#ff333333"
-        ChromeDisabledHigh = ChromeStyling.ForegroundGray.Color;
+        ChromeDisabledHigh = ChromeStyling.GrayForeground.Color;
 
         // Disabled TextBox foreground
         // ChromeDisabledLow ="#ff9a9a9a"
@@ -270,8 +262,7 @@ internal sealed class ThemePalette : ColorPaletteResources
         BackgroundHigh = ChromeBrushes.White;
         BorderBrush = new(0xFFC0C0C0);
         WindowBorder = new(0xFF909090);
-        BufferBarBrush = new(0xFF505050);  //ChromeBrushes.DarkGray;
-        GroupBorder = ChromeBrushes.LightGray;
+        BufferBarBrush = new(0xFF505050);
 
         // Same as expected AltHigh
         FocusedBox = ChromeBrushes.White;

@@ -1,8 +1,10 @@
 // -----------------------------------------------------------------------------
-// PROJECT   : KuiperZone.Marklet
-// AUTHOR    : Andrew Thomas
-// COPYRIGHT : Andrew Thomas © 2025-2026 All rights reserved
-// LICENSE   : AGPL-3.0-only
+// SPDX-FileNotice: KuiperZone.Marklet - Local AI Client
+// SPDX-License-Identifier: AGPL-3.0-only
+// SPDX-FileCopyrightText: © 2025-2026 Andrew Thomas <kuiperzone@users.noreply.github.com>
+// SPDX-ProjectHomePage: https://kuiper.zone/marklet-ai/
+// SPDX-FileType: Source
+// SPDX-FileComment: This is NOT AI generated source code but was created with human thinking and effort.
 // -----------------------------------------------------------------------------
 
 // Marklet is free software: you can redistribute it and/or modify it under
@@ -19,6 +21,7 @@
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.ApplicationLifetimes;
+using Avalonia.Threading;
 using KuiperZone.Marklet.PixieChrome.Settings;
 using KuiperZone.Marklet.Tooling;
 
@@ -122,12 +125,43 @@ public class ChromeApplication : Application
     public ApplicationHost Host { get; }
 
     /// <summary>
+    /// Checks whether "uri" has "https", "http", "mailto" scheme and, if so, launches the URI returning true on
+    /// success.
+    /// </summary>
+    /// <remarks>
+    /// This is expected to open in a browser or mail client. A false result implies an invalid scheme (i.e. "file"). A
+    /// successful result does not guarantee the URI was opened. The call throws if the application has no <see
+    /// cref="MainWindow"/>.
+    /// </remarks>
+    /// <exception cref="InvalidOperationException">Failed to get TopLevel application window</exception>
+    public static bool SafeLaunchUri(Uri uri)
+    {
+        string[] schemes = ["https", "http", "mailto"];
+
+        if (!schemes.Contains(uri.Scheme.ToLowerInvariant()))
+        {
+            return false;
+        }
+
+        var main = MainWindow;
+
+        if (main != null)
+        {
+            Dispatcher.UIThread.Post(async () => await main.Launcher.LaunchUriAsync(uri));
+            return true;
+        }
+
+        throw new InvalidOperationException("Failed to get TopLevel application window");
+    }
+
+    /// <summary>
     /// Initializes <see cref="Host"/> and reads configuration from <see cref="ApplicationHost.ConfigDirectory"/> and
     /// initializes <see cref="ChromeStyling.Global"/>.
     /// </summary>
     /// <remarks>
     /// The application should override, load "App.axaml" and then call this base method in that order.
     /// </remarks>
+    /// <exception cref="InvalidOperationException">Already initialized</exception>
     public override void Initialize()
     {
         const string NSpace = $"{nameof(ChromeApplication)}.{nameof(Initialize)}";

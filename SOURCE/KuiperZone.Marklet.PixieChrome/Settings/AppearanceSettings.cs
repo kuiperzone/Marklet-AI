@@ -1,8 +1,10 @@
 // -----------------------------------------------------------------------------
-// PROJECT   : KuiperZone.Marklet
-// AUTHOR    : Andrew Thomas
-// COPYRIGHT : Andrew Thomas © 2025-2026 All rights reserved
-// LICENSE   : AGPL-3.0-only
+// SPDX-FileNotice: KuiperZone.Marklet - Local AI Client
+// SPDX-License-Identifier: AGPL-3.0-only
+// SPDX-FileCopyrightText: © 2025-2026 Andrew Thomas <kuiperzone@users.noreply.github.com>
+// SPDX-ProjectHomePage: https://kuiper.zone/marklet-ai/
+// SPDX-FileType: Source
+// SPDX-FileComment: This is NOT AI generated source code but was created with human thinking and effort.
 // -----------------------------------------------------------------------------
 
 // Marklet is free software: you can redistribute it and/or modify it under
@@ -18,6 +20,7 @@
 
 using System.Text.Json;
 using Avalonia.Media;
+using Avalonia.Media.Immutable;
 
 namespace KuiperZone.Marklet.PixieChrome.Settings;
 
@@ -48,6 +51,14 @@ public sealed class AppearanceSettings : SettingsBase, IEquatable<SettingsBase>
     /// A default 0 value will be interpreted as a default color or brush.
     /// </remarks>
     public uint AccentColor { get; set; }
+
+    /// <summary>
+    /// Gets or sets an "overlay tint" color.
+    /// </summary>
+    /// <remarks>
+    /// A default 0 value will be interpreted as no tint.
+    /// </remarks>
+    public uint TintColor { get; set; }
 
     /// <summary>
     /// Gets or sets the application corner size.
@@ -86,15 +97,24 @@ public sealed class AppearanceSettings : SettingsBase, IEquatable<SettingsBase>
             Theme == s.Theme &&
             PreferFluentDark == s.PreferFluentDark &&
             AccentColor == s.AccentColor &&
+            TintColor == s.TintColor &&
             Corners == s.Corners;
     }
 
     /// <summary>
-    /// Gets the <see cref="AccentColor"/> as color with default value.
+    /// Gets the <see cref="AccentColor"/> as Color with default value.
     /// </summary>
     public Color ToAccentColor()
     {
         return ToColor(AccentColor, ChromeBrushes.DefaultAccent.Color);
+    }
+
+    /// <summary>
+    /// Gets the <see cref="TintColor"/> as Color.
+    /// </summary>
+    public Color ToTintColor()
+    {
+        return ToColor(TintColor, default);
     }
 
     /// <summary>
@@ -107,6 +127,7 @@ public sealed class AppearanceSettings : SettingsBase, IEquatable<SettingsBase>
             Theme = other.Theme;
             PreferFluentDark = other.PreferFluentDark;
             AccentColor = other.AccentColor;
+            TintColor = other.TintColor;
             Corners = other.Corners;
         }
     }

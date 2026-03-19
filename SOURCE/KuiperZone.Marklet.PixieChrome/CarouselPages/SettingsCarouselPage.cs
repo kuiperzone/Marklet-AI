@@ -1,8 +1,10 @@
 // -----------------------------------------------------------------------------
-// PROJECT   : KuiperZone.Marklet
-// AUTHOR    : Andrew Thomas
-// COPYRIGHT : Andrew Thomas © 2025-2026 All rights reserved
-// LICENSE   : AGPL-3.0-only
+// SPDX-FileNotice: KuiperZone.Marklet - Local AI Client
+// SPDX-License-Identifier: AGPL-3.0-only
+// SPDX-FileCopyrightText: © 2025-2026 Andrew Thomas <kuiperzone@users.noreply.github.com>
+// SPDX-ProjectHomePage: https://kuiper.zone/marklet-ai/
+// SPDX-FileType: Source
+// SPDX-FileComment: This is NOT AI generated source code but was created with human thinking and effort.
 // -----------------------------------------------------------------------------
 
 // Marklet is free software: you can redistribute it and/or modify it under
@@ -142,9 +144,9 @@ public abstract class SettingsCarouselPage<T> : CarouselPage where T : SettingsB
         var group = new PixieGroup();
         group.TopTitle = "Reset";
 
-        var obj = new PixieButton();
+        var obj = new PixieCard();
         obj.RightButton.IsVisible = true;
-        obj.RightButton.Classes.Add("regular-background");
+        obj.RightButton.Classes.Add("regular");
         obj.RightButton.Content = "Reset";
         obj.Title = title;
         obj.RightButton.Click += (_, __) => Reset();

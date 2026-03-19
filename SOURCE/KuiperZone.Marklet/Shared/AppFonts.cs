@@ -1,8 +1,10 @@
 // -----------------------------------------------------------------------------
-// PROJECT   : KuiperZone.Marklet
-// AUTHOR    : Andrew Thomas
-// COPYRIGHT : Andrew Thomas © 2025-2026 All rights reserved
-// LICENSE   : AGPL-3.0-only
+// SPDX-FileNotice: KuiperZone.Marklet - Local AI Client
+// SPDX-License-Identifier: AGPL-3.0-only
+// SPDX-FileCopyrightText: © 2025-2026 Andrew Thomas <kuiperzone@users.noreply.github.com>
+// SPDX-ProjectHomePage: https://kuiper.zone/marklet-ai/
+// SPDX-FileType: Source
+// SPDX-FileComment: This is NOT AI generated source code but was created with human thinking and effort.
 // -----------------------------------------------------------------------------
 
 // Marklet is free software: you can redistribute it and/or modify it under
@@ -48,6 +50,7 @@ public static class AppFonts
             SlabFamily = new($"{AssetPrefix}#Roboto Slab");
             VintageFamily = new($"{AssetPrefix}#Comfortaa");
             ArtisticFamily = new($"{AssetPrefix}#Josefin Slab");
+            CathodeFamily = new($"{AssetPrefix}#Workbench");
         }
         catch (Exception e)
         {
@@ -57,6 +60,7 @@ public static class AppFonts
             SlabFamily = DefaultFamily;
             VintageFamily = DefaultFamily;
             ArtisticFamily = DefaultFamily;
+            CathodeFamily = DefaultFamily;
         }
     }
 
@@ -108,4 +112,13 @@ public static class AppFonts
     /// </summary>
     public const double ArtisticCorrection = 1.26;
 
+    /// <summary>
+    /// Gets the cathode family.
+    /// </summary>
+    public static readonly FontFamily CathodeFamily;
+
+    /// <summary>
+    /// Gets a size correction value for <see cref="CathodeFamily"/>.
+    /// </summary>
+    public const double CathodeCorrection = 1.0;
 }

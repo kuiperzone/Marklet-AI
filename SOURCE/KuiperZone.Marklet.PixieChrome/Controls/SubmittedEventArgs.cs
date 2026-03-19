@@ -1,0 +1,70 @@
+// -----------------------------------------------------------------------------
+// SPDX-FileNotice: KuiperZone.Marklet - Local AI Client
+// SPDX-License-Identifier: AGPL-3.0-only
+// SPDX-FileCopyrightText: © 2025-2026 Andrew Thomas <kuiperzone@users.noreply.github.com>
+// SPDX-ProjectHomePage: https://kuiper.zone/marklet-ai/
+// SPDX-FileType: Source
+// SPDX-FileComment: This is NOT AI generated source code but was created with human thinking and effort.
+// -----------------------------------------------------------------------------
+
+// Marklet is free software: you can redistribute it and/or modify it under
+// the terms of the GNU Affero General Public License as published by the Free Software
+// Foundation, version 3 of the License only.
+//
+// Marklet is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
+// FOR A PARTICULAR PURPOSE. See the GNU Affero General Public License for more details.
+//
+// You should have received a copy of the GNU Affero General Public License along
+// with Marklet. If not, see <https://www.gnu.org/licenses/>.
+
+using Avalonia.Interactivity;
+
+namespace KuiperZone.Marklet.PixieChrome.Controls;
+
+/// <summary>
+/// Event arguments for <see cref="TextEditor.SubmittedEvent"/>.
+/// </summary>
+public class SubmittedEventArgs : RoutedEventArgs
+{
+    /// <summary>
+    /// Constructor.
+    /// </summary>
+    public SubmittedEventArgs(string? oldText, string? newText)
+    {
+        OldText = oldText;
+        NewText = newText;
+    }
+
+    /// <summary>
+    /// Constructor.
+    /// </summary>
+    public SubmittedEventArgs(RoutedEvent routedEvent, object? source, string? oldText, string? newText)
+        : base(routedEvent, source)
+    {
+        OldText = oldText;
+        NewText = newText;
+    }
+
+    /// <summary>
+    /// Gets the "old text".
+    /// </summary>
+    /// <remarks>
+    /// This is the "Text" value of <see cref="TextEditor"/> at the moment it is added to the visual tree.
+    /// </remarks>
+    public string? OldText { get; }
+
+    /// <summary>
+    /// Gets the submitted Text value.
+    /// </summary>
+    public string? NewText { get; }
+
+    /// <summary>
+    /// Gets or sets whether the submit is to be rejected.
+    /// </summary>
+    /// <remarks>
+    /// The <see cref="TextEditor"/> will rended text in a warning color if this is set to true.
+    /// </remarks>
+    public bool IsRejected { get; set; }
+
+}

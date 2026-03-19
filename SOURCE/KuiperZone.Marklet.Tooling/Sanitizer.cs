@@ -1,8 +1,10 @@
 // -----------------------------------------------------------------------------
-// PROJECT   : KuiperZone.Marklet
-// AUTHOR    : Andrew Thomas
-// COPYRIGHT : Andrew Thomas © 2025-2026 All rights reserved
-// LICENSE   : AGPL-3.0-only
+// SPDX-FileNotice: KuiperZone.Marklet - Local AI Client
+// SPDX-License-Identifier: AGPL-3.0-only
+// SPDX-FileCopyrightText: © 2025-2026 Andrew Thomas <kuiperzone@users.noreply.github.com>
+// SPDX-ProjectHomePage: https://kuiper.zone/marklet-ai/
+// SPDX-FileType: Source
+// SPDX-FileComment: This is NOT AI generated source code but was created with human thinking and effort.
 // -----------------------------------------------------------------------------
 
 // Marklet is free software: you can redistribute it and/or modify it under
@@ -23,7 +25,7 @@ using System.Text;
 namespace KuiperZone.Marklet.Tooling;
 
 /// <summary>
-/// Sanitizes text for safe use in titles, body, group names, and chat metadata.
+/// Sanitizes text for safe use in titles, body, group names, and metadata.
 /// </summary>
 public static class Sanitizer
 {
@@ -181,7 +183,7 @@ public static class Sanitizer
         StringBuilder? buffer = null;
 
         // Limit scan length, but + 1 to force truncation
-        int scanLen = ToScanLength(value.Length, max);
+        int scanLen = GetScanLength(value.Length, max);
 
         for (int n = 0; n < scanLen; ++n)
         {
@@ -293,7 +295,7 @@ public static class Sanitizer
         int n0 = 0;
         bool prevHigh = false;
         StringBuilder? buffer = null;
-        int scanLen = ToScanLength(text.Length, max);
+        int scanLen = GetScanLength(text.Length, max);
 
         for (int n = 0; n < scanLen; ++n)
         {
@@ -367,7 +369,9 @@ public static class Sanitizer
 
                         prevHigh = false;
                         continue;
+                    case UnicodeCategory.PrivateUse:
                     case UnicodeCategory.OtherNotAssigned:
+                        // Remove
                         buffer ??= new(scanLen);
                         buffer.Append(text.AsSpan(n0, n - n0));
                         n0 = n + 1;
@@ -491,10 +495,10 @@ public static class Sanitizer
         return text;
     }
 
-    private static int ToScanLength(int len, int max)
+    private static int GetScanLength(int len, int max)
     {
         // Enough buffer for worst-case expansion from formfeed/paragraph sep
-        const int Extra = 64;
+        const int Extra = 128;
 
         // Avoid signed integer overflow
         if (max > int.MaxValue - Extra)

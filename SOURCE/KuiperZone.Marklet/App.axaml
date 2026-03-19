@@ -1,6 +1,10 @@
 <Application xmlns="https://github.com/avaloniaui"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+
     xmlns:vm="using:KuiperZone.Marklet.PixieChrome"
+    xmlns:chrome="clr-namespace:KuiperZone.Marklet.PixieChrome;assembly=KuiperZone.Marklet.PixieChrome"
+
+    x:CompileBindings="True"
     x:DataType="vm:ChromeStyling"
     x:Class="KuiperZone.Marklet.App"
 
@@ -12,8 +16,9 @@
         <!-- IMPORTANT -->
         <FluentTheme/>
 
-        <!-- INCLUDE STYLING NOW IN SEPARATE LIB -->
+        <!-- INCLUDE STYLING IN SEPARATE LIB -->
         <StyleInclude Source="avares://KuiperZone.Marklet.PixieChrome/Assets/ChromeStyling.axaml"/>
+
     </Application.Styles>
 
 </Application>

@@ -1,8 +1,10 @@
 // -----------------------------------------------------------------------------
-// PROJECT   : KuiperZone.Marklet
-// AUTHOR    : Andrew Thomas
-// COPYRIGHT : Andrew Thomas © 2025-2026 All rights reserved
-// LICENSE   : AGPL-3.0-only
+// SPDX-FileNotice: KuiperZone.Marklet - Local AI Client
+// SPDX-License-Identifier: AGPL-3.0-only
+// SPDX-FileCopyrightText: © 2025-2026 Andrew Thomas <kuiperzone@users.noreply.github.com>
+// SPDX-ProjectHomePage: https://kuiper.zone/marklet-ai/
+// SPDX-FileType: Source
+// SPDX-FileComment: This is NOT AI generated source code but was created with human thinking and effort.
 // -----------------------------------------------------------------------------
 
 // Marklet is free software: you can redistribute it and/or modify it under
@@ -39,6 +41,7 @@ public sealed class AppearanceCarouselPage : SettingsCarouselPage<AppearanceSett
     private readonly PixieCombo _cornerCombo = new();
 
     private readonly PixieAccentPicker _accentPicker = new();
+    private readonly PixieAccentPicker _tintPicker = new();
 
     /// <summary>
     /// Default constructor.
@@ -55,6 +58,7 @@ public sealed class AppearanceCarouselPage : SettingsCarouselPage<AppearanceSett
         Children.Add(group);
 
         _themeCombo.Title = "Main Theme";
+        _themeCombo.IsTranslateFriendly = true;
         _themeCombo.LeftSymbol = Symbols.DarkMode;
         _themeCombo.Footer = "Set light or dark theme";
         _themeCombo.SetItemsAs<ChromeTheme>();
@@ -67,11 +71,18 @@ public sealed class AppearanceCarouselPage : SettingsCarouselPage<AppearanceSett
         _accentPicker.IsSecondaryVisible = true;
         group.Children.Add(_accentPicker);
 
+        _tintPicker.Header = "Tint Overlay";
+        _tintPicker.DefaultColorLabel = "None";
+        _tintPicker.IsDefaultColorVisible = true;
+        _tintPicker.Footer = "Adds a color overlay to the user interface";
+        group.Children.Add(_tintPicker);
+
         // CORNER OTHER
         group = new PixieGroup();
         Children.Add(group);
 
         _cornerCombo.Title = "Corner Size";
+        _cornerCombo.IsTranslateFriendly = true;
         _cornerCombo.LeftSymbol = Symbols.RoundedCorner;
         _cornerCombo.Footer = "Set the corner size of windows and controls";
         _cornerCombo.SetItemsAs<CornerSize>();
@@ -94,6 +105,7 @@ public sealed class AppearanceCarouselPage : SettingsCarouselPage<AppearanceSett
         _themeCombo.SelectedIndex = (int)settings.Theme;
         _fluentSwitch.IsChecked = settings.PreferFluentDark;
         _accentPicker.ChosenColor = settings.ToAccentColor();
+        _tintPicker.ChosenColor = settings.ToTintColor();
         _cornerCombo.SelectedIndex = (int)settings.Corners;
 
         UpdateControlEnabledStates();
@@ -107,6 +119,7 @@ public sealed class AppearanceCarouselPage : SettingsCarouselPage<AppearanceSett
         settings.Theme = _themeCombo.GetSelectedIndexAs<ChromeTheme>();
         settings.PreferFluentDark = _fluentSwitch.IsChecked;
         settings.AccentColor = _accentPicker.ChosenColor.ToUInt32();
+        settings.TintColor = _tintPicker.ChosenColor.ToUInt32();
         settings.Corners = _cornerCombo.GetSelectedIndexAs<CornerSize>();
     }
 
@@ -117,8 +130,9 @@ public sealed class AppearanceCarouselPage : SettingsCarouselPage<AppearanceSett
     {
         _themeCombo.ValueChanged += ControlValueChangedHandler;
         _fluentSwitch.ValueChanged += ControlValueChangedHandler;
-        _cornerCombo.ValueChanged += ControlValueChangedHandler;
         _accentPicker.ValueChanged += ControlValueChangedHandler;
+        _tintPicker.ValueChanged += ControlValueChangedHandler;
+        _cornerCombo.ValueChanged += ControlValueChangedHandler;
     }
 
     /// <summary>

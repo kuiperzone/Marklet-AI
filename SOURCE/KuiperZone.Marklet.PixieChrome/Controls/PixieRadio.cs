@@ -1,8 +1,10 @@
 // -----------------------------------------------------------------------------
-// PROJECT   : KuiperZone.Marklet
-// AUTHOR    : Andrew Thomas
-// COPYRIGHT : Andrew Thomas © 2025-2026 All rights reserved
-// LICENSE   : AGPL-3.0-only
+// SPDX-FileNotice: KuiperZone.Marklet - Local AI Client
+// SPDX-License-Identifier: AGPL-3.0-only
+// SPDX-FileCopyrightText: © 2025-2026 Andrew Thomas <kuiperzone@users.noreply.github.com>
+// SPDX-ProjectHomePage: https://kuiper.zone/marklet-ai/
+// SPDX-FileType: Source
+// SPDX-FileComment: This is NOT AI generated source code but was created with human thinking and effort.
 // -----------------------------------------------------------------------------
 
 // Marklet is free software: you can redistribute it and/or modify it under
@@ -28,7 +30,7 @@ namespace KuiperZone.Marklet.PixieChrome.Controls;
 /// <remarks>
 /// Radio exclusivity is managed by <see cref="PixieGroup"/>.
 /// </remarks>
-public sealed class PixieRadio : PixieControl
+public class PixieRadio : PixieControl
 {
     private readonly RadioButton _radio = new();
 
@@ -38,7 +40,7 @@ public sealed class PixieRadio : PixieControl
     public PixieRadio()
         : base(false, Avalonia.Layout.VerticalAlignment.Center)
     {
-        SetChildControl(_radio);
+        SetSubject(_radio);
         SetPseudoFocusControl(_radio);
 
         _radio.VerticalAlignment = VerticalContentAlignment;
@@ -96,7 +98,7 @@ public sealed class PixieRadio : PixieControl
             if (_radio.IsChecked != change.GetNewValue<bool>())
             {
                 _radio.IsChecked = change.GetNewValue<bool>();
-                Group?.CheckedChanged(this);
+                Group?.SetRadioOnCheckedChanged(this);
                 OnValueChanged();
             }
 
@@ -107,7 +109,7 @@ public sealed class PixieRadio : PixieControl
     private void CheckedChangedHandler(object? _, EventArgs __)
     {
         IsChecked = _radio.IsChecked == true;
-        Group?.CheckedChanged(this);
+        Group?.SetRadioOnCheckedChanged(this);
         OnValueChanged();
     }
 }

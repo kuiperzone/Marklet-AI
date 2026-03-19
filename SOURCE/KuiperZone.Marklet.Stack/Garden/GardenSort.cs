@@ -1,8 +1,10 @@
 ﻿// -----------------------------------------------------------------------------
-// PROJECT   : KuiperZone.Marklet
-// AUTHOR    : Andrew Thomas
-// COPYRIGHT : Andrew Thomas © 2025-2026 All rights reserved
-// LICENSE   : AGPL-3.0-only
+// SPDX-FileNotice: KuiperZone.Marklet - Local AI Client
+// SPDX-License-Identifier: AGPL-3.0-only
+// SPDX-FileCopyrightText: © 2025-2026 Andrew Thomas <kuiperzone@users.noreply.github.com>
+// SPDX-ProjectHomePage: https://kuiper.zone/marklet-ai/
+// SPDX-FileType: Source
+// SPDX-FileComment: This is NOT AI generated source code but was created with human thinking and effort.
 // -----------------------------------------------------------------------------
 
 // Marklet is free software: you can redistribute it and/or modify it under
@@ -24,9 +26,9 @@ namespace KuiperZone.Marklet.Stack.Garden;
 public enum GardenSort
 {
     /// <summary>
-    /// Sort by creation time with oldest first (ascending).
+    /// Default order (newest first).
     /// </summary>
-    CreationOldestFirst = 0,
+    Default = 0,
 
     /// <summary>
     /// Sort by creation time with newest first (descending).
@@ -34,9 +36,9 @@ public enum GardenSort
     CreationNewestFirst,
 
     /// <summary>
-    /// Sort by update time with oldest first (ascending).
+    /// Sort by creation time with oldest first (ascending).
     /// </summary>
-    UpdateOldestFirst,
+    CreationOldestFirst,
 
     /// <summary>
     /// Sort by update time with newest first (descending).
@@ -44,17 +46,17 @@ public enum GardenSort
     UpdateNewestFirst,
 
     /// <summary>
-    /// Sort by access time with oldest first (ascending).
+    /// Sort by update time with newest and pinned first (descending).
     /// </summary>
-    AccessOldestFirst,
+    UpdateNewestPinnedFirst,
 
     /// <summary>
-    /// Sort by access time with newest first (descending).
+    /// Sort by update time with oldest first (ascending).
     /// </summary>
-    AccessNewestFirst,
+    UpdateOldestFirst,
 
     /// <summary>
-    /// Alpha sort by title.
+    /// Sort by title.
     /// </summary>
     Title
 }

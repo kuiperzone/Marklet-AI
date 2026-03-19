@@ -1,8 +1,10 @@
 // -----------------------------------------------------------------------------
-// PROJECT   : KuiperZone.Marklet
-// AUTHOR    : Andrew Thomas
-// COPYRIGHT : Andrew Thomas © 2025-2026 All rights reserved
-// LICENSE   : AGPL-3.0-only
+// SPDX-FileNotice: KuiperZone.Marklet - Local AI Client
+// SPDX-License-Identifier: AGPL-3.0-only
+// SPDX-FileCopyrightText: © 2025-2026 Andrew Thomas <kuiperzone@users.noreply.github.com>
+// SPDX-ProjectHomePage: https://kuiper.zone/marklet-ai/
+// SPDX-FileType: Source
+// SPDX-FileComment: This is NOT AI generated source code but was created with human thinking and effort.
 // -----------------------------------------------------------------------------
 
 using System.Diagnostics.CodeAnalysis;
@@ -107,6 +109,7 @@ public static class ConditionalDebug
     {
         if (!Equals(value, other))
         {
+            Console.WriteLine($"EXCEPTION: Value {value} != {other} " + paramName);
             throw new ArgumentException($"Value {value} != {other}", paramName);
         }
     }
@@ -120,6 +123,7 @@ public static class ConditionalDebug
     {
         if (Equals(value, other))
         {
+            Console.WriteLine($"EXCEPTION: Value {value} == {other} " + paramName);
             throw new ArgumentException($"Value {value} == {other}", paramName);
         }
     }
@@ -133,6 +137,7 @@ public static class ConditionalDebug
     {
         if (ReferenceEquals(value, other))
         {
+            Console.WriteLine($"EXCEPTION: Instance {value?.GetType().Name ?? "null"} is same as other " + paramName);
             throw new ArgumentException($"Instance {value?.GetType().Name ?? "null"} is same as other", paramName);
         }
     }
@@ -146,6 +151,7 @@ public static class ConditionalDebug
     {
         if (!ReferenceEquals(value, other))
         {
+            Console.WriteLine($"EXCEPTION: Instance {value?.GetType().Name ?? "null"} is not same as other " + paramName);
             throw new ArgumentException($"Instance {value?.GetType().Name ?? "null"} is not same as other", paramName);
         }
     }
@@ -159,7 +165,8 @@ public static class ConditionalDebug
     {
         if (!value)
         {
-            throw new ArgumentException($"Not true", paramName);
+            Console.WriteLine("EXCEPTION: NOT TRUE: " + paramName);
+            throw new ArgumentException("Not true", paramName);
         }
     }
 
@@ -172,7 +179,8 @@ public static class ConditionalDebug
     {
         if (value)
         {
-            throw new ArgumentException($"Not false", paramName);
+            Console.WriteLine("EXCEPTION: NOT FALSE: " + paramName);
+            throw new ArgumentException("Not false", paramName);
         }
     }
 
@@ -195,7 +203,8 @@ public static class ConditionalDebug
     {
         if (value != null)
         {
-            throw new ArgumentException($"Value not null", paramName);
+            Console.WriteLine("EXCEPTION: VALUE NOT NULL: " + paramName);
+            throw new ArgumentException("Value not null", paramName);
         }
     }
 
@@ -206,7 +215,11 @@ public static class ConditionalDebug
     [System.Diagnostics.Conditional("DEBUG")]
     public static void ThrowIfNull(object? value, [CallerArgumentExpression(nameof(value))] string? paramName = null)
     {
-        ArgumentNullException.ThrowIfNull(value, paramName);
+        if (value == null)
+        {
+            Console.WriteLine("EXCEPTION: VALUE IS NULL: " + paramName);
+            throw new ArgumentNullException(paramName, "Value is null");
+        }
     }
 
     /// <summary>
@@ -217,6 +230,7 @@ public static class ConditionalDebug
     [DoesNotReturn]
     public static void Fail(string msg)
     {
+        Console.WriteLine("FAIL: " + msg);
         throw new InvalidOperationException(msg);
     }
 
@@ -241,10 +255,7 @@ public static class ConditionalDebug
     /// </summary>
     public static void WriteLine(Exception e)
     {
-        if (IsNamespaceEnabled(null))
-        {
-            WriteLine("", e.ToString(), false);
-        }
+        WriteLine(e.ToString(), false);
     }
 
     /// <summary>
@@ -280,7 +291,7 @@ public static class ConditionalDebug
     /// </summary>
     public static void WriteLine(string? nspace, Exception e)
     {
-        WriteLine(nspace, e.ToString());
+        WriteLine(nspace, e.ToString(), false);
     }
 
     /// <summary>

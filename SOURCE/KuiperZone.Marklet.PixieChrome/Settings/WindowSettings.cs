@@ -1,8 +1,10 @@
 // -----------------------------------------------------------------------------
-// PROJECT   : KuiperZone.Marklet
-// AUTHOR    : Andrew Thomas
-// COPYRIGHT : Andrew Thomas © 2025-2026 All rights reserved
-// LICENSE   : AGPL-3.0-only
+// SPDX-FileNotice: KuiperZone.Marklet - Local AI Client
+// SPDX-License-Identifier: AGPL-3.0-only
+// SPDX-FileCopyrightText: © 2025-2026 Andrew Thomas <kuiperzone@users.noreply.github.com>
+// SPDX-ProjectHomePage: https://kuiper.zone/marklet-ai/
+// SPDX-FileType: Source
+// SPDX-FileComment: This is NOT AI generated source code but was created with human thinking and effort.
 // -----------------------------------------------------------------------------
 
 // Marklet is free software: you can redistribute it and/or modify it under
@@ -17,6 +19,7 @@
 // with Marklet. If not, see <https://www.gnu.org/licenses/>.
 
 using System.Text.Json;
+using Avalonia.Media;
 using KuiperZone.Marklet.PixieChrome.Windows;
 
 namespace KuiperZone.Marklet.PixieChrome.Settings;
@@ -52,14 +55,14 @@ public sealed class WindowSettings : SettingsBase, IEquatable<SettingsBase>
     public ChromeControlBackground ControlBackground { get; set; }
 
     /// <summary>
-    /// Gets or sets whether dialog windows follow the main window settings.
-    /// </summary>
-    public bool DialogFollows { get; set; }
-
-    /// <summary>
     /// Gets or sets whether to show dialog windows in the taskbar.
     /// </summary>
     public bool ShowDialogInTaskbar { get; set; } = true;
+
+    /// <summary>
+    /// Gets or sets whether dialog windows have accented border.
+    /// </summary>
+    public bool DialogAccentBorder { get; set; }
 
     /// <inheritdoc cref="SettingsBase.Reset"/>
     public override void Reset()
@@ -94,8 +97,8 @@ public sealed class WindowSettings : SettingsBase, IEquatable<SettingsBase>
             IsCompact == s.IsCompact &&
             ControlStyle == s.ControlStyle &&
             ControlBackground == s.ControlBackground &&
-            DialogFollows == s.DialogFollows &&
-            ShowDialogInTaskbar == s.ShowDialogInTaskbar;
+            ShowDialogInTaskbar == s.ShowDialogInTaskbar &&
+            DialogAccentBorder == s.DialogAccentBorder;
     }
 
     /// <summary>
@@ -109,8 +112,8 @@ public sealed class WindowSettings : SettingsBase, IEquatable<SettingsBase>
             IsCompact = other.IsCompact;
             ControlStyle = other.ControlStyle;
             ControlBackground = other.ControlBackground;
-            DialogFollows = other.DialogFollows;
             ShowDialogInTaskbar = other.ShowDialogInTaskbar;
+            DialogAccentBorder = other.DialogAccentBorder;
         }
     }
 
@@ -119,17 +122,7 @@ public sealed class WindowSettings : SettingsBase, IEquatable<SettingsBase>
     /// </summary>
     public bool GetChromeWindow(bool isDialog)
     {
-        if (isDialog)
-        {
-            if (DialogFollows)
-            {
-                return IsChromeWindow;
-            }
-
-            return true;
-        }
-
-        return IsChromeWindow;
+        return isDialog || IsChromeWindow;
     }
 
     /// <summary>
@@ -137,12 +130,7 @@ public sealed class WindowSettings : SettingsBase, IEquatable<SettingsBase>
     /// </summary>
     public bool GetCompact(bool isDialog)
     {
-        if (isDialog)
-        {
-            return IsChromeWindow && DialogFollows && IsCompact;
-        }
-
-        return IsCompact;
+        return !isDialog && IsCompact;
     }
 
     /// <summary>
@@ -158,12 +146,7 @@ public sealed class WindowSettings : SettingsBase, IEquatable<SettingsBase>
     /// </summary>
     public ChromeControlBackground GetControlBackground(bool isDialog)
     {
-        if (isDialog)
-        {
-            return IsChromeWindow && DialogFollows ? ControlBackground : ChromeControlBackground.Default;
-        }
-
-        return ControlBackground;
+        return isDialog ? ChromeControlBackground.Default : ControlBackground;
     }
 
     /// <summary>
@@ -173,4 +156,18 @@ public sealed class WindowSettings : SettingsBase, IEquatable<SettingsBase>
     {
         return !isDialog || ShowDialogInTaskbar;
     }
+
+    /// <summary>
+    /// Helper for <see cref="ChromeWindow"/>.
+    /// </summary>
+    public IBrush? GetWindowBorder(bool isDialog)
+    {
+        if (isDialog && DialogAccentBorder)
+        {
+            return ChromeStyling.Global.AccentBrush;
+        }
+
+        return ChromeStyling.Global.WindowBorder;
+    }
+
 }

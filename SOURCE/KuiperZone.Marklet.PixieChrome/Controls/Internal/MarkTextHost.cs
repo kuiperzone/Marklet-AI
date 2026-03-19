@@ -1,8 +1,10 @@
 // -----------------------------------------------------------------------------
-// PROJECT   : KuiperZone.Marklet
-// AUTHOR    : Andrew Thomas
-// COPYRIGHT : Andrew Thomas © 2025-2026 All rights reserved
-// LICENSE   : AGPL-3.0-only
+// SPDX-FileNotice: KuiperZone.Marklet - Local AI Client
+// SPDX-License-Identifier: AGPL-3.0-only
+// SPDX-FileCopyrightText: © 2025-2026 Andrew Thomas <kuiperzone@users.noreply.github.com>
+// SPDX-ProjectHomePage: https://kuiper.zone/marklet-ai/
+// SPDX-FileType: Source
+// SPDX-FileComment: This is NOT AI generated source code but was created with human thinking and effort.
 // -----------------------------------------------------------------------------
 
 // Marklet is free software: you can redistribute it and/or modify it under
@@ -33,29 +35,26 @@ internal class MarkTextHost : MarkBlockHost
         : base(owner, source)
     {
         const string NSpace = $"{nameof(MarkTextHost)}.{nameof(MarkTextHost)}";
+
         ConditionalDebug.WriteLine(NSpace, $"Constructor: {source.Kind}");
         ConditionalDebug.ThrowIfEqual(BlockKind.Rule, Kind);
 
-        CrossText = new CrossTextBlock(Owner.Tracker, null); // <- null intentional (parent has menu)
-
+        CrossText = new CrossTextBlock(null); // <- null intentional (parent has menu)
+        CrossText.Tracker = Owner.Tracker;
         Control = CrossText;
-        TrackKey0 = CrossText.TrackKey;
-        TrackKey1 = TrackKey0;
+        Track0 = CrossText;
+        Track1 = CrossText;
 
-        ConditionalDebug.ThrowIfZero(CrossText.TrackKey);
         CrossText.Background = Brushes.Transparent; // <- for selectable text
         CrossText.TextWrapping = TextWrapping.Wrap;
         CrossText.VerticalAlignment = VerticalAlignment.Top;
 
-        if (!source.Kind.IsCode(false))
-        {
-            CrossText.LinkClick += owner.LinkClickHandler;
-        }
+        ConditionalDebug.WriteLine(NSpace, $"Done ok");
     }
 
     public CrossTextBlock CrossText { get; }
 
-    public override void RefreshLook(bool isFirst, bool isLast)
+    public override void Refresh(bool isFirst, bool isLast)
     {
         ConditionalDebug.ThrowIfTrue(IsPending);
         SetChildMargin(isFirst, isLast);
@@ -68,11 +67,16 @@ internal class MarkTextHost : MarkBlockHost
     /// </summary>
     public override MarkConsumed ConsumeUpdates(IReadOnlyList<IReadOnlyMarkBlock> sequence, ref int index)
     {
+        const string NSpace = $"{nameof(MarkTextHost)}.{nameof(ConsumeUpdates)}";
+
         bool pending = IsPending;
         var rslt = base.ConsumeUpdates(sequence, ref index);
+        ConditionalDebug.WriteLine(NSpace, "Consuming " + index);
 
         if (rslt == MarkConsumed.Changed)
         {
+            ConditionalDebug.WriteLine(NSpace, "Changed");
+
             if (pending)
             {
                 RefreshInternal();
@@ -81,6 +85,7 @@ internal class MarkTextHost : MarkBlockHost
             UpdateInline(Source.Elements);
         }
 
+        ConditionalDebug.WriteLine(NSpace, "Result: " + rslt);
         return rslt;
     }
 
@@ -110,6 +115,9 @@ internal class MarkTextHost : MarkBlockHost
 
     private void RefreshInternal()
     {
+        const string NSpace = $"{nameof(MarkTextHost)}.{nameof(RefreshInternal)}";
+        ConditionalDebug.WriteLine(NSpace, "Refreshing");
+
         var child = CrossText;
 
         // Scale handles headers
@@ -129,6 +137,7 @@ internal class MarkTextHost : MarkBlockHost
 
         if (Kind.IsHeading())
         {
+            ConditionalDebug.WriteLine(NSpace, "Is Heading");
             hasForeground = true;
             child.SetForeground(Owner.HeadingForeground);
 
@@ -143,6 +152,7 @@ internal class MarkTextHost : MarkBlockHost
         else
         if (Kind.IsCode())
         {
+            ConditionalDebug.WriteLine(NSpace, "Is code");
             hasFamily = true;
             child.FontFamily = Owner.MonoFamily;
             child.FontSize = scaledSize * Owner.MonoSizeCorrection;
@@ -161,6 +171,8 @@ internal class MarkTextHost : MarkBlockHost
         else
         if (Source.QuoteLevel > 0)
         {
+            ConditionalDebug.WriteLine(NSpace, "Has quote level");
+
             if (Owner.QuoteItalic)
             {
                 hasStyle = true;
@@ -200,6 +212,8 @@ internal class MarkTextHost : MarkBlockHost
         {
             child.SetForeground(Owner.Foreground);
         }
+
+        ConditionalDebug.WriteLine(NSpace, "Done ok");
     }
 
     private void RefreshInline()
@@ -217,14 +231,17 @@ internal class MarkTextHost : MarkBlockHost
 
     private void UpdateInline(IReadOnlyList<MarkElement> elements)
     {
-        int count = elements.Count;
+        // This will clear the selection when block updated.
+        // However, it was deemed unnecessary.
+        // CrossText.SelectNone();
 
-        // Null not expected
+        int elemCount = elements.Count;
         var inlines = CrossText.Inlines!;
 
         inlines.Clear();
+        inlines.Capacity = elemCount;
 
-        for (int n = 0; n < count; ++n)
+        for (int n = 0; n < elemCount; ++n)
         {
             inlines.Add(new MarkRun(Owner, Kind, elements[n]));
         }

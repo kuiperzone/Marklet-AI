@@ -1,8 +1,7 @@
 // -----------------------------------------------------------------------------
 // PROJECT   : KuiperZone.Headroom
-// COPYRIGHT : Andrew Thomas © 2025-2026 All rights reserved
-// AUTHOR    : Andrew Thomas
-// LICENSE   : AGPL-3.0-only
+// SPDX-FileCopyrightText: © 2025-2026 Andrew Thomas <kuiperzone@users.noreply.github.com>
+// SPDX-License-Identifier: AGPL-3.0-only
 // -----------------------------------------------------------------------------
 
 // Marklet is free software: you can redistribute it and/or modify it under

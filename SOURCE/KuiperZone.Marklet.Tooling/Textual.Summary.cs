@@ -1,8 +1,10 @@
 // -----------------------------------------------------------------------------
-// PROJECT   : KuiperZone.Marklet
-// AUTHOR    : Andrew Thomas
-// COPYRIGHT : Andrew Thomas © 2025-2026 All rights reserved
-// LICENSE   : AGPL-3.0-only
+// SPDX-FileNotice: KuiperZone.Marklet - Local AI Client
+// SPDX-License-Identifier: AGPL-3.0-only
+// SPDX-FileCopyrightText: © 2025-2026 Andrew Thomas <kuiperzone@users.noreply.github.com>
+// SPDX-ProjectHomePage: https://kuiper.zone/marklet-ai/
+// SPDX-FileType: Source
+// SPDX-FileComment: This is NOT AI generated source code but was created with human thinking and effort.
 // -----------------------------------------------------------------------------
 
 // Marklet is free software: you can redistribute it and/or modify it under
@@ -231,12 +233,12 @@ public static partial class Textual
     /// block of text.
     /// </summary>
     /// <remarks>
-    /// The "weight" provides a weighting value, with higher values better. Text within markdown fences or pipe tables
-    /// is not considered in text, while indented text will have low "weight" values. Newlines in the result string are
-    /// substituted for spaces, and consecutive spaces are removed. If the result exceeds "maxLength", it is truncated
-    /// and, optionally, appended with ellipses. The "maxLength" value has no effect on the result, but only its
-    /// truncation. Serves as a string extension. This is annoying as there is no perfect algorithm and you can fiddle
-    /// with this for ages. But it provides a crude fast algorithmic alternative to calling on a model.
+    /// The "weight" provides a weighting value output, with higher values better. Text within markdown fences or pipe
+    /// tables is not considered in text, while indented text will have low "weight" values. Newlines in the result
+    /// string are substituted for spaces, and consecutive spaces are removed. If the result exceeds "maxLength", it is
+    /// truncated and, optionally, appended with ellipses. The "maxLength" value has no effect on the result, but only
+    /// its truncation. Serves as a string extension. This is annoying as there is no perfect algorithm and you can
+    /// fiddle with this for ages. But it provides a crude fast algorithmic alternative to calling on a model.
     /// </remarks>
     /// <exception cref="ArgumentOutOfRangeException">Max less than 0</exception>
     public static string SigText(this string src, out double weight, int maxLength = int.MaxValue, SigOptions? opts = null)
@@ -250,13 +252,6 @@ public static partial class Textual
         if (length > 0 && weight > 0.0)
         {
             src = src.Substring(n, length).Trim(':', ',', ' '); // <- trim colon
-
-            // Strip English "The" from start
-            if (src.StartsWith("The ") && src.Length > 12) // <- fixed value
-            {
-                src = src.Substring(4);
-            }
-
             src = src.TrimPretty(opts.PreserveLines, true);
 
             if (src.Length > 0)

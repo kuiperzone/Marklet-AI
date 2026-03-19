@@ -1,8 +1,10 @@
 // -----------------------------------------------------------------------------
-// PROJECT   : KuiperZone.Marklet
-// AUTHOR    : Andrew Thomas
-// COPYRIGHT : Andrew Thomas © 2025-2026 All rights reserved
-// LICENSE   : AGPL-3.0-only
+// SPDX-FileNotice: KuiperZone.Marklet - Local AI Client
+// SPDX-License-Identifier: AGPL-3.0-only
+// SPDX-FileCopyrightText: © 2025-2026 Andrew Thomas <kuiperzone@users.noreply.github.com>
+// SPDX-ProjectHomePage: https://kuiper.zone/marklet-ai/
+// SPDX-FileType: Source
+// SPDX-FileComment: This is NOT AI generated source code but was created with human thinking and effort.
 // -----------------------------------------------------------------------------
 
 // Marklet is free software: you can redistribute it and/or modify it under
@@ -17,7 +19,6 @@
 // with Marklet. If not, see <https://www.gnu.org/licenses/>.
 
 using System.Data.Common;
-using System.Text;
 using KuiperZone.Marklet.Stack.Garden.Internal;
 using KuiperZone.Marklet.Tooling;
 using KuiperZone.Marklet.Tooling.Markdown;
@@ -28,41 +29,23 @@ namespace KuiperZone.Marklet.Stack.Garden;
 /// Message leaf containing <see cref="Content"/>.
 /// </summary>
 /// <remarks>
-/// The instance is readonly at class level, but properties may change in response to calls on the <see cref="Session"/>
-/// <see cref="GardenSession"/> instance.
+/// The instance is readonly at class level, but properties may change in response to calls on the <see cref="DeckOwner"/>
+/// <see cref="GardenDeck"/> instance.
 /// </remarks>
 public sealed class GardenLeaf : IComparable<GardenLeaf>
 {
-    /// <summary>
-    /// Gets the underlying table name (do not change).
-    /// </summary>
-    public const string TableName = "message_leaf";
-
-    /// <summary>
-    /// Gets the table version, where 1 is the first release.
-    /// </summary>
-    public const int Version = 1;
-
-    /// <summary>
-    /// Gets the maximum possible <see cref="Content"/> length.
-    /// </summary>
-    /// <remarks>
-    /// We can make this relatively high, but not unbounded.
-    /// </remarks>
-    public const int MaxContentLength = 16 * 1024 * 1024;
-
-    private string? _model;
+    // Approx memory used by data (inc public properties and ref itself)
+    private const long FootprintOverhead = sizeof(long) + sizeof(long) * 5 + sizeof(byte) * 4;
+    private string? _assistant;
     private string _content = "";
     private bool _pendingInsertion;
-
-    private static readonly LeafChanges[] FieldFlags = GetFieldFlags();
 
     /// <summary>
     /// Insertion constructor.
     /// </summary>
     /// <exception cref="ArgumentException">Invalid kind</exception>
-    internal GardenLeaf(GardenSession session, LeafKind kind, bool streaming)
-        : this(session, Zuid.New(), kind)
+    internal GardenLeaf(GardenDeck deck, TimeSpan offset, LeafKind kind, bool streaming)
+        : this(deck, Zuid.New(offset), kind)
     {
         if (kind == LeafKind.None)
         {
@@ -70,36 +53,44 @@ public sealed class GardenLeaf : IComparable<GardenLeaf>
         }
 
         _pendingInsertion = true;
-        _model = kind.HasModel() ? session.Model : null;
+        _assistant = kind.HasModel() ? deck.Model : null;
         IsStreaming = streaming;
     }
 
-    private GardenLeaf(GardenSession session, Zuid id, LeafKind kind)
+    private GardenLeaf(GardenDeck deck, Zuid id, LeafKind kind)
     {
         // Read constructor
         ConditionalDebug.ThrowIfTrue(id.IsEmpty);
         ConditionalDebug.ThrowIfEqual(LeafKind.None, kind);
-        Session = session;
+        DeckOwner = deck;
         Id = id;
         Kind = kind;
         VisualCounter = Random.Shared.NextInt64() + 1;
     }
 
     /// <summary>
-    /// Gets the <see cref="GardenSession"/> to which this message belongs.
+    /// Gets the <see cref="GardenDeck"/> to which this message belongs.
     /// </summary>
-    public GardenSession Session { get; }
+    public GardenDeck? DeckOwner { get; private set; }
 
     /// <summary>
-    /// Gets whether the instance is currently writable to storage.
+    /// Gets the <see cref="MemoryGarden"/> in which this message is stored.
+    /// </summary>
+    public MemoryGarden? Garden
+    {
+        get { return DeckOwner?.Garden; }
+    }
+
+    /// <summary>
+    /// Gets whether the instance is writable to storage.
     /// </summary>
     /// <remarks>
     /// The result is true if: A. <see cref="LeafKind"/> is persistant, B. the parent <see
-    /// cref="GardenSession.IsWritable"/> is true and, C. <see cref="IsStreaming"/> is false.
+    /// cref="GardenDeck.IsPersistant"/> is true and, C. <see cref="IsStreaming"/> is false.
     /// </remarks>
-    public bool IsWritable
+    public bool IsPersistant
     {
-        get { return Kind.IsPersistant() && Session.IsWritable && !IsStreaming; }
+        get { return !IsStreaming && Kind.IsPersistant() && DeckOwner?.IsPersistant == true; }
     }
 
     /// <summary>
@@ -113,23 +104,23 @@ public sealed class GardenLeaf : IComparable<GardenLeaf>
     public LeafKind Kind { get; }
 
     /// <summary>
-    /// Gets the assistant model name in lowercase.
+    /// Gets the assistant name.
     /// </summary>
     /// <remarks>
-    /// The value is converted to lowercase on assignment. It is expected to be null for human input.
+    /// It is expected to be null for human input.
     /// </remarks>
-    public string? Model
+    public string? Assistant
     {
-        get { return _model; }
+        get { return _assistant; }
 
         set
         {
-            value = MemoryGarden.SanitizeName(value)?.ToLowerInvariant();
+            value = MemoryGarden.Sanitize(value, MemoryGarden.MaxMetaLength);
 
-            if (_model != value)
+            if (_assistant != value)
             {
-                _model = value;
-                UpsertDb(LeafChanges.Model);
+                _assistant = value;
+                OnModified(LeafMods.Assistant);
             }
         }
     }
@@ -147,18 +138,26 @@ public sealed class GardenLeaf : IComparable<GardenLeaf>
         set
         {
             IsStreaming = false;
-            value = MarkDocument.Sanitize(value.Trim(), MaxContentLength);
+            value = MarkDocument.Sanitize(value.Trim(), MemoryGarden.MaxContentLength);
 
             if (_content != value)
             {
                 _content = value;
-                UpsertDb(LeafChanges.Content);
+                OnModified(LeafMods.Content);
             }
         }
     }
 
     /// <summary>
-    /// Gets whether the message is currently streaming (chunks).
+    /// Gets an approximate figure for the memory consumed in bytes by this instance.
+    /// </summary>
+    public long Footprint
+    {
+        get { return FootprintOverhead + _content.Length * 2L + _assistant?.Length * 2L ?? 0; }
+    }
+
+    /// <summary>
+    /// Gets whether the message is currently streaming.
     /// </summary>
     public bool IsStreaming { get; private set; }
 
@@ -206,18 +205,17 @@ public sealed class GardenLeaf : IComparable<GardenLeaf>
     public bool AppendStream(string? chunk)
     {
         const string NSpace = $"{nameof(GardenLeaf)}.{nameof(AppendStream)}";
-        ConditionalDebug.WriteLine(NSpace, $"APPEND STREAM on: {Session}");
+        ConditionalDebug.WriteLine(NSpace, $"APPEND STREAM on: {DeckOwner}");
         ConditionalDebug.WriteLine(NSpace, $"Kind: {Kind}");
         ConditionalDebug.WriteLine(NSpace, $"IsStreaming: {IsStreaming}");
 
         if (IsStreaming && !string.IsNullOrEmpty(chunk))
         {
-            chunk = MarkDocument.Sanitize(chunk, MaxContentLength);
-            _content = string.Concat(_content, chunk).Truncate(MaxContentLength);
+            chunk = MarkDocument.Sanitize(chunk, MemoryGarden.MaxContentLength);
+            _content = string.Concat(_content, chunk).Truncate(MemoryGarden.MaxContentLength);
 
-            // Even tho not written, UpsertDb() can still needed (it won't write).
-            ConditionalDebug.ThrowIfTrue(IsWritable);
-            UpsertDb(LeafChanges.Content);
+            ConditionalDebug.ThrowIfTrue(IsPersistant);
+            OnModified(LeafMods.Content);
 
             return true;
         }
@@ -239,13 +237,25 @@ public sealed class GardenLeaf : IComparable<GardenLeaf>
         if (IsStreaming)
         {
             ConditionalDebug.WriteLine(NSpace, "Stop streaming and commit");
-            IsStreaming = false;
             _content = _content.Trim();
-            UpsertDb(LeafChanges.Content);
+            IsStreaming = false;
+            OnModified(LeafMods.Content);
             return true;
         }
 
         return false;
+    }
+
+    /// <summary>
+    /// Delete the instance from the database and returns true on success.
+    /// </summary>
+    /// <remarks>
+    /// On success, the <see cref="DeckOwner"/> and <see cref="Garden"/> will be null and, while the instance properties
+    /// will still be valid, it may no longer interact with the database.
+    /// </remarks>
+    public bool Delete()
+    {
+        return DeckOwner?.DeleteLeafDb(this, true) == true;
     }
 
     /// <summary>
@@ -262,6 +272,14 @@ public sealed class GardenLeaf : IComparable<GardenLeaf>
     }
 
     /// <summary>
+    /// Overrides and returns <see cref="Content"/> and <see cref="Id"/> for debug purposes.
+    /// </summary>
+    public override string ToString()
+    {
+        return string.Concat(Sanitizer.ToDebugSafe(Content, true, true, 32), ", ", Id.ToString(true), " (", Id.ToString(false), ")");
+    }
+
+    /// <summary>
     /// Overrides.
     /// </summary>
     public override int GetHashCode()
@@ -270,262 +288,114 @@ public sealed class GardenLeaf : IComparable<GardenLeaf>
     }
 
     /// <summary>
-    /// Gets a count of messages, or total count if "parentId" is default.
+    /// Reads all message items pertaining to a <see cref="GardenDeck"/>.
     /// </summary>
-    internal static long CountInternal(IMemoryGardener gardener, Zuid parentId = default)
+    internal static void ReadAllDb(DbConnection con, GardenDeck parent, IndexableSet<GardenLeaf> children)
     {
-        using var con = gardener.Connect();
-        using var cmd = con.CreateCommand();
-
-        if (parentId.IsEmpty)
-        {
-            const string Sql = $"SELECT COUNT(*) FROM {TableName};";
-            cmd.CommandText = Sql;
-        }
-        else
-        {
-            const string Sql = $"SELECT COUNT(*) FROM {TableName} WHERE parent_id = @parent_id;";
-            cmd.CommandText = Sql;
-            cmd.AddParameter("@parent_id", parentId.Value);
-        }
-
-        return (long)(cmd.ExecuteScalar() ?? 0);
-    }
-
-    /// <summary>
-    /// Ensure table.
-    /// </summary>
-    internal static void CreateTableInternal(DbConnection con, DbTransaction? tran)
-    {
-        const string NSpace = $"{nameof(GardenLeaf)}.{nameof(CreateTableInternal)}";
-
-        // VERSION 1
-        const string Sql = $@"CREATE TABLE IF NOT EXISTS {TableName} (
-id              BIGINT PRIMARY KEY,
-parent_id       BIGINT NOT NULL,
-kind            INTEGER NOT NULL,
-model           VARCHAR(255),
-content         TEXT NOT NULL,
-CONSTRAINT  fk_parent
-    FOREIGN KEY (parent_id)
-    REFERENCES {GardenSession.TableName}(id)
-    ON DELETE CASCADE
-);";
-        ConditionalDebug.WriteLine(NSpace, Sql);
-
-        using var cmd = con.CreateCommand();
-        cmd.CommandText = Sql;
-        cmd.Transaction = tran;
-        cmd.ExecuteNonQuery();
-    }
-
-    /// <summary>
-    /// Future expansion.
-    /// </summary>
-    internal static bool UpgradeTableInternal(DbConnection _, DbTransaction? __, int currentVersion)
-    {
-        const string NSpace = $"{nameof(GardenLeaf)}.{nameof(UpgradeTableInternal)}";
-
-        if (Version > currentVersion)
-        {
-            // FOR FUTURE
-            ConditionalDebug.WriteLine(NSpace, $"ALTER TABLE: {TableName}");
-            ConditionalDebug.Fail("Not implemented");
-
-            // I.e. ALTER TABLE message ADD COLUMN metadata TEXT DEFAULT '';
-            // return true;
-        }
-
-        return false;
-    }
-
-    /// <summary>
-    /// Reads all message items pertaining to a <see cref="GardenSession"/>.
-    /// </summary>
-    internal static void ReadInternal(DbConnection con, GardenSession item, List<GardenLeaf> children)
-    {
-        const string NSpace = $"{nameof(GardenLeaf)}.{nameof(ReadInternal)}";
-
-        const string Sql = $"SELECT * FROM {TableName} WHERE parent_id = @parent_id ORDER BY id";
-        ConditionalDebug.WriteLine(NSpace, Sql);
-
-        using var cmd = con.CreateCommand();
-        cmd.CommandText = Sql;
-        cmd.AddParameter("@parent_id", item.Id.Value);
-
+        using var cmd = LeafOps.GetReader(con, parent);
         using var reader = cmd.ExecuteReader();
 
         while (reader.Read())
         {
-            var zuid = new Zuid(reader.GetInt64("id"));
-            var kind = (LeafKind)reader.GetInt32("kind");
+            // The design is such that we wish to assign private fields directly.
+            // This prevents us from putting the read fully into TableOps.
+            // Moreover, we ensure data is valid before fully reading.
+            var id = new Zuid(reader.GetInt64(LeafOps.IdField));
+            var kind = (LeafKind)reader.GetInt32(LeafOps.KindField);
 
-            if (!zuid.IsEmpty && kind != LeafKind.None)
+            // This allows us to add values in future while, if careful,
+            // allowing older software to be foreward compatible with
+            // newer database. We will ignore illedefined values.
+            if (!id.IsEmpty && kind.IsLegal())
             {
-                var leaf = new GardenLeaf(item, zuid, kind);
-                leaf._model = reader.GetStringOrNull("model");
-                leaf._content = reader.GetStringOrEmpty("content");
+                var leaf = new GardenLeaf(parent, id, kind);
+                leaf._assistant = reader.GetStringOrNull(LeafOps.AssistantField);
+                leaf._content = reader.GetStringOrEmpty(LeafOps.ContentField);
 
                 // Assert expected properties
-                ConditionalDebug.ThrowIfNotEqual(zuid, leaf.Id);
+                ConditionalDebug.ThrowIfNotEqual(id, leaf.Id);
                 ConditionalDebug.ThrowIfNotEqual(kind, leaf.Kind);
-                ConditionalDebug.WriteLine(NSpace, $"Content length: {leaf.Content.Length}");
+                children.Insert(leaf);
 
-                children.Add(leaf);
+                if (children.Count > GardenDeck.MaxLeafCount)
+                {
+                    // Not expected unless we lower
+                    // max limit on live systems
+                    children.RemoveAt(0);
+                }
             }
         }
     }
 
-    internal void InsertDb(DbConnection con)
+    internal bool InsertLeafDb(DbConnection con)
     {
-        const string NSpace = $"{nameof(GardenLeaf)}.{nameof(InsertDb)}";
-
-        if (IsWritable)
+        if (!IsPersistant)
         {
-            using var cmd = GetInsertCommand(con);
-            ConditionalDebug.WriteLine(NSpace, cmd.CommandText);
-            cmd.ExecuteNonQuery();
-
-            IsStreaming = false;
-            _pendingInsertion = false;
-        }
-    }
-
-    private static LeafChanges[] GetFieldFlags()
-    {
-        var list = new List<LeafChanges>(4);
-
-        foreach (var item in Enum.GetValues<LeafChanges>())
-        {
-            if (item != LeafChanges.None)
-            {
-                list.Add(item);
-            }
+            // Assume written
+            return true;
         }
 
-        return list.ToArray();
+        IsStreaming = false;
+        _pendingInsertion = false;
+        return LeafOps.Insert(con, this);
     }
 
-    private bool UpsertDb(LeafChanges flags)
+    /// <summary>
+    /// Sets <see cref="DeckOwner"/> to null, meaning that this instance can no longer write to the database.
+    /// </summary>
+    internal void DetachInternal()
     {
-        const string NSpace = $"{nameof(GardenLeaf)}.{nameof(UpsertDb)}";
-        ConditionalDebug.WriteLine(NSpace, $"Changes: {flags}");
+        DeckOwner = null;
+        IsStreaming = false;
+    }
 
-        if (flags != LeafChanges.None)
+    private bool OnModified(LeafMods mods)
+    {
+        const string NSpace = $"{nameof(GardenLeaf)}.{nameof(OnModified)}";
+        ConditionalDebug.WriteLine(NSpace, $"Changes: {mods}");
+
+        if (mods != LeafMods.None && DeckOwner != null)
         {
-            if (flags.HasFlag(LeafChanges.Model) || flags.HasFlag(LeafChanges.Content))
+            if (mods.IsVisual())
             {
-                // Visual changes only
                 VisualCounter += 1;
                 ConditionalDebug.WriteLine(NSpace, "Visual change");
             }
 
-            if (IsWritable && Session.Owner != null)
+            if (IsPersistant && Garden?.Gardener != null)
             {
-                ConditionalDebug.WriteLine(NSpace, "Connect and get command");
-                using var con = Session.Owner.Gardener.Connect();
-                using var cmd = _pendingInsertion ? GetInsertCommand(con) : GetUpdateCommand(con, flags);
+                // Not persistant while streaming
+                ConditionalDebug.ThrowIfTrue(IsStreaming);
 
-                ConditionalDebug.WriteLine(NSpace, cmd.CommandText);
-                cmd.ExecuteNonQuery();
+                ConditionalDebug.WriteLine(NSpace, "Connecting");
+                using var con = Garden.Gardener.Connect();
+
+                if (_pendingInsertion)
+                {
+                    ConditionalDebug.WriteLine(NSpace, "Inserting");
+                    _pendingInsertion = false;
+                    LeafOps.Insert(con, this);
+                }
+                else
+                {
+                    ConditionalDebug.WriteLine(NSpace, "Update");
+                    LeafOps.Update(con, this, mods);
+                }
 
                 ConditionalDebug.WriteLine(NSpace, "Call parent");
-                _pendingInsertion = false;
-                Session.UpdateDb(con, ModFlags.Leaf, true);
+                DeckOwner.OnModifiedInternal(DeckMods.Leaf, con, true);
             }
             else
             {
                 // Still raise but with no connection
-                ConditionalDebug.WriteLine(NSpace, "Non-writable change");
-                Session.UpdateDb(null, ModFlags.Leaf, true);
+                ConditionalDebug.WriteLine(NSpace, "Non-persistant change");
+                DeckOwner.OnModifiedInternal(DeckMods.Leaf, null, !IsStreaming);
             }
 
             return true;
         }
 
         return false;
-    }
-
-    private DbCommand GetInsertCommand(DbConnection con)
-    {
-        const string Sql = $"INSERT INTO {TableName} (id, parent_id, kind, model, content) VALUES (@id, @parent_id, @kind, @model, @content);";
-
-        if (!_pendingInsertion)
-        {
-            throw new InvalidOperationException($"{nameof(GardenLeaf)} not pending insertion");
-        }
-
-        var cmd = con.CreateCommand();
-        cmd.CommandText = Sql;
-
-        cmd.AddParameter("@id", Id.Value);
-        cmd.AddParameter("@parent_id", Session.Id.Value);
-        cmd.AddParameter("@kind", (int)Kind);  // <- enum as int
-        cmd.AddParameter("@model", _model);
-        cmd.AddParameter("@content", _content);
-
-        return cmd;
-    }
-
-    private DbCommand GetUpdateCommand(DbConnection con, LeafChanges flags)
-    {
-        const string Sql = $"UPDATE {TableName} SET";
-
-        if (flags == LeafChanges.None)
-        {
-            throw new ArgumentException($"{nameof(LeafChanges)} equal {LeafChanges.None}", nameof(flags));
-        }
-
-        var buffer = new StringBuilder(Sql);
-
-        var cmd = con.CreateCommand();
-        cmd.AddParameter("@id", Id.Value);
-
-        bool i0 = false;
-
-        foreach (var item in FieldFlags)
-        {
-            if (!flags.HasFlag(item))
-            {
-                continue;
-            }
-
-            switch (item)
-            {
-                case LeafChanges.Model:
-                    if (i0)
-                    {
-                        buffer.Append(',');
-                    }
-                    buffer.Append(" model = @model");
-                    cmd.AddParameter("@model", _model);
-                    i0 = true;
-                    continue;
-                case LeafChanges.Content:
-                    if (i0)
-                    {
-                        buffer.Append(',');
-                    }
-                    buffer.Append(" content = @content");
-                    cmd.AddParameter("@content", _content);
-                    i0 = true;
-                    continue;
-            }
-        }
-
-        ConditionalDebug.ThrowIfFalse(i0);
-        buffer.Append(" WHERE id = @id;");
-        cmd.CommandText = buffer.ToString();
-        return cmd;
-    }
-
-
-    [Flags]
-    private enum LeafChanges
-    {
-        None = 0x0000,
-        Model = 0x0001,
-        Content = 0x0002,
     }
 
 }

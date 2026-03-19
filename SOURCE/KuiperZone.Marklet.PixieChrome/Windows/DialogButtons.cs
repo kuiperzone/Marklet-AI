@@ -1,8 +1,10 @@
 // -----------------------------------------------------------------------------
-// PROJECT   : KuiperZone.Marklet
-// AUTHOR    : Andrew Thomas
-// COPYRIGHT : Andrew Thomas © 2025-2026 All rights reserved
-// LICENSE   : AGPL-3.0-only
+// SPDX-FileNotice: KuiperZone.Marklet - Local AI Client
+// SPDX-License-Identifier: AGPL-3.0-only
+// SPDX-FileCopyrightText: © 2025-2026 Andrew Thomas <kuiperzone@users.noreply.github.com>
+// SPDX-ProjectHomePage: https://kuiper.zone/marklet-ai/
+// SPDX-FileType: Source
+// SPDX-FileComment: This is NOT AI generated source code but was created with human thinking and effort.
 // -----------------------------------------------------------------------------
 
 // Marklet is free software: you can redistribute it and/or modify it under
@@ -21,7 +23,7 @@ using Avalonia.Input;
 namespace KuiperZone.Marklet.PixieChrome.Windows;
 
 /// <summary>
-/// Button option flags for <see cref="MessageDialog"/>.
+/// Button option flags for <see cref="ChromeDialog"/>.
 /// </summary>
 /// <remarks>
 /// Flag values are ordered in the order of presentation.
@@ -32,42 +34,115 @@ public enum DialogButtons
     /// <summary>
     /// No buttons.
     /// </summary>
-    None = 0x0000,
+    None = 0x00000000,
+
+    // CRITICAL
 
     /// <summary>
-    /// OK.
+    /// Proceed (critical, positive)
     /// </summary>
-    Ok = 0x0001,
+    Proceed = 0x00000001,
 
     /// <summary>
-    /// Yes.
+    /// Delete (critical, positive).
     /// </summary>
-    Yes = 0x0002,
+    Delete = 0x00000002,
 
     /// <summary>
-    /// Yes all.
+    /// Delete all (critical, positive).
     /// </summary>
-    YesAll = 0x0004,
+    DeleteAll = 0x00000004,
 
     /// <summary>
-    /// No.
+    /// Yes all (critical, positive).
     /// </summary>
-    No = 0x0008,
+    YesAll = 0x00000020,
+
+    // DEFAULT
 
     /// <summary>
-    /// No all.
+    /// Retry (default, positive).
     /// </summary>
-    NoAll = 0x0010,
+    Retry = 0x00000100,
 
     /// <summary>
-    /// Cancel.
+    /// Continue (default, positive).
     /// </summary>
-    Cancel = 0x0020,
+    Continue = 0x00000200,
 
     /// <summary>
-    /// Abort.
+    /// Save (default, positive).
     /// </summary>
-    Abort = 0x0040,
+    Save = 0x00000400,
+
+    /// <summary>
+    /// Yes (default, positive).
+    /// </summary>
+    Yes = 0x00000800,
+
+    /// <summary>
+    /// OK (default, positive).
+    /// </summary>
+    Ok = 0x00001000,
+
+    /// <summary>
+    /// Close (default).
+    /// </summary>
+    Close = 0x00002000,
+
+    // NEUTRAL
+
+    /// <summary>
+    /// Apply changes (neutral, positive).
+    /// </summary>
+    Apply = 0x00010000,
+
+    /// <summary>
+    /// Apply all (neutral, positive).
+    /// </summary>
+    ApplyAll = 0x00020000,
+
+    /// <summary>
+    /// Ignore (neutral).
+    /// </summary>
+    Ignore = 0x00040000,
+
+    /// <summary>
+    /// Ignore all (neutral).
+    /// </summary>
+    IgnoreAll = 0x00080000,
+
+    /// <summary>
+    /// Save As (neutral, positive).
+    /// </summary>
+    SaveAs = 0x00100000,
+
+    /// <summary>
+    /// Save all (neutral, positive).
+    /// </summary>
+    SaveAll = 0x00200000,
+
+    // CANCEL
+
+    /// <summary>
+    /// No (cancel).
+    /// </summary>
+    No = 0x01000000,
+
+    /// <summary>
+    /// No all (cancel).
+    /// </summary>
+    NoAll = 0x02000000,
+
+    /// <summary>
+    /// Cancel (cancel).
+    /// </summary>
+    Cancel = 0x04000000,
+
+    /// <summary>
+    /// Abort (cancel).
+    /// </summary>
+    Abort = 0x08000000,
 }
 
 /// <summary>
@@ -75,9 +150,75 @@ public enum DialogButtons
 /// </summary>
 public static partial class HelperExt
 {
-    private const DialogButtons DefaultFlags = DialogButtons.Ok | DialogButtons.Yes;
-    private const DialogButtons CancelFlags = DialogButtons.No | DialogButtons.NoAll | DialogButtons.Cancel | DialogButtons.Abort;
-    private static readonly DialogButtons[] AllButtons = Enum.GetValues<DialogButtons>();
+    private const DialogButtons CriticalBlock = (DialogButtons)0x000000FF;
+    private const DialogButtons DefaultBlock = (DialogButtons)0x0000FF00;
+    private const DialogButtons NeutralBlock = (DialogButtons)0x00FF0000;
+    private const DialogButtons CancelBlock = (DialogButtons)0x4F000000;
+    private static readonly DialogButtons[] LegalButtons = Enum.GetValues<DialogButtons>();
+
+    /// <summary>
+    /// Returns true if the value is one of the <see cref="DialogButtons"/> values including <see
+    /// cref="DialogButtons.None"/>. It returns false for a combined flag value.
+    /// </summary>
+    public static bool IsSingleLegal(this DialogButtons src)
+    {
+        return LegalButtons.Contains(src);
+    }
+
+    /// <summary>
+    /// Returns true if the given combined flag value is legal.
+    /// </summary>
+    /// <remarks>
+    /// It returns false where the combination contains multiple "default" or "cancel" buttons, i.e. where more than one
+    /// may respond to the ENTER or ESCAPE key. It returns true for the <see cref="DialogButtons.Ok"/>, <see
+    /// cref="DialogButtons.Cancel"/> combination, but false for <see cref="DialogButtons.Cancel"/> plus <see
+    /// cref="DialogButtons.Abort"/>.
+    /// </remarks>
+    public static bool IsCombinedLegal(this DialogButtons src)
+    {
+        bool def = false;
+        bool cancel = false;
+
+        foreach (var item in LegalButtons)
+        {
+            if (src.HasFlag(item))
+            {
+                if (IsDefault(item))
+                {
+                    if (def)
+                    {
+                        return false;
+                    }
+
+                    def = true;
+                    continue;
+                }
+
+                if (IsCancel(item))
+                {
+                    if (cancel)
+                    {
+                        return false;
+                    }
+
+                    cancel = true;
+                }
+            }
+        }
+
+        return true;
+    }
+
+    /// <summary>
+    /// Gets whether the button "src" contains a flag considered to be "critical".
+    /// </summary>
+    /// <remarks>
+    /// This includes <see cref="DialogButtons.Yes"/> and <see cref="DialogButtons.YesAll"/>.
+    /// </remarks>
+    public static bool IsCritical(this DialogButtons src)
+    {
+        return (src & CriticalBlock) != 0;
+    }
 
     /// <summary>
     /// Gets whether the button "src" contains a flag considered to be "default", i.e. responds to ENTER key.
@@ -87,7 +228,7 @@ public static partial class HelperExt
     /// </remarks>
     public static bool IsDefault(this DialogButtons src)
     {
-        return (src & DefaultFlags) != 0;
+        return (src & DefaultBlock) != 0;
     }
 
     /// <summary>
@@ -95,29 +236,32 @@ public static partial class HelperExt
     /// </summary>
     public static bool IsCancel(this DialogButtons src)
     {
-        return (src & CancelFlags) != 0;
+        return (src & CancelBlock) != 0;
+    }
+
+    /// <summary>
+    /// Gets whether the button "src" contains a flag considered to be a "positive action", i.e. go ahead and do the
+    /// thing rather than cancel or abort.
+    /// </summary>
+    /// <remarks>
+    /// This does not distinguish between, for example, <see cref="DialogButtons.Ok"/> and <see
+    /// cref="DialogButtons.DeleteAll"/>.
+    /// </remarks>
+    public static bool IsPositiveResult(this DialogButtons src)
+    {
+        return (src & (CriticalBlock | DefaultBlock | NeutralBlock)) != 0 &&
+            (src & (DialogButtons.Close | DialogButtons.Ignore | DialogButtons.IgnoreAll)) == 0;
     }
 
     /// <summary>
     /// Where "src" may contain multiple flag values, returns a single <see cref="DialogButtons"/> flag according to the
     /// given key press.
     /// </summary>
-    public static DialogButtons GetCloseAction(this DialogButtons src, PhysicalKey key)
+    public static DialogButtons GetCloseAction(this DialogButtons src, Key key)
     {
-        if (key == PhysicalKey.Escape)
+        if (key == Key.Escape)
         {
-            // Prioritize
-            if (src.HasFlag(DialogButtons.Abort))
-            {
-                return DialogButtons.Abort;
-            }
-
-            if (src.HasFlag(DialogButtons.NoAll))
-            {
-                return DialogButtons.NoAll;
-            }
-
-            foreach (var item in AllButtons)
+            foreach (var item in LegalButtons)
             {
                 if (item != DialogButtons.None && src.HasFlag(item) && item.IsCancel())
                 {
@@ -128,15 +272,9 @@ public static partial class HelperExt
             return DialogButtons.None;
         }
 
-        if (key == PhysicalKey.Enter)
+        if (key == Key.Enter)
         {
-            // Prioritize
-            if (src.HasFlag(DialogButtons.Yes))
-            {
-                return DialogButtons.Yes;
-            }
-
-            foreach (var item in AllButtons)
+            foreach (var item in LegalButtons)
             {
                 if (item != DialogButtons.None && src.HasFlag(item) && item.IsDefault())
                 {

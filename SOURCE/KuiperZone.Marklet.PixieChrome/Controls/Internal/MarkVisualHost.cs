@@ -1,8 +1,10 @@
 // -----------------------------------------------------------------------------
-// PROJECT   : KuiperZone.Marklet
-// AUTHOR    : Andrew Thomas
-// COPYRIGHT : Andrew Thomas © 2025-2026 All rights reserved
-// LICENSE   : AGPL-3.0-only
+// SPDX-FileNotice: KuiperZone.Marklet - Local AI Client
+// SPDX-License-Identifier: AGPL-3.0-only
+// SPDX-FileCopyrightText: © 2025-2026 Andrew Thomas <kuiperzone@users.noreply.github.com>
+// SPDX-ProjectHomePage: https://kuiper.zone/marklet-ai/
+// SPDX-FileType: Source
+// SPDX-FileComment: This is NOT AI generated source code but was created with human thinking and effort.
 // -----------------------------------------------------------------------------
 
 // Marklet is free software: you can redistribute it and/or modify it under
@@ -54,20 +56,17 @@ internal abstract class MarkVisualHost
     public int ListLevel { get; protected set; }
 
     /// <summary>
-    /// Gets the first <see cref="ICrossTrackable.TrackKey"/> value consumed.
+    /// Gets the first <see cref="ICrossTrackable"/> instance.
     /// </summary>
     /// <remarks>
-    /// The value is to be 0 where the host does not contain selectable text (i.e. a "rule").
+    /// The value is null where the host does not contain selectable text (i.e. a "rule").
     /// </remarks>
-    public ulong TrackKey0 { get; protected set; }
+    public ICrossTrackable? Track0 { get; protected set; }
 
     /// <summary>
-    /// Gets the last <see cref="ICrossTrackable.TrackKey"/> value consumed.
+    /// Gets the last <see cref="ICrossTrackable"/> instance.
     /// </summary>
-    /// <remarks>
-    /// The <see cref="TrackKey1"/> value must always be equal or greater than <see cref="TrackKey0"/>.
-    /// </remarks>
-    public ulong TrackKey1 { get; protected set; }
+    public ICrossTrackable? Track1 { get; protected set; }
 
     /// <summary>
     /// Gets the child. Subclass must set on construction.
@@ -106,7 +105,7 @@ internal abstract class MarkVisualHost
     /// <summary>
     /// Refreshes colors and sizes, but not content.
     /// </summary>
-    public abstract void RefreshLook(bool isFirst, bool isLast);
+    public abstract void Refresh(bool isFirst, bool isLast);
 
     /// <summary>
     /// Consumes updates from "source" sequence and increments "index" on success.

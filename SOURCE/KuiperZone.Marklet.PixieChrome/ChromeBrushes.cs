@@ -1,8 +1,10 @@
 // -----------------------------------------------------------------------------
-// PROJECT   : KuiperZone.Marklet
-// AUTHOR    : Andrew Thomas
-// COPYRIGHT : Andrew Thomas © 2025-2026 All rights reserved
-// LICENSE   : AGPL-3.0-only
+// SPDX-FileNotice: KuiperZone.Marklet - Local AI Client
+// SPDX-License-Identifier: AGPL-3.0-only
+// SPDX-FileCopyrightText: © 2025-2026 Andrew Thomas <kuiperzone@users.noreply.github.com>
+// SPDX-ProjectHomePage: https://kuiper.zone/marklet-ai/
+// SPDX-FileType: Source
+// SPDX-FileComment: This is NOT AI generated source code but was created with human thinking and effort.
 // -----------------------------------------------------------------------------
 
 // Marklet is free software: you can redistribute it and/or modify it under
@@ -204,5 +206,50 @@ public static class ChromeBrushes
     /// Gets a static transparent.
     /// </summary>
     public static readonly ImmutableSolidColorBrush Transparent = new(0x00000000);
+
+    /// <summary>
+    /// Gets the "ready" (green) primary brush (can be used as foreground).
+    /// </summary>
+    public static readonly ImmutableSolidColorBrush ReadyBrush = GreenAccent;
+
+    /// <summary>
+    /// Gets the "ready" (green) background brush.
+    /// </summary>
+    public static readonly ImmutableSolidColorBrush ReadyBackground = new(ReadyBrush.Color, 0.35);
+
+    /// <summary>
+    /// Gets the "ready" (green) hover brush.
+    /// </summary>
+    public static readonly ImmutableSolidColorBrush ReadyHover = new(ReadyBrush.Color, 0.15);
+
+    /// <summary>
+    /// Gets the "warning" (yellow) primary brush (can be used as foreground).
+    /// </summary>
+    public static readonly ImmutableSolidColorBrush WarningBrush = YellowAccent;
+
+    /// <summary>
+    /// Gets the "warning" (yellow) background brush.
+    /// </summary>
+    public static readonly ImmutableSolidColorBrush WarningBackground = new(WarningBrush.Color, 0.35);
+
+    /// <summary>
+    /// Gets the "warning" (yellow) hover brush.
+    /// </summary>
+    public static readonly ImmutableSolidColorBrush WarningHover = new(WarningBrush.Color, 0.15);
+
+    /// <summary>
+    /// Gets the "critical" (red) primary brush (can be used as foreground).
+    /// </summary>
+    public static readonly ImmutableSolidColorBrush CriticalBrush = RedAccent;
+
+    /// <summary>
+    /// Gets the "critical" (red) background brush.
+    /// </summary>
+    public static readonly ImmutableSolidColorBrush CriticalBackground = new(CriticalBrush.Color, 0.35);
+
+    /// <summary>
+    /// Gets the "critical" (red) hover brush.
+    /// </summary>
+    public static readonly ImmutableSolidColorBrush CriticalHover = new(CriticalBrush.Color, 0.15);
 
 }

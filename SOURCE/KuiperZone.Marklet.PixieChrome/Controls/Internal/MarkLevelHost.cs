@@ -1,8 +1,10 @@
 // -----------------------------------------------------------------------------
-// PROJECT   : KuiperZone.Marklet
-// AUTHOR    : Andrew Thomas
-// COPYRIGHT : Andrew Thomas © 2025-2026 All rights reserved
-// LICENSE   : AGPL-3.0-only
+// SPDX-FileNotice: KuiperZone.Marklet - Local AI Client
+// SPDX-License-Identifier: AGPL-3.0-only
+// SPDX-FileCopyrightText: © 2025-2026 Andrew Thomas <kuiperzone@users.noreply.github.com>
+// SPDX-ProjectHomePage: https://kuiper.zone/marklet-ai/
+// SPDX-FileType: Source
+// SPDX-FileComment: This is NOT AI generated source code but was created with human thinking and effort.
 // -----------------------------------------------------------------------------
 
 // Marklet is free software: you can redistribute it and/or modify it under
@@ -36,7 +38,7 @@ internal sealed class MarkLevelHost : MarkVisualHost
     private readonly Grid _grid = new();
     private readonly List<MarkBlockHost> _childHosts = new(2);
     private readonly List<Rectangle>? _quoteBars;
-    private readonly List<TextBlock>? _prefixes;
+    private readonly List<CrossTextBlock>? _prefixes;
 
     /// <summary>
     /// Constructor with first compatible "source" block.
@@ -69,11 +71,6 @@ internal sealed class MarkLevelHost : MarkVisualHost
         if (ListLevel > 0)
         {
             _prefixes = new(2);
-
-            // Indent spacer
-            _grid.ColumnDefinitions.Add(new(GridLength.Auto));
-
-            // Prefix
             _grid.ColumnDefinitions.Add(new(GridLength.Auto));
         }
 
@@ -107,14 +104,14 @@ internal sealed class MarkLevelHost : MarkVisualHost
     /// <summary>
     /// Refreshes colors and sizes, but not content.
     /// </summary>
-    public override void RefreshLook(bool isFirst, bool isLast)
+    public override void Refresh(bool isFirst, bool isLast)
     {
         // Order important
         ConditionalDebug.ThrowIfTrue(IsPending);
 
         foreach (var item in _childHosts)
         {
-            item.RefreshLook(isFirst, isLast);
+            item.Refresh(isFirst, isLast);
         }
 
         RefreshInternal();
@@ -172,8 +169,6 @@ internal sealed class MarkLevelHost : MarkVisualHost
             {
                 // IMPORTANT
                 // If any fail compability, all fail!
-                // We do NOT try to replace instances within the level.
-                // This will break CrossTracker in any case.
                 return MarkConsumed.Incompatible;
             }
 
@@ -280,14 +275,13 @@ internal sealed class MarkLevelHost : MarkVisualHost
             // LIST ITEMS
             ConditionalDebug.ThrowIfEqual(ListKind.None, host.Source.GetListKind());
 
-            // INDENT COLUMN
-            // Skip indent column as it is empty
-            colN += 1;
-
             // PREFIX COLUMN
-            var prefix = new TextBlock();
+            var prefix = new CrossTextBlock();
+            prefix.Tracker = host.Owner.Tracker;
+            prefix.TrackPrefix = new('\t', ListLevel);
             prefix.VerticalAlignment = VerticalAlignment.Top;
-            prefix.HorizontalAlignment = HorizontalAlignment.Right;
+            prefix.TextAlignment = Avalonia.Media.TextAlignment.Right;
+            prefix.Background = ChromeBrushes.Transparent;
 
             // IMPORTANT
             // Link to associated host.
@@ -308,8 +302,11 @@ internal sealed class MarkLevelHost : MarkVisualHost
         Grid.SetColumn(control, colN);
         _grid.Children.Add(control);
 
-        SetTrackKey(host.TrackKey0);
-        SetTrackKey(host.TrackKey1);
+        if (host.Track0 != null)
+        {
+            Track0 ??= host.Track0;
+            Track1 = host.Track1 ?? host.Track0;
+        }
     }
 
     private void RefreshInternal()
@@ -341,12 +338,6 @@ internal sealed class MarkLevelHost : MarkVisualHost
             {
                 RefreshPrefix(item);
             }
-
-            // QuoteLevel is also the "indent column".
-            // It is valid for it to be 0.
-            var col = _grid.ColumnDefinitions[QuoteLevel];
-            ConditionalDebug.ThrowIfNotEqual(col.Width, GridLength.Auto);
-            col.MinWidth = Owner.TabPx * ListLevel;
         }
     }
 
@@ -362,7 +353,9 @@ internal sealed class MarkLevelHost : MarkVisualHost
     {
         var host = (MarkBlockHost)prefix.Tag!;
         var c = host.Control;
+
         prefix.Margin = new(0, c.Margin.Top, Owner.OneCh, 0);
+        prefix.MinWidth = Owner.TabPx * ListLevel;
 
         // This is where we update the content
         prefix.Text = host.Source.GetListPrefix();
@@ -372,17 +365,4 @@ internal sealed class MarkLevelHost : MarkVisualHost
         prefix.LineHeight = Owner.ScaledLineHeight;
     }
 
-    private void SetTrackKey(ulong key)
-    {
-        if (key != 0U)
-        {
-            if (TrackKey0 == 0)
-            {
-                TrackKey0 = key;
-            }
-
-            TrackKey1 = key;
-            ConditionalDebug.ThrowIfLessThan(TrackKey1, TrackKey0);
-        }
-    }
 }

@@ -1,8 +1,10 @@
 // -----------------------------------------------------------------------------
-// PROJECT   : KuiperZone.Marklet
-// AUTHOR    : Andrew Thomas
-// COPYRIGHT : Andrew Thomas © 2025-2026 All rights reserved
-// LICENSE   : AGPL-3.0-only
+// SPDX-FileNotice: KuiperZone.Marklet - Local AI Client
+// SPDX-License-Identifier: AGPL-3.0-only
+// SPDX-FileCopyrightText: © 2025-2026 Andrew Thomas <kuiperzone@users.noreply.github.com>
+// SPDX-ProjectHomePage: https://kuiper.zone/marklet-ai/
+// SPDX-FileType: Source
+// SPDX-FileComment: This is NOT AI generated source code but was created with human thinking and effort.
 // -----------------------------------------------------------------------------
 
 // Marklet is free software: you can redistribute it and/or modify it under
@@ -22,6 +24,7 @@ using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Media;
 using Avalonia.Styling;
+using Avalonia.Threading;
 using KuiperZone.Marklet.Tooling;
 
 namespace KuiperZone.Marklet.PixieChrome.Controls;
@@ -30,28 +33,29 @@ namespace KuiperZone.Marklet.PixieChrome.Controls;
 /// Extended <see cref="TextBox"/> which provides sophisticated keyboard handling.
 /// </summary>
 /// <remarks>
-/// The class shares its StyleKey with <see cref="TextBox"/>. The instance as a single pixel border by default and adds
+/// The class shares its StyleKey with <see cref="TextBox"/>. The instance has a single pixel border by default and adds
 /// the "fixed-border" to <see cref="StyledElement.Classes"/>. This means that its border thickness does not change with
 /// focus or pointer-over events. Removing it will make it behave as <see cref="TextBox"/>. The "fixed-background" class
 /// may be added so that the control keeps its background when focused and pointer-over.
 /// </remarks>
-public sealed class TextEditor : TextBox
+public class TextEditor : TextBox
 {
     private const int TabSize = 4;
     private readonly StackPanel _stack = new();
-    private readonly LightButton _revealButton;
-    private readonly LightButton _copyButton;
-    private readonly LightButton _deleteButton;
+    private readonly LightButton _backButton;
+    private LightButton? _revealButton;
+    private LightButton? _copyButton;
+    private LightButton? _caseButton;
+    private LightButton? _wordButton;
 
     private bool _silentInnerChanging;
     private bool _hasCustomInnertRight;
     private int _pageOffset = 1;
+    private string? _oldText;
 
-    private readonly Style _fxBackgroundPointOver;
-    private readonly Style _fxBackgroundFocus;
-    private readonly Style _fxBorderPointOver;
-    private readonly Style _fxBorderFocus;
-    private readonly Style _fxBorderDisabled;
+    private Style? _fxFixedBackground;
+    private Style? _fxDisabledBackground;
+    private Style? _fxBorder;
 
     static TextEditor()
     {
@@ -67,70 +71,12 @@ public sealed class TextEditor : TextBox
         _stack.HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Right;
         _stack.VerticalAlignment = Avalonia.Layout.VerticalAlignment.Center;
 
-        _revealButton = NewButton(Symbols.Visibility);
-        _revealButton.CanToggle = true;
-        _revealButton.IsChecked = RevealPassword;
-        _revealButton.Click += RevealClickHandler;
-
-        _copyButton = NewButton(Symbols.ContentCopy);
-        _copyButton.Click += CopyClickHandler;
-
-        _deleteButton = NewButton(Symbols.Backspace);
-        _deleteButton.Click += DeleteClickHandler;
+        _backButton = NewButton(Symbols.Backspace, DeleteClickHandler, false);
         UpdateButtons();
 
         PastingFromClipboard += PastingFromClipboardHandler;
 
-        // BACKGROUND
-        _fxBackgroundPointOver = new Style(s =>
-            s.OfType<TextBox>()
-            .Class("fixed-background")
-            .Class(":pointerover")
-            .Template()
-            .Name("PART_BorderElement")
-            .OfType<Border>());
-        Styles.Add(_fxBackgroundPointOver);
-
-        _fxBackgroundFocus = new Style(s =>
-            s.OfType<TextBox>()
-            .Class("fixed-background")
-            .Class(":focus")
-            .Template()
-            .Name("PART_BorderElement")
-            .OfType<Border>());
-        Styles.Add(_fxBackgroundFocus);
-
         SetFixedBackground(BackgroundProperty.GetDefaultValue(this));
-
-
-        // BORDER
-        _fxBorderPointOver = new Style(s =>
-            s.OfType<TextBox>()
-            .Class("fixed-border")
-            .Class(":pointerover")
-            .Template()
-            .Name("PART_BorderElement")
-            .OfType<Border>());
-        Styles.Add(_fxBorderPointOver);
-
-        _fxBorderFocus = new Style(s =>
-            s.OfType<TextBox>()
-            .Class("fixed-border")
-            .Class(":focus")
-            .Template()
-            .Name("PART_BorderElement")
-            .OfType<Border>());
-        Styles.Add(_fxBorderFocus);
-
-        _fxBorderDisabled = new Style(s =>
-            s.OfType<TextBox>()
-            .Class("fixed-border")
-            .Class(":disabled")
-            .Template()
-            .Name("PART_BorderElement")
-            .OfType<Border>());
-        Styles.Add(_fxBorderDisabled);
-
         SetFixedBorder(BorderThicknessProperty.GetDefaultValue(this));
 
         // Add by default
@@ -140,20 +86,20 @@ public sealed class TextEditor : TextBox
     /// <summary>
     /// Defines the <see cref="Submitted"/> event.
     /// </summary>
-    public static readonly RoutedEvent<RoutedEventArgs> SubmittedEvent =
-        RoutedEvent.Register<TextEditor, RoutedEventArgs>(nameof(Submitted), RoutingStrategies.Direct);
+    public static readonly RoutedEvent<SubmittedEventArgs> SubmittedEvent =
+        RoutedEvent.Register<TextEditor, SubmittedEventArgs>(nameof(Submitted), RoutingStrategies.Direct);
 
     /// <summary>
-    /// Defines the <see cref="HasBackButton"/> property.
+    /// Defines the <see cref="CaseOrWordChecked"/> event.
     /// </summary>
-    public static readonly StyledProperty<bool> HasBackButtonProperty =
-        AvaloniaProperty.Register<TextEditor, bool>(nameof(HasBackButton), true);
+    public static readonly RoutedEvent<RoutedEventArgs> CaseOrWordCheckedEvent =
+        RoutedEvent.Register<TextEditor, RoutedEventArgs>(nameof(CaseOrWordChecked), RoutingStrategies.Direct);
 
     /// <summary>
-    /// Defines the <see cref="HasCopyButton"/> property.
+    /// Defines the <see cref="MinLength"/> property.
     /// </summary>
-    public static readonly StyledProperty<bool> HasCopyButtonProperty =
-        AvaloniaProperty.Register<TextEditor, bool>(nameof(HasCopyButton));
+    public static readonly StyledProperty<int> MinLengthProperty =
+        AvaloniaProperty.Register<TextEditor, int>(nameof(MinLength));
 
     /// <summary>
     /// Defines the <see cref="HasRevealButton"/> property.
@@ -162,44 +108,71 @@ public sealed class TextEditor : TextBox
         AvaloniaProperty.Register<TextEditor, bool>(nameof(HasRevealButton));
 
     /// <summary>
+    /// Defines the <see cref="HasCopyButton"/> property.
+    /// </summary>
+    public static readonly StyledProperty<bool> HasCopyButtonProperty =
+        AvaloniaProperty.Register<TextEditor, bool>(nameof(HasCopyButton));
+
+    /// <summary>
+    /// Defines the <see cref="HasMatchCaseButton"/> property.
+    /// </summary>
+    public static readonly StyledProperty<bool> HasMatchCaseButtonProperty =
+        AvaloniaProperty.Register<TextEditor, bool>(nameof(HasMatchCaseButton));
+
+    /// <summary>
+    /// Defines the <see cref="HasMatchWordButton"/> property.
+    /// </summary>
+    public static readonly StyledProperty<bool> HasMatchWordButtonProperty =
+        AvaloniaProperty.Register<TextEditor, bool>(nameof(HasMatchWordButton));
+
+    /// <summary>
+    /// Defines the <see cref="HasBackButton"/> property.
+    /// </summary>
+    public static readonly StyledProperty<bool> HasBackButtonProperty =
+        AvaloniaProperty.Register<TextEditor, bool>(nameof(HasBackButton), true);
+
+    /// <summary>
     /// Defines the <see cref="AlwaysAcceptReturnOnPaste"/> property.
     /// </summary>
     public static readonly StyledProperty<bool> AlwaysAcceptReturnOnPasteProperty =
         AvaloniaProperty.Register<TextEditor, bool>(nameof(AlwaysAcceptReturnOnPaste));
 
     /// <summary>
+    /// Defines the <see cref="DisabledBackground"/> property.
+    /// </summary>
+    public static readonly StyledProperty<IBrush?> DisabledBackgroundProperty =
+        AvaloniaProperty.Register<TextEditor, IBrush?>(nameof(DisabledBackground));
+
+    /// <summary>
     /// Occurs when the user hits ENTER when <see cref="TextBox.AcceptsReturn"/> is false, or "CTRL+ENTER" when <see
     /// cref="TextBox.AcceptsReturn"/> is true.
     /// </summary>
-    public event EventHandler<RoutedEventArgs> Submitted
+    public event EventHandler<SubmittedEventArgs> Submitted
     {
         add { AddHandler(SubmittedEvent, value); }
         remove { RemoveHandler(SubmittedEvent, value); }
     }
 
     /// <summary>
-    /// Gets or sets whether to show a backspace (delete all) button.
+    /// Occurs when the user checks or unchecks the <see cref="HasMatchCaseButton"/> or <see cref="HasMatchWordButton"/> options.
     /// </summary>
-    /// <remarks>
-    /// The <see cref="HasBackButton"/> is shown only when <see cref="TextBox.AcceptsReturn"/> is false. Default is
-    /// true.
-    /// </remarks>
-    public bool HasBackButton
+    public event EventHandler<RoutedEventArgs> CaseOrWordChecked
     {
-        get { return GetValue(HasBackButtonProperty); }
-        set { SetValue(HasBackButtonProperty, value); }
+        add { AddHandler(CaseOrWordCheckedEvent, value); }
+        remove { RemoveHandler(CaseOrWordCheckedEvent, value); }
     }
 
     /// <summary>
-    /// Gets or sets whether to show a "copy" button.
+    /// Gets or sets the minimum text length.
     /// </summary>
     /// <remarks>
-    /// The <see cref="HasCopyButton"/> is shown only when <see cref="TextBox.AcceptsReturn"/> is false. Default is false.
+    /// The <see cref="Submitted"/> event will not fire unless <see cref="TextLength"/> equals or exceeds this value.
+    /// The value should be equal or less than <see cref="TextBox.MaxLength"/>. The default is 0.
     /// </remarks>
-    public bool HasCopyButton
+    public int MinLength
     {
-        get { return GetValue(HasCopyButtonProperty); }
-        set { SetValue(HasCopyButtonProperty, value); }
+        get { return GetValue(MinLengthProperty); }
+        set { SetValue(MinLengthProperty, value); }
     }
 
     /// <summary>
@@ -216,6 +189,55 @@ public sealed class TextEditor : TextBox
     }
 
     /// <summary>
+    /// Gets or sets whether to show a "copy" button.
+    /// </summary>
+    /// <remarks>
+    /// The <see cref="HasCopyButton"/> is shown only when <see cref="TextBox.AcceptsReturn"/> is false. Default is false.
+    /// </remarks>
+    public bool HasCopyButton
+    {
+        get { return GetValue(HasCopyButtonProperty); }
+        set { SetValue(HasCopyButtonProperty, value); }
+    }
+
+    /// <summary>
+    /// Gets or sets whether to show a checkable "match case" button.
+    /// </summary>
+    /// <remarks>
+    /// Default is false.
+    /// </remarks>
+    public bool HasMatchCaseButton
+    {
+        get { return GetValue(HasMatchCaseButtonProperty); }
+        set { SetValue(HasMatchCaseButtonProperty, value); }
+    }
+
+    /// <summary>
+    /// Gets or sets whether to show a checkable "match word" button.
+    /// </summary>
+    /// <remarks>
+    /// Default is false.
+    /// </remarks>
+    public bool HasMatchWordButton
+    {
+        get { return GetValue(HasMatchWordButtonProperty); }
+        set { SetValue(HasMatchWordButtonProperty, value); }
+    }
+
+    /// <summary>
+    /// Gets or sets whether to show a backspace (delete all) button.
+    /// </summary>
+    /// <remarks>
+    /// The <see cref="HasBackButton"/> is shown only when <see cref="TextBox.AcceptsReturn"/> is false. Default is
+    /// true.
+    /// </remarks>
+    public bool HasBackButton
+    {
+        get { return GetValue(HasBackButtonProperty); }
+        set { SetValue(HasBackButtonProperty, value); }
+    }
+
+    /// <summary>
     /// Gets or sets whether to allow pasting of text with newlines where <see cref="TextBox.AcceptsReturn"/> is false.
     /// </summary>
     /// <remarks>
@@ -228,16 +250,68 @@ public sealed class TextEditor : TextBox
     }
 
     /// <summary>
+    /// Gets or sets the background editor when disabled.
+    /// </summary>
+    /// <remarks>
+    /// The default is null which implies to use the theme color.
+    /// </remarks>
+    public IBrush? DisabledBackground
+    {
+        get { return GetValue(DisabledBackgroundProperty); }
+        set { SetValue(DisabledBackgroundProperty, value); }
+    }
+
+    /// <summary>
+    /// Gets the text length.
+    /// </summary>
+    public int TextLength
+    {
+        get { return Text?.Length ?? 0; }
+    }
+
+    /// <summary>
+    /// Gets whether the "match case" button is checked.
+    /// </summary>
+    /// <remarks>
+    /// The <see cref="HasMatchCaseButton"/> property must be true otherwise the result of this is always false.
+    /// </remarks>
+    public bool IsMatchCaseChecked
+    {
+        get { return _caseButton?.IsChecked == true; }
+    }
+
+    /// <summary>
+    /// Gets whether the "match word" button is checked.
+    /// </summary>
+    /// <remarks>
+    /// The <see cref="HasMatchWordButton"/> property must be true otherwise the result of this is always false.
+    /// </remarks>
+    public bool IsMatchWordChecked
+    {
+        get { return _wordButton?.IsChecked == true; }
+    }
+
+    /// <summary>
     /// Follow <see cref="TextBox"/> style.
     /// </summary>
     protected override Type StyleKeyOverride { get; } = typeof(TextBox);
 
     /// <summary>
-    /// Raises the <see cref="Submitted"/> event.
+    /// Raises the <see cref="Submitted"/> event and returns the event result.
     /// </summary>
-    public void OnSubmitted()
+    /// <remarks>
+    /// The call does nothing if <see cref="TextLength"/> is less than <see cref="MinLength"/> and returns null.
+    /// </remarks>
+    public SubmittedEventArgs? OnSubmitted()
     {
-        RaiseEvent(new RoutedEventArgs(SubmittedEvent, this));
+        if (TextLength >= MinLength)
+        {
+            var e = new SubmittedEventArgs(SubmittedEvent, this, _oldText, Text);
+            RaiseEvent(e);
+            return e;
+        }
+
+        return null;
     }
 
     /// <summary>
@@ -272,6 +346,15 @@ public sealed class TextEditor : TextBox
     /// <summary>
     /// Overrides.
     /// </summary>
+    protected override void OnAttachedToVisualTree(VisualTreeAttachmentEventArgs e)
+    {
+        base.OnAttachedToVisualTree(e);
+        _oldText = Text;
+    }
+
+    /// <summary>
+    /// Overrides.
+    /// </summary>
     protected override void OnPropertyChanged(AvaloniaPropertyChangedEventArgs change)
     {
         base.OnPropertyChanged(change);
@@ -281,6 +364,12 @@ public sealed class TextEditor : TextBox
         if (p == BackgroundProperty)
         {
             SetFixedBackground(change.GetNewValue<IBrush?>());
+            return;
+        }
+
+        if (p == DisabledBackgroundProperty)
+        {
+            SetDisabledBackground(change.GetNewValue<IBrush?>());
             return;
         }
 
@@ -303,13 +392,15 @@ public sealed class TextEditor : TextBox
 
         if (p == RevealPasswordProperty)
         {
-            _revealButton.IsChecked = change.GetNewValue<bool>();
+            _revealButton?.IsChecked = change.GetNewValue<bool>();
             return;
         }
 
         if (p == AcceptsReturnProperty ||
             p == HasRevealButtonProperty ||
             p == HasCopyButtonProperty ||
+            p == HasMatchCaseButtonProperty ||
+            p == HasMatchWordButtonProperty ||
             p == HasBackButtonProperty)
         {
             UpdateButtons();
@@ -339,17 +430,25 @@ public sealed class TextEditor : TextBox
             switch (e.Key)
             {
                 case Key.Enter:
-                    if (e.KeyModifiers.HasFlag(KeyModifiers.Control) && AcceptsReturn)
+                    if (!AcceptsReturn || (AcceptsReturn && e.KeyModifiers.HasFlag(KeyModifiers.Control)))
                     {
-                        e.Handled = true;
-                        OnSubmitted();
-                        return;
-                    }
+                        var es = OnSubmitted();
 
-                    if (!e.KeyModifiers.HasFlag(KeyModifiers.Control) && !AcceptsReturn)
-                    {
-                        e.Handled = true;
-                        OnSubmitted();
+                        if (es != null)
+                        {
+                            e.Handled |= es.Handled;
+
+                            if (es.IsRejected)
+                            {
+                                SetCurrentValue(ForegroundProperty, ChromeBrushes.WarningBrush);
+                                DispatcherTimer.RunOnce(() => ClearValue(ForegroundProperty), TimeSpan.FromMilliseconds(1000));
+                            }
+                            else
+                            {
+                                ClearValue(ForegroundProperty);
+                            }
+                        }
+
                         return;
                     }
                     break;
@@ -426,7 +525,11 @@ public sealed class TextEditor : TextBox
                     if (e.KeyModifiers == KeyModifiers.Alt && HasRevealButton)
                     {
                         e.Handled = true;
-                        _revealButton.IsChecked = !_revealButton.IsChecked;
+
+                        if (_revealButton != null)
+                        {
+                            _revealButton.IsChecked = !_revealButton.IsChecked;
+                        }
                         return;
                     }
                     break;
@@ -601,45 +704,92 @@ public sealed class TextEditor : TextBox
         return text;
     }
 
-    private static LightButton NewButton(string content)
+    private static LightButton NewButton(string content, EventHandler<RoutedEventArgs> click, bool canToggle, bool isChecked = false)
     {
-        var button = new LightButton();
-        button.Focusable = false;
-        button.Content = content;
-        button.ContentPadding = default;
-        button.FontSize = 14.0;
-        button.MinWidth = 14.0 * 1.6;
-        button.MaxWidth = 14.0 * 1.6;
-        button.MinHeight = 14.0 * 1.6;
-        button.MaxHeight = 14.0 * 1.6;
-        button.Margin = new(0.0, 0.0, 2.0, 0.0);
-        button.CornerRadius = new(4.0);
-        return button;
+        var b = new LightButton();
+        b.Classes.Add("accent-checked");
+        b.Focusable = false;
+        b.Content = content;
+        b.ContentPadding = default;
+        b.FontSize = ChromeFonts.DefaultFontSize;
+        b.MinWidth = 14.0 * 1.6;
+        b.MaxWidth = 14.0 * 1.6;
+        b.MinHeight = 0.0;
+        b.MaxHeight = 14.0 * 1.6;
+        b.Margin = new(0.0, 0.0, ChromeSizes.SmallPx, 0.0);
+        b.CornerRadius = new(4.0);
+
+        b.CanToggle = canToggle;
+        b.IsChecked = isChecked;
+        b.Click += click;
+        return b;
+    }
+
+    private void SetFixedBackground(IBrush? background, bool reorder = true)
+    {
+        if (_fxFixedBackground != null)
+        {
+            Styles.Remove(_fxFixedBackground);
+        }
+
+        _fxFixedBackground = new Style(s =>
+            s.OfType<TextBox>()
+            .Class("fixed-background")
+            .Template()
+            .Name("PART_BorderElement")
+            .OfType<Border>());
+
+        _fxFixedBackground.Setters.Add(new Setter(Border.BackgroundProperty, background));
+        Styles.Add(_fxFixedBackground);
+
+        if (reorder)
+        {
+            SetDisabledBackground(DisabledBackground, false);
+        }
+    }
+
+    private void SetDisabledBackground(IBrush? background, bool reorder = true)
+    {
+        if (_fxDisabledBackground != null)
+        {
+            Styles.Remove(_fxDisabledBackground);
+        }
+
+        if (background != null)
+        {
+            if (reorder)
+            {
+                SetFixedBackground(Background, false);
+            }
+
+            _fxDisabledBackground = new Style(s =>
+                s.OfType<TextBox>()
+                .Class(":disabled")
+                .Template()
+                .Name("PART_BorderElement")
+                .OfType<Border>());
+
+            _fxDisabledBackground.Setters.Add(new Setter(Border.BackgroundProperty, background));
+            Styles.Add(_fxDisabledBackground);
+        }
     }
 
     private void SetFixedBorder(Thickness thickness)
     {
-        var t = new Setter(Border.BorderThicknessProperty, thickness);
+        if (_fxBorder != null)
+        {
+            Styles.Remove(_fxBorder);
+        }
 
-        _fxBorderPointOver.Setters.Clear();
-        _fxBorderPointOver.Setters.Add(t);
+        _fxBorder = new Style(s =>
+            s.OfType<TextBox>()
+            .Class("fixed-border")
+            .Template()
+            .Name("PART_BorderElement")
+            .OfType<Border>());
 
-        _fxBorderFocus.Setters.Clear();
-        _fxBorderFocus.Setters.Add(t);
-
-        _fxBorderDisabled.Setters.Clear();
-        _fxBorderDisabled.Setters.Add(t);
-    }
-
-    private void SetFixedBackground(IBrush? background)
-    {
-        var setter = new Setter(Border.BackgroundProperty, background);
-
-        _fxBackgroundPointOver.Setters.Clear();
-        _fxBackgroundPointOver.Setters.Add(setter);
-
-        _fxBackgroundFocus.Setters.Clear();
-        _fxBackgroundFocus.Setters.Add(setter);
+        _fxBorder.Setters.Add(new Setter(Border.BorderThicknessProperty, thickness));
+        Styles.Add(_fxBorder);
     }
 
     [System.Diagnostics.Conditional("DEBUG")]
@@ -1041,55 +1191,64 @@ public sealed class TextEditor : TextBox
             return;
         }
 
-        var childs = _stack.Children;
+        var childs = new List<LightButton>(4);
 
         // 1. REVEAL
         if (HasRevealButton)
         {
-            if (!childs.Contains(_revealButton))
-            {
-                childs.Insert(0, _revealButton);
-            }
+            _revealButton ??= NewButton(Symbols.Visibility, RevealClickHandler, true, RevealPassword);
+            _revealButton.Tip = "Reveal";
+            childs.Add(_revealButton);
         }
         else
         {
-            childs.Remove(_revealButton);
+            _revealButton = null;
         }
 
         // 2. COPY
         if (HasCopyButton)
         {
-            if (!childs.Contains(_copyButton))
-            {
-                if (childs.Count == 0)
-                {
-                    childs.Add(_copyButton);
-                }
-                else
-                {
-                    childs.Insert(1, _copyButton);
-                }
-            }
+            _copyButton ??= NewButton(Symbols.ContentCopy, CopyClickHandler, false);
+            _copyButton.Tip = "Copy";
+            childs.Add(_copyButton);
         }
         else
         {
-            childs.Remove(_copyButton);
+            _copyButton = null;
         }
 
-        // 3. DELETE
-        if (HasBackButton)
+        // 3. CASE
+        if (HasMatchCaseButton)
         {
-            if (!childs.Contains(_deleteButton))
-            {
-                childs.Add(_deleteButton);
-            }
+            _caseButton ??= NewButton(Symbols.MatchCase, CaseWordClickHandler, true);
+            _caseButton.Tip = "Match case";
+            childs.Add(_caseButton);
         }
         else
         {
-            childs.Remove(_deleteButton);
+            _caseButton = null;
+        }
+
+        // 4. WORD
+        if (HasMatchWordButton)
+        {
+            _wordButton ??= NewButton(Symbols.MatchWord, CaseWordClickHandler, true);
+            _wordButton.Tip = "Match words";
+            childs.Add(_wordButton);
+        }
+        else
+        {
+            _wordButton = null;
+        }
+
+        // 3. BACK DELETE
+        if (HasBackButton)
+        {
+            childs.Add(_backButton);
         }
 
         // STACK
+        _stack.Children.Replace(childs);
         SetSilentInnerRight(childs.Count != 0 ? _stack : null);
     }
 
@@ -1115,13 +1274,22 @@ public sealed class TextEditor : TextBox
 
     private void RevealClickHandler(object? _, EventArgs __)
     {
-        RevealPassword = _revealButton.IsChecked;
+        if (_revealButton != null)
+        {
+            RevealPassword = _revealButton.IsChecked;
+        }
+
         Focus();
     }
 
     private void CopyClickHandler(object? _, EventArgs __)
     {
         CopySelectedOrAll();
+    }
+
+    private void CaseWordClickHandler(object? _, EventArgs __)
+    {
+        RaiseEvent(new RoutedEventArgs(CaseOrWordCheckedEvent, this));
     }
 
     private void DeleteClickHandler(object? _, EventArgs __)

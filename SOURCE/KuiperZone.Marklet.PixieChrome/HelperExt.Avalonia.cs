@@ -1,8 +1,10 @@
 // -----------------------------------------------------------------------------
-// PROJECT   : KuiperZone.Marklet
-// AUTHOR    : Andrew Thomas
-// COPYRIGHT : Andrew Thomas © 2025-2026 All rights reserved
-// LICENSE   : AGPL-3.0-only
+// SPDX-FileNotice: KuiperZone.Marklet - Local AI Client
+// SPDX-License-Identifier: AGPL-3.0-only
+// SPDX-FileCopyrightText: © 2025-2026 Andrew Thomas <kuiperzone@users.noreply.github.com>
+// SPDX-ProjectHomePage: https://kuiper.zone/marklet-ai/
+// SPDX-FileType: Source
+// SPDX-FileComment: This is NOT AI generated source code but was created with human thinking and effort.
 // -----------------------------------------------------------------------------
 
 // Marklet is free software: you can redistribute it and/or modify it under
@@ -19,9 +21,12 @@
 using Avalonia;
 using Avalonia.Collections;
 using Avalonia.Controls;
+using Avalonia.Input;
+using Avalonia.Interactivity;
 using Avalonia.Media;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
+using KuiperZone.Marklet.Tooling;
 
 namespace KuiperZone.Marklet.PixieChrome;
 
@@ -33,9 +38,8 @@ public static partial class HelperExt
     /// <summary>
     /// Gets first parent of type T, or null.
     /// </summary>
-    public static T? GetParent<T>(this StyledElement src) where T : class
+    public static T? GetParentOf<T>(this StyledElement src) where T : class
     {
-        // First parent is Popup surrounding menu
         var parent = src?.Parent;
 
         while (parent != null)
@@ -48,7 +52,27 @@ public static partial class HelperExt
             parent = parent.Parent;
         }
 
-        return null;
+        return default;
+    }
+
+    /// <summary>
+    /// Gets first parent of type T, or null.
+    /// </summary>
+    public static T? GetThisOrParentOf<T>(this StyledElement src) where T : class
+    {
+        var parent = src;
+
+        while (parent != null)
+        {
+            if (parent is T t)
+            {
+                return t;
+            }
+
+            parent = parent.Parent;
+        }
+
+        return default;
     }
 
     /// <summary>
@@ -232,6 +256,20 @@ public static partial class HelperExt
     }
 
     /// <summary>
+    /// Invokes the Command or Click event on the <see cref="MenuItem"/> children of <see cref="MenuBase"/> and returns
+    /// true on success.
+    /// </summary>
+    /// <remarks>
+    /// Clicks are NOT invoked on items where <see cref="RoutedEventArgs.Handled"/> is already true, nor if the <see
+    /// cref="MenuItem"/> is disabled or not directly visible.
+    /// </remarks>
+    public static bool HandleKeyGesture(this MenuBase src, KeyEventArgs e)
+    {
+        // Limit possible iterations
+        return HandleKeyGestureItems(src.Items, e, 5);
+    }
+
+    /// <summary>
     /// Collapses separators in menu and sub-menus.
     /// </summary>
     /// <remarks>
@@ -241,6 +279,55 @@ public static partial class HelperExt
     public static bool Normalize<T>(this T src) where T : MenuBase
     {
         return NormalizeMenuItems(src.Items);
+    }
+
+    private static bool HandleKeyGestureItems(IEnumerable<object?>? items, KeyEventArgs e, int iter)
+    {
+        const string NSpace = $"{nameof(HelperExt)}.{nameof(HandleKeyGestureItems)}";
+
+        if (items == null || e.Handled || iter == 0)
+        {
+            return false;
+        }
+
+        try
+        {
+            foreach (var item in items)
+            {
+                if (item is MenuItem m && m.IsEffectivelyEnabled && m.IsVisible)
+                {
+                    if (m.InputGesture?.Matches(e) == true)
+                    {
+                        ConditionalDebug.WriteLine(NSpace, $"Key {e.Key}, {e.KeyModifiers} matched");
+
+                        if (m.Command?.CanExecute(m.CommandParameter) == true)
+                        {
+                            m.Command.Execute(m.CommandParameter);
+                        }
+                        else
+                        {
+                            var args = new RoutedEventArgs(MenuItem.ClickEvent, m);
+                            m.RaiseEvent(args);
+                        }
+
+                        e.Handled = true;
+                        ConditionalDebug.WriteLine(NSpace, "Event raised");
+                        return true;
+                    }
+
+                    if (HandleKeyGestureItems(m.Items, e, --iter))
+                    {
+                        return true;
+                    }
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            ConditionalDebug.WriteLine(NSpace, ex);
+        }
+
+        return false;
     }
 
     private static bool NormalizeMenuItems(IEnumerable<object?> items)

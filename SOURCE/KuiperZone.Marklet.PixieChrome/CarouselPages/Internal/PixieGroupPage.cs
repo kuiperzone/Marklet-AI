@@ -1,8 +1,10 @@
 // -----------------------------------------------------------------------------
-// PROJECT   : KuiperZone.Marklet
-// AUTHOR    : Andrew Thomas
-// COPYRIGHT : Andrew Thomas © 2025-2026 All rights reserved
-// LICENSE   : AGPL-3.0-only
+// SPDX-FileNotice: KuiperZone.Marklet - Local AI Client
+// SPDX-License-Identifier: AGPL-3.0-only
+// SPDX-FileCopyrightText: © 2025-2026 Andrew Thomas <kuiperzone@users.noreply.github.com>
+// SPDX-ProjectHomePage: https://kuiper.zone/marklet-ai/
+// SPDX-FileType: Source
+// SPDX-FileComment: This is NOT AI generated source code but was created with human thinking and effort.
 // -----------------------------------------------------------------------------
 
 // Marklet is free software: you can redistribute it and/or modify it under
@@ -36,46 +38,46 @@ internal sealed class PixieGroupPage : PixiePageBase
         group.TopTitle = nameof(PixieGroup.TopTitle);
         group.TopFooter = nameof(PixieGroup.TopFooter);
 
-        var button = NewControl<PixieButton>(group);
+        var button = NewControl<PixieCard>(group);
         button.RightButton.IsVisible = true;
-        button.RightButton.Content = nameof(PixieGroup.IsCollapsable);
+        button.RightButton.Content = nameof(PixieGroup.IsCollapsible);
         button.RightButton.CanToggle = true;
-        button.RightButton.IsChecked = group.IsCollapsable;
-        button.RightButton.Click += IsCollapsableChangedHandler;
+        button.RightButton.IsChecked = group.IsCollapsible;
+        button.RightButton.Click += IsCollapsibleChangedHandler;
 
-        button = NewControl<PixieButton>(group);
+        button = NewControl<PixieCard>(group);
         button.RightButton.IsVisible = true;
         button.RightButton.Content = nameof(PixieGroup.ChildBackground);
         button.RightButton.CanToggle = true;
         button.RightButton.IsChecked = true;
         button.RightButton.Click += ChildBackgroundChangedHandler;
 
-        button = NewControl<PixieButton>(group);
+        button = NewControl<PixieCard>(group);
         button.RightButton.IsVisible = true;
         button.RightButton.Content = nameof(PixieGroup.ChildCorner);
         button.RightButton.CanToggle = true;
         button.RightButton.IsChecked = true;
         button.RightButton.Click += ChildCornerChangedHandler;
 
-        button = NewControl<PixieButton>(group);
+        button = NewControl<PixieCard>(group);
         button.RightButton.IsVisible = true;
         button.RightButton.Content = nameof(PixieGroup.ChildIndent);
         button.RightButton.CanToggle = true;
         button.RightButton.IsChecked = group.ChildIndent != 0.0;
         button.RightButton.Click += ChildIndentChangedHandler;
 
-        button = NewControl<PixieButton>(group);
+        button = NewControl<PixieCard>(group);
         button.RightButton.IsVisible = true;
-        button.RightButton.Content = nameof(PixieGroup.IsCornerGrouped);
+        button.RightButton.Content = nameof(PixieGroup.IsCapped);
         button.RightButton.CanToggle = true;
         button.RightButton.IsChecked = true;
-        button.RightButton.Click += IsCornerGroupedChangedHandler;
+        button.RightButton.Click += IsPillListChangedHandler;
     }
 
-    private void IsCollapsableChangedHandler(object? sender, EventArgs __)
+    private void IsCollapsibleChangedHandler(object? sender, EventArgs __)
     {
         var btn = (LightButton)sender!;
-        _group.IsCollapsable = btn.IsChecked;
+        _group.IsCollapsible = btn.IsChecked;
     }
 
     private void ChildBackgroundChangedHandler(object? sender, EventArgs __)
@@ -96,10 +98,10 @@ internal sealed class PixieGroupPage : PixiePageBase
         _group.ChildIndent = btn.IsChecked ? ChromeSizes.TabPx : 0.0;
     }
 
-    private void IsCornerGroupedChangedHandler(object? sender, EventArgs __)
+    private void IsPillListChangedHandler(object? sender, EventArgs __)
     {
         var btn = (LightButton)sender!;
-        _group.IsCornerGrouped = btn.IsChecked;
+        _group.IsCapped = btn.IsChecked;
     }
 
 }

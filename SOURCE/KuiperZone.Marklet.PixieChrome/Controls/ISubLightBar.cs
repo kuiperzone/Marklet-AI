@@ -1,8 +1,10 @@
 // -----------------------------------------------------------------------------
-// PROJECT   : KuiperZone.Marklet
-// AUTHOR    : Andrew Thomas
-// COPYRIGHT : Andrew Thomas © 2025-2026 All rights reserved
-// LICENSE   : AGPL-3.0-only
+// SPDX-FileNotice: KuiperZone.Marklet - Local AI Client
+// SPDX-License-Identifier: AGPL-3.0-only
+// SPDX-FileCopyrightText: © 2025-2026 Andrew Thomas <kuiperzone@users.noreply.github.com>
+// SPDX-ProjectHomePage: https://kuiper.zone/marklet-ai/
+// SPDX-FileType: Source
+// SPDX-FileComment: This is NOT AI generated source code but was created with human thinking and effort.
 // -----------------------------------------------------------------------------
 
 // Marklet is free software: you can redistribute it and/or modify it under
@@ -40,32 +42,22 @@ public interface ISubLightBar
     /// <summary>
     /// Adds a button and returns the the new button.
     /// </summary>
-    LightButton Add(string? text, string? tip = null);
+    LightButton AddButton(string? content, string? tip = null);
 
     /// <summary>
     /// Overload providing a click handler.
     /// </summary>
-    LightButton Add(string text, EventHandler<RoutedEventArgs>? handler, string? tip = null)
-    {
-        var button = Add(text, tip);
-        button.Click += handler;
-        return button;
-    }
+    LightButton AddButton(string content, EventHandler<RoutedEventArgs>? handler, string? tip = null);
 
     /// <summary>
-    /// Overload providing a <see cref="ContextMenu"/> instance which is opened when the button is clicked.
+    /// Overload providing a <see cref="ContextMenu"/> instead of a handler (menu opened when the button is clicked).
     /// </summary>
-    LightButton Add(string text, ContextMenu? menu, string? tip = null)
-    {
-        var button = Add(text, tip);
-        button.DropMenu = menu;
-        return button;
-    }
+    LightButton AddButton(string content, ContextMenu? menu, string? tip = null);
 
     /// <summary>
     /// Removes the "button" and returns true on success.
     /// </summary>
-    bool Remove(LightButton button);
+    bool Remove(Control button);
 
     /// <summary>
     /// Calls <see cref="LightButton.OnClick"/> on the first button with a <see cref="LightButton.Gesture"/>

@@ -1,8 +1,10 @@
 // -----------------------------------------------------------------------------
-// PROJECT   : KuiperZone.Marklet
-// AUTHOR    : Andrew Thomas
-// COPYRIGHT : Andrew Thomas © 2025-2026 All rights reserved
-// LICENSE   : AGPL-3.0-only
+// SPDX-FileNotice: KuiperZone.Marklet - Local AI Client
+// SPDX-License-Identifier: AGPL-3.0-only
+// SPDX-FileCopyrightText: © 2025-2026 Andrew Thomas <kuiperzone@users.noreply.github.com>
+// SPDX-ProjectHomePage: https://kuiper.zone/marklet-ai/
+// SPDX-FileType: Source
+// SPDX-FileComment: This is NOT AI generated source code but was created with human thinking and effort.
 // -----------------------------------------------------------------------------
 
 // Marklet is free software: you can redistribute it and/or modify it under
@@ -19,7 +21,8 @@
 using System.Diagnostics.CodeAnalysis;
 using System.Text;
 using Avalonia.Controls;
-using KuiperZone.Marklet.PixieChrome.Controls.Internal;
+using Avalonia.Input;
+using Avalonia.VisualTree;
 using KuiperZone.Marklet.Tooling;
 
 namespace KuiperZone.Marklet.PixieChrome.Controls;
@@ -27,83 +30,65 @@ namespace KuiperZone.Marklet.PixieChrome.Controls;
 /// <summary>
 /// Handles selection across multiple blocks for <see cref="CrossTextBlock"/>.
 /// </summary>
+/// <remarks>
+/// Intended to be efficient as will need to handle 100s, if not 1000s, of items.
+/// </remarks>
 public sealed class CrossTracker
 {
-    private const int DefaultCapacity = 64;
-    private readonly SortedList<ulong, ICrossTrackable> _children = new(DefaultCapacity);
-    private readonly SortedList<ulong, ICrossTrackable> _selecting = new(DefaultCapacity);
-    private static ulong s_nextKey;
-    private ulong _dragKey;
+    private const int DefaultCapacity = 128;
+    private readonly HashSet<ICrossTrackable> _children = new(DefaultCapacity);
+    private int _anchorPos;
+    private ICrossTrackable? _anchorObj;
+    private HashSet<ICrossTrackable>? _selection;
 
     /// <summary>
-    /// Default constructor.
+    /// Constructor.
     /// </summary>
-    public CrossTracker()
+    /// <remarks>
+    /// The "container" should be the control under which all children will live.
+    /// </remarks>
+    public CrossTracker(Control container)
     {
-        Children = _children.Values;
-        Selecting = _selecting.Values;
+        Children = _children;
+        Container = container;
     }
+
+    /// <summary>
+    /// Occurs when the user clicks on an URI within the text.
+    /// </summary>
+    /// <remarks>
+    /// When a link is clicked, the default behaviour is to invoke this event. When it returns, if <see
+    /// cref="LinkClickEventArgs.Handled"/> is false the invoker will attempt to open the link using <see
+    /// cref="ChromeApplication.SafeLaunchUri(Uri)"/>.
+    /// </remarks>
+    public event EventHandler<LinkClickEventArgs>? LinkClick;
+
+    /// <summary>
+    /// Gets the container parent which all <see cref="Children"/> are to share.
+    /// </summary>
+    public Control Container { get; }
 
     /// <summary>
     /// Gets the children in the tracker.
     /// </summary>
-    public IEnumerable<ICrossTrackable> Children { get; }
+    public IReadOnlySet<ICrossTrackable> Children { get; }
 
     /// <summary>
-    /// Gets the count of <see cref="Children"/>.
+    /// Gets the first selected instance.
     /// </summary>
-    public int Count
+    public ICrossTrackable? FirstSelected { get; private set; }
+
+    /// <summary>
+    /// Gets the last selected instance.
+    /// </summary>
+    public ICrossTrackable? LastSelected { get; private set; }
+
+    /// <summary>
+    /// Gets the current number of selected children.
+    /// </summary>
+    public int SelectionCount
     {
-        get { return _children.Count; }
-    }
-
-    /// <summary>
-    /// Gets the current subset of <see cref="Children"/> that are undergoing selection.
-    /// </summary>
-    public IEnumerable<ICrossTrackable> Selecting { get; }
-
-    /// <summary>
-    /// Gets the count of <see cref="Selecting"/>.
-    /// </summary>
-    /// <remarks>
-    /// This may report non-zero where <see cref="HasValidSelection"/> is false, as a child may be in the process of
-    /// selecting.
-    /// </remarks>
-    public int SelectingCount
-    {
-        get { return _selecting.Count; }
-    }
-
-    /// <summary>
-    /// Gets whether one or more child instances have selected text.
-    /// </summary>
-    public bool HasValidSelection
-    {
-        get
-        {
-            foreach (var item in _selecting.Values)
-            {
-                if (item.HasSelection)
-                {
-                    return true;
-                }
-            }
-
-            return false;
-        }
-    }
-
-    /// <summary>
-    /// Generates a new unique incrementing key value.
-    /// </summary>
-    /// <remarks>
-    /// Assume single thread application use only.
-    /// </remarks>
-    public static ulong NextKey()
-    {
-        // Starts at 1 and never decrements
-        // Assume not concurrent thread otherwise need Interlocked
-        return ++s_nextKey;
+        get { return _selection?.Count ?? 0; }
     }
 
     /// <summary>
@@ -112,44 +97,47 @@ public sealed class CrossTracker
     public bool Contains([NotNullWhen(true)] ICrossTrackable? obj)
     {
         // This is fast as it avoids lookup
-        if (obj != null)
-        {
-            // BUT CHECK KEY NON-ZERO FIRST!
-            // When adding new, the state is in flux and tracker may already be set.
-            if (obj.TrackKey != 0 && obj.Tracker == this)
-            {
-                // We expect it to be a member
-                ConditionalDebug.ThrowIfFalse(_children.ContainsKey(obj.TrackKey));
-                return true;
-            }
+        ConditionalDebug.ThrowIfTrue(obj?.Tracker == this && !_children.Contains(obj));
+        return obj?.Tracker == this && _children.Count != 0;
+    }
 
-            // We do not expect it to be a member
-            ConditionalDebug.ThrowIfTrue(_children.ContainsKey(obj.TrackKey));
+    /// <summary>
+    /// Returns true if the child one of the selected instances.
+    /// </summary>
+    public bool IsSelected([NotNullWhen(true)] ICrossTrackable? obj)
+    {
+        if (_selection == null || obj == null || obj.Tracker != this)
+        {
             return false;
         }
 
-        return false;
+        // There's normally no need for this, as ICrossTrackable.HasSelection is more efficient.
+        return _selection.Contains(obj);
     }
 
     /// <summary>
     /// Clears selected text for all children.
     /// </summary>
+    /// <remarks>
+    /// The result is true on change.
+    /// </remarks>
     public bool SelectNone()
     {
         const string NSpace = $"{nameof(CrossTracker)}.{nameof(SelectNone)}";
-        ConditionalDebug.WriteLine(NSpace, $"Clear selection count: {_selecting.Count}");
+        ConditionalDebug.WriteLine(NSpace, $"Clear selection count: {SelectionCount}");
 
-        _dragKey = 0;
+        _anchorObj = null;
 
-        if (_selecting.Count != 0)
+        if (_selection != null)
         {
-            foreach (var item in _selecting.Values)
+            foreach (var item in _selection)
             {
                 item.SelectInternal(0, 0);
             }
 
-            _selecting.Clear();
-            TrimCapacity(_selecting);
+            _selection = null;
+            FirstSelected = null;
+            LastSelected = null;
             return true;
         }
 
@@ -157,65 +145,111 @@ public sealed class CrossTracker
     }
 
     /// <summary>
-    /// Selects a contiguous sequence of <see cref="Children"/>, from the given "firstKey" instance up to, and
-    /// including, "lastKey". All text in each child within range is selected.
+    /// Selects text from "start" to "end" in single instance, while deselecting other children.
     /// </summary>
     /// <remarks>
-    /// The result is the number of child blocks selected. Both "firstKey" and "lastKey" must be members of <see
-    /// cref="Children"/>, otherwise the call does nothing and returns 0. The "firstKey" must be equal or less than the
-    /// that of "lastKey", otherwise the result is 0. If "lastKey" is 0, however, all text in the first block only is
-    /// selected. Any selection prior to the call is cleared by this call where the result not 0.
+    /// If "start" equals "end", the operation is equivalent to <see cref="SelectNone"/>. The result is true on change.
     /// </remarks>
-    public int Select(ulong firstKey, ulong lastKey = 0)
+    public bool SelectSingle(ICrossTrackable obj, int start, int end)
     {
-        const string NSpace = $"{nameof(CrossTracker)}.{nameof(Select)}";
-        ConditionalDebug.WriteLine(NSpace, $"Select from children: {_children.Count}");
-        ConditionalDebug.WriteLine(NSpace, $"Keys: {firstKey}, {lastKey}");
+        const string NSpace = $"{nameof(CrossTracker)}.{nameof(SelectSingle)}";
+        ConditionalDebug.WriteLine(NSpace, $"SELECT: {obj.TrackKey}");
+        ConditionalDebug.ThrowIfFalse(_children.Contains(obj));
 
-        if (lastKey == 0U)
+        if (Contains(obj) && obj.SelectInternal(start, end))
         {
-            lastKey = firstKey;
+            _anchorObj = null;
+
+            ConditionalDebug.WriteLine(NSpace, "Rebuilding");
+            RebuildSelection(obj, obj.SelectionStart, obj, obj.SelectionEnd);
+            return true;
         }
 
-        if (firstKey == 0U || _children.Count == 0 || firstKey > lastKey ||
-            !_children.ContainsKey(firstKey) || !_children.ContainsKey(lastKey))
+        return false;
+    }
+
+    /// <summary>
+    /// Selects a contiguous sequence of <see cref="Children"/>, from the given "obj0" instance up to, and including,
+    /// "obj1". All text in each child within range is selected.
+    /// </summary>
+    /// <remarks>
+    /// The return is the number of child blocks selected as a result of this operation. Both "obj0" and "obj1" must be
+    /// members of <see cref="Children"/>, otherwise the call does nothing and returns 0. If "obj1" is null, the
+    /// operation is equivalent to <see cref="SelectSingle"/>. Any selection prior to the call is cleared by this call
+    /// where the result not 0.
+    /// </remarks>
+    public int SelectRange(ICrossTrackable obj0, ICrossTrackable? obj1 = null)
+    {
+        const string NSpace = $"{nameof(CrossTracker)}.{nameof(SelectRange)}";
+        ConditionalDebug.WriteLine(NSpace, $"Select from children: {_children.Count}");
+        ConditionalDebug.WriteLine(NSpace, $"Keys: {obj0.TrackKey}, {obj1?.TrackKey}");
+
+        obj1 ??= obj0;
+
+        if (_children.Count == 0 || !Contains(obj0) || !Contains(obj1))
         {
             ConditionalDebug.WriteLine(NSpace, $"Failed");
             return 0;
         }
 
-        SelectNone();
-        var view = GetViewBetween(firstKey, lastKey);
-
-        foreach (var item in view.Values)
-        {
-            _selecting.Add(item.TrackKey, item);
-            item.SelectInternal(0, item.TextLength);
-        }
-
-        ConditionalDebug.WriteLine(NSpace, $"Done {view.Count}");
-        return view.Count;
+        _anchorObj = null;
+        return RebuildSelection(obj0, 0, obj1, obj1.TextLength);
     }
 
     /// <summary>
-    /// Fully selects all children.
+    /// Fully selects all children and returns true if changed.
     /// </summary>
     public bool SelectAll()
     {
         const string NSpace = $"{nameof(CrossTracker)}.{nameof(SelectAll)}";
         ConditionalDebug.WriteLine(NSpace, $"Select all children: {_children.Count}");
 
-        _dragKey = 0;
-
         if (_children.Count != 0)
         {
-            foreach (var item in _children.Values)
+            var first = FirstSelected;
+            var last = LastSelected;
+            int origCount = SelectionCount;
+
+            _anchorObj = null;
+            _selection = null;
+            FirstSelected = null;
+            LastSelected = null;
+
+            var view = new HashSet<ICrossTrackable>(_children.Count);
+
+            foreach (var item in _children)
             {
-                _selecting.TryAdd(item.TrackKey, item);
-                item.SelectInternal(0, item.TextLength);
+                if (item.TrackKey.IsValid)
+                {
+                    view.Add(item);
+                    item.SelectInternal(0, item.TextLength);
+
+                    if (FirstSelected == null)
+                    {
+                        FirstSelected = item;
+                        LastSelected = item;
+                        continue;
+                    }
+
+                    if (SortCompare(item, FirstSelected) < 0)
+                    {
+                        FirstSelected = item;
+                        continue;
+                    }
+
+                    if (SortCompare(item, LastSelected!) > 0)
+                    {
+                        LastSelected = item;
+                    }
+                }
             }
 
-            return true;
+            if (view.Count != 0)
+            {
+                _selection = view;
+            }
+
+            return origCount != view.Count || !ReferenceEquals(FirstSelected, first) || !ReferenceEquals(LastSelected, last);
         }
 
         return false;
@@ -224,29 +258,51 @@ public sealed class CrossTracker
     /// <summary>
     /// Gets the text combined from all instances according to "what".
     /// </summary>
+    /// <remarks>
+    /// The call may be expensive with very large texts.
+    /// </remarks>
     public string? GetEffectiveText(WhatText what)
     {
-        StringBuilder? buffer = null;
-        var values = _selecting.Values;
+        string? text = null;
+        IEnumerable<ICrossTrackable>? values = what == WhatText.All ? _children : _selection;
 
-        if (what == WhatText.All)
+        if (values != null)
         {
-            values = _children.Values;
-        }
+            StringBuilder? buffer = null;
+            ICrossTrackable? previous = null;
 
-        foreach (var item in values)
-        {
-            buffer ??= new(64);
+            // Painful if huge
+            var sorted = new List<ICrossTrackable>(values);
+            sorted.Sort(SortCompare);
 
-            if (buffer.Length != 0)
+            foreach (var item in sorted)
             {
-                buffer.Append("\n\n");
+                buffer ??= new(256);
+
+                if (previous != null)
+                {
+                    if (previous.TrackSeparator != null)
+                    {
+                        buffer.Append(previous.TrackSeparator);
+                    }
+                    else
+                    if (item.TrackKey.IsHorizontalWith(previous.TrackKey))
+                    {
+                        buffer.Append(' ');
+                    }
+                    else
+                    {
+                        buffer.Append("\n\n");
+                    }
+                }
+
+                previous = item;
+                buffer.Append(item.TrackPrefix);
+                buffer.Append(item.GetEffectiveText(what));
             }
 
-            buffer.Append(item.GetEffectiveText(what));
+            text = buffer?.ToString();
         }
-
-        var text = buffer?.ToString();
 
         if (string.IsNullOrEmpty(text) && what == WhatText.SelectedOrAll)
         {
@@ -266,9 +322,10 @@ public sealed class CrossTracker
         {
             var text = GetEffectiveText(what);
 
-            if (!string.IsNullOrEmpty(text) && _children.Values[0] is Control control)
+            if (!string.IsNullOrEmpty(text))
             {
-                return control.CopyToClipboard(text);
+                // We just need any control
+                return Container.CopyToClipboard(text);
             }
         }
 
@@ -276,277 +333,238 @@ public sealed class CrossTracker
     }
 
     /// <summary>
-    /// Gets a string summarizing contents for debug purposes only.
+    /// Invokes <see cref="LinkClick"/> and returns true if the link was handled.
     /// </summary>
-    internal string? GetDebugString()
+    /// <remarks>
+    /// Called by <see cref="CrossTextBlock"/> in response to <see cref="CrossRun"/> content.
+    /// </remarks>
+    public bool OnLinkClick(Uri uri)
     {
-        if (_children.Count == 0)
-        {
-            return null;
-        }
-
-        var sb = new StringBuilder(128);
-
-        foreach (var item in _children.Values)
-        {
-            if (sb.Length != 0)
-            {
-                sb.Append('\n');
-            }
-
-            if (_selecting.ContainsKey(item.TrackKey))
-            {
-                sb.Append("X ");
-            }
-            else
-            {
-                sb.Append("  ");
-            }
-
-            sb.Append(item.TrackKey);
-            sb.Append(" : ");
-
-            if (item.HasComplexContent && item is CrossTextBlock xblock)
-            {
-                sb.Append(Sanitizer.ToDebugSafe(xblock.Inlines!.Text, true, 32));
-            }
-            else
-            {
-                sb.Append(Sanitizer.ToDebugSafe(item.Text, true, 32));
-            }
-        }
-
-        return sb.ToString();
+        var e = new LinkClickEventArgs(uri);
+        LinkClick?.Invoke(this, e);
+        return e.Handled;
     }
 
     /// <summary>
     /// Adds "obj" to <see cref="Children"/>.
     /// </summary>
-    /// <exception cref="ArgumentException">TrackKey is 0, or duplicate</exception>
+    /// <remarks>
+    /// Adding does not affect existing selected text and new items may potentionally be added within an existing
+    /// selection range. The caller must clear the selection where this is likely.
+    /// </remarks>
+    /// <exception cref="ArgumentException">Already exists, or belongs to other tracker</exception>
     internal void AddInternal(ICrossTrackable obj)
     {
         const string NSpace = $"{nameof(CrossTracker)}.{nameof(AddInternal)}";
-        ConditionalDebug.WriteLine(NSpace, $"ADDING OBJECT {nameof(obj.TrackKey)} = {obj.TrackKey}");
+        ConditionalDebug.WriteLine(NSpace, "ADDING OBJECT");
 
-        if (obj.TrackKey == 0)
+        if (obj.Tracker != this && obj.Tracker != null)
         {
-            throw new ArgumentException($"{nameof(ICrossTrackable.TrackKey)} is 0");
+            // Can't be a member of more than one (allow null at time of call)
+            throw new ArgumentException("Already belongs to other tracker");
         }
 
-        // Will throw no duplicate
-        _children.Add(obj.TrackKey, obj);
+        if (_children.Add(obj))
+        {
+            if (_children.Count == 1)
+            {
+                Container.PointerMoved += ParentPointerMovedHandler;
+            }
 
-        // An unselected block could potentially go
-        // into the middle of a selected region, so we always clear.
-        SelectNone();
-        obj.SelectInternal(0, 0);
+            // This should efficient
+            obj.SelectInternal(0, 0);
+
+            ConditionalDebug.WriteLine(NSpace, "Done ok");
+            return;
+        }
+
+        // Not expected in normal operation
+        throw new ArgumentException("Already exists");
     }
 
+    /// <summary>
+    /// Removes "obj" from <see cref="Children"/> and returns true on success.
+    /// </summary>
     internal bool RemoveInternal([NotNullWhen(true)] ICrossTrackable? obj)
     {
         const string NSpace = $"{nameof(CrossTracker)}.{nameof(RemoveInternal)}";
 
-        if (obj != null)
+        if (obj == null)
         {
-            var key = obj.TrackKey;
-            ConditionalDebug.WriteLine(NSpace, $"Removing {nameof(obj.TrackKey)} {key}");
+            return false;
+        }
 
-            if (_children.Remove(key))
+        if (_children.Remove(obj))
+        {
+            ConditionalDebug.WriteLine(NSpace, "Removed");
+
+            if (obj == _anchorObj)
             {
-                if (_dragKey != 0)
-                {
-                    // Clear all selections
-                    SelectNone();
-                }
-                else
-                {
-                    _selecting.Remove(key);
-                }
-
-                TrimCapacity(_children);
-                ConditionalDebug.WriteLine(NSpace, "Success OK");
-                return true;
+                _anchorObj = null;
             }
-        }
 
-        // The Contains() should prevent this
-        ConditionalDebug.Fail("Unexpected remove failure");
-        return false;
-    }
+            if (_selection?.Remove(obj) == true && _selection.Count == 0)
+            {
+                _selection = null;
+            }
 
-    internal bool SelectInternal(ICrossTrackable obj, int start, int end)
-    {
-        const string NSpace = $"{nameof(CrossTracker)}.{nameof(SelectInternal)}";
-        ConditionalDebug.WriteLine(NSpace, $"SELECT START KEY: {obj.TrackKey}");
-        ConditionalDebug.ThrowIfFalse(_children.ContainsKey(obj.TrackKey));
+            if (_children.Count == 0)
+            {
+                Container.PointerMoved -= ParentPointerMovedHandler;
+            }
 
-        if (_selecting.Count == 1 && _selecting.ContainsKey(obj.TrackKey))
-        {
-            return obj.SelectInternal(start, end);
-        }
-
-        bool rslt = SelectNone();
-
-        if (obj.SelectInternal(start, end))
-        {
-            _selecting.Add(obj.TrackKey, obj);
+            _children.TrimCapacity(DefaultCapacity);
+            ConditionalDebug.WriteLine(NSpace, "Success OK");
             return true;
         }
 
-        return rslt;
+        // Not expected in normal operation
+        return false;
     }
 
-    internal void StartSelect(ICrossTrackable obj, bool dragging)
+    internal void SetAnchor(ICrossTrackable obj, int textPos)
     {
-        const string NSpace = $"{nameof(CrossTracker)}.{nameof(StartSelect)}";
-        ConditionalDebug.WriteLine(NSpace, $"SELECT START KEY: {obj.TrackKey}");
-        ConditionalDebug.ThrowIfFalse(_children.ContainsKey(obj.TrackKey));
-
-        SelectNone();
-        _selecting.Add(obj.TrackKey, obj);
-        _dragKey = dragging ? obj.TrackKey : 0;
+        // Set anchor only
+        // Leave to other calls to do resetting
+        _anchorObj = obj;
+        _anchorPos = textPos;
     }
 
-    internal DragDirection DragSelect(ICrossTrackable captured)
+    private static int SortCompare(ICrossTrackable obj0, ICrossTrackable obj1)
     {
-        const string NSpace = $"{nameof(CrossTracker)}.{nameof(DragSelect)}";
-        ConditionalDebug.WriteLine(NSpace, $"DRAG START KEY: {captured.TrackKey}");
-        ConditionalDebug.WriteLine(NSpace, $"Current count: {_selecting.Count}");
+        return obj0.TrackKey.CompareTo(obj1.TrackKey);
+    }
 
-        ConditionalDebug.ThrowIfFalse(_children.ContainsKey(captured.TrackKey));
+    private int RebuildSelection(ICrossTrackable obj0, int pos0, ICrossTrackable obj1, int pos1)
+    {
+        var cap = Math.Min(_children.Count, DefaultCapacity);
+        var view = new HashSet<ICrossTrackable>(cap);
 
-        // Must already have at least one selection
-        if (_selecting.Count != 0)
+        if (ReferenceEquals(obj0, obj1))
         {
-            ConditionalDebug.WriteLine(NSpace, $"Capture selecting: {captured.HasSelection}");
-            bool topDown = captured.TrackKey > _dragKey;
-
-            if (captured.HasSelection)
+            // Single
+            if (obj0.TrackKey.IsValid)
             {
-                topDown = !topDown;
+                view.Add(obj0);
+                FirstSelected = obj0;
+                LastSelected = obj0;
+            }
+        }
+        else
+        {
+            var comp = SortCompare(obj0, obj1);
+
+            if (comp > 0)
+            {
+                (obj0, obj1) = (obj1, obj0);
+                (pos0, pos1) = (pos1, pos0);
             }
 
-            _dragKey = captured.TrackKey;
-            var top = _selecting.Values[0];
-            var bottom = _selecting.Values[^1];
-            ConditionalDebug.WriteLine(NSpace, $"Initial range: [{top.TrackKey}, {bottom.TrackKey}]");
+            FirstSelected = obj0;
+            var key0 = obj0.TrackKey;
 
-            if (captured.TrackKey > bottom.TrackKey)
-            {
-                bottom = captured;
-            }
-            else
-            if (topDown)
-            {
-                bottom = captured;
-            }
-            else
-            {
-                top = captured;
-            }
+            LastSelected = obj1;
+            var key1 = obj1.TrackKey;
 
-            var view = GetViewBetween(top.TrackKey, bottom.TrackKey);
-            ConditionalDebug.WriteLine(NSpace, $"Range now: [{view.Values.First().TrackKey}, {view.Values.Last().TrackKey}]");
-
-            foreach (var item in _selecting.Values)
+            foreach (var item in _children)
             {
-                if (!view.ContainsKey(item.TrackKey))
+                var key = item.TrackKey;
+
+                if (key.IsValid && key.CompareTo(key0) >= 0 && key.CompareTo(key1) <= 0)
                 {
-                    ConditionalDebug.WriteLine(NSpace, $"Deselect item: {item.TrackKey}");
+                    view.Add(item);
+                }
+            }
+        }
+
+        if (_selection != null)
+        {
+            // Ensure those not selected are unselected
+            foreach (var item in _selection)
+            {
+                if (!view.Contains(item))
+                {
                     item.SelectInternal(0, 0);
                 }
             }
+        }
 
-            _selecting.Clear();
-            top = view.Values[0];
-            bottom = view.Values[^1];
+        if (view.Count == 0)
+        {
+            // Invalid
+            _anchorObj = null;
+            _selection = null;
+            FirstSelected = null;
+            LastSelected = null;
+            return 0;
+        }
 
-            foreach (var item in view.Values)
+        _selection = view;
+
+        if (view.Count == 1)
+        {
+            // Single
+            obj0.SelectInternal(pos0, pos1);
+            return 1;
+        }
+
+        foreach (var item in view)
+        {
+            if (ReferenceEquals(obj0, item))
             {
-                _selecting.Add(item.TrackKey, item);
-
-                if (item == captured)
-                {
-                    // Skip - has capture and will set its own
-                    continue;
-                }
-
-                if (item == top)
-                {
-                    int start = Math.Min(item.SelectionStart, item.SelectionEnd);
-                    item.SelectInternal(start, item.TextLength);
-                    continue;
-                }
-
-                if (item == bottom)
-                {
-                    int end = Math.Max(item.SelectionStart, item.SelectionEnd);
-                    item.SelectInternal(0, end);
-                    continue;
-                }
-
-                item.SelectInternal(0, item.TextLength);
+                // Top-left
+                item.SelectInternal(item.TextLength, pos0);
+                continue;
             }
 
-            // This was mental!
-            ConditionalDebug.WriteLine(NSpace, $"topDown: {topDown}");
-            ConditionalDebug.WriteLine(NSpace, $"New count: {_selecting.Count}");
-
-            if (_selecting.Count > 1)
+            if (ReferenceEquals(obj1, item))
             {
-                return topDown ? DragDirection.LeftToRight : DragDirection.RightToLeft;
+                // Bottom-right
+                item.SelectInternal(0, pos1);
+                continue;
             }
 
-            return topDown ? DragDirection.FromStart : DragDirection.FromEnd;
+            item.SelectInternal(0, item.TextLength);
         }
 
-        ConditionalDebug.Fail("Unexpected lack of selection");
-        return DragDirection.FromStart;
+        return _selection.Count;
     }
 
-    internal bool RemoveSelection(ICrossTrackable obj)
+    private void ParentPointerMovedHandler(object? _, PointerEventArgs e)
     {
-        ConditionalDebug.ThrowIfFalse(_children.ContainsKey(obj.TrackKey));
+        const string NSpace = $"{nameof(CrossTracker)}.{nameof(ParentPointerMovedHandler)}";
 
-        if (obj.TrackKey == _dragKey)
+        if (_anchorObj?.TrackKey.IsValid != true)
         {
-            _dragKey = 0;
+            _anchorObj = null;
+            return;
         }
 
-        return _selecting.Remove(obj.TrackKey);
-    }
+        var info = e.GetCurrentPoint(Container);
+        var props = info.Properties;
 
-    private static void TrimCapacity(SortedList<ulong, ICrossTrackable> list)
-    {
-        if (list.Count < DefaultCapacity && list.Capacity > DefaultCapacity)
+        if (!props.IsLeftButtonPressed || props.IsRightButtonPressed)
         {
-            list.TrimExcess();
-        }
-    }
-
-    private SortedList<ulong, ICrossTrackable> GetViewBetween(ulong firstKey, ulong lastKey)
-    {
-        if (firstKey > lastKey)
-        {
-            (firstKey, lastKey) = (lastKey, firstKey);
+            _anchorObj = null;
+            return;
         }
 
-        var view = new SortedList<ulong, ICrossTrackable>();
-
-        foreach (var item in _children.Values)
+        if (Container.GetVisualAt(info.Position) is ICrossTrackable target)
         {
-            if (item.TrackKey >= firstKey)
+            ConditionalDebug.WriteLine(NSpace, "Has trackable");
+
+            if (target.Tracker == this && target.IsPointerSelectEnabled &&
+                target is Control control && e.Pointer.Captured != control)
             {
-                if (item.TrackKey > lastKey)
-                {
-                    return view;
-                }
+                int pos = target.GetTextPosition(e.GetPosition(control));
+                ConditionalDebug.WriteLine(NSpace, $"Target pos: {pos}");
 
-                view.Add(item.TrackKey, item);
+                RebuildSelection(_anchorObj, _anchorPos, target, pos);
+                e.Pointer.Capture(control);
             }
-        }
 
-        return view;
+            return;
+        }
     }
 
 }

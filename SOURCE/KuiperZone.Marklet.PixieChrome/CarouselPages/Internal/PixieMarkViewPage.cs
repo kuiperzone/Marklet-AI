@@ -1,8 +1,10 @@
 // -----------------------------------------------------------------------------
-// PROJECT   : KuiperZone.Marklet
-// AUTHOR    : Andrew Thomas
-// COPYRIGHT : Andrew Thomas © 2025-2026 All rights reserved
-// LICENSE   : AGPL-3.0-only
+// SPDX-FileNotice: KuiperZone.Marklet - Local AI Client
+// SPDX-License-Identifier: AGPL-3.0-only
+// SPDX-FileCopyrightText: © 2025-2026 Andrew Thomas <kuiperzone@users.noreply.github.com>
+// SPDX-ProjectHomePage: https://kuiper.zone/marklet-ai/
+// SPDX-FileType: Source
+// SPDX-FileComment: This is NOT AI generated source code but was created with human thinking and effort.
 // -----------------------------------------------------------------------------
 
 // Marklet is free software: you can redistribute it and/or modify it under
@@ -32,20 +34,20 @@ internal sealed class PixieMarkViewPage : PixiePageBase
         var group = NewGroup(nameof(PixieMarkView));
 
         var control = NewControl<PixieMarkView>(group);
-        control.ChildControl.Content = GetAssistantMessage();
-        control.ChildControl.IsChromeStyled = true;
+        control.Subject.Content = GetAssistantMessage();
+        control.Subject.IsChromeStyled = true;
         control.Footer = "ASSISTANT STRETCH";
 
         control = NewControl<PixieMarkView>(group);
-        control.ChildControl.Content = GetUserMessage();
-        control.ChildControl.IsChromeStyled = true;
-        control.ChildControl.HorizontalAlignment = HorizontalAlignment.Right;
+        control.Subject.Content = GetUserMessage();
+        control.Subject.IsChromeStyled = true;
+        control.Subject.HorizontalAlignment = HorizontalAlignment.Right;
         control.Footer = "USER RIGHT";
 
         control = NewControl<PixieMarkView>(group);
-        control.ChildControl.Content = GetShortUserCode();
-        control.ChildControl.IsChromeStyled = true;
-        control.ChildControl.HorizontalAlignment = HorizontalAlignment.Right;
+        control.Subject.Content = GetShortUserCode();
+        control.Subject.IsChromeStyled = true;
+        control.Subject.HorizontalAlignment = HorizontalAlignment.Right;
         control.Footer = "USER FENCE";
     }
 

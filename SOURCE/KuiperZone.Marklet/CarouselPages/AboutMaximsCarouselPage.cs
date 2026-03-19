@@ -1,8 +1,10 @@
 // -----------------------------------------------------------------------------
-// PROJECT   : KuiperZone.Marklet
-// AUTHOR    : Andrew Thomas
-// COPYRIGHT : Andrew Thomas © 2025-2026 All rights reserved
-// LICENSE   : AGPL-3.0-only
+// SPDX-FileNotice: KuiperZone.Marklet - Local AI Client
+// SPDX-License-Identifier: AGPL-3.0-only
+// SPDX-FileCopyrightText: © 2025-2026 Andrew Thomas <kuiperzone@users.noreply.github.com>
+// SPDX-ProjectHomePage: https://kuiper.zone/marklet-ai/
+// SPDX-FileType: Source
+// SPDX-FileComment: This is NOT AI generated source code but was created with human thinking and effort.
 // -----------------------------------------------------------------------------
 
 // Marklet is free software: you can redistribute it and/or modify it under
@@ -33,23 +35,19 @@ public sealed class AboutMaximsCarouselPage : CarouselPage
     /// </summary>
     public AboutMaximsCarouselPage()
     {
-        Title = "MoM";
+        Title = "Maxims";
         Symbol = Symbols.CardMembership;
 
         var view = new MarkView();
         view.IsChromeStyled = true;
         view.Content = GetDonateText();
-        view.FontFamily = AppFonts.SlabFamily;
-        view.FontSizeCorrection = AppFonts.SlabCorrection;
 
         Children.Add(view);
     }
 
     private static string GetDonateText()
     {
-        return @"# Maxims of Marklet
-
-The following principles are to guide the development of the software:
+        return @"# Maxims
 
 1. **Machines Should Not Deceive**
 
@@ -87,30 +85,6 @@ of slow degeneration.
     Where autonomy is taken from you, you cannot be responsible for decisions made for you by others. Likewise, if you take
 autonomy from others, you therefore become responsible. If you seek to direct others, it is valid only where conscious
 consent exists that can be freely and truly withdrawn.
-
-The first one of these can easily be understood.
-
-The next three stem from *information theory*.
-
-For example, if you wish to understand why AI models collapse when fed with their own content, it is because information is a
-fundamental quantity -- like energy which cannot be created by deterministic processes. As AI models are trained on increasing
-amounts of previously generated AI content from the internet, such systems behave more like closed loops. In other words, they
-become the equivalent of perpetual motion. This may fool for a while, but always stop working when the reservoir is exhausted.
-
-You don't need information theory to understand this. The reason why digital computers cannot create information from nothing
-is precisely because they are deterministic systems in which everything is *pre-determined* on the outside. This is simply what
-determinism means. In other words, digital devices are merely transformers of that which had to exist prior. Information cannot
-be created, but it can be lost, however. Hence, things degenerate.
-
-Consciousness is that which reverses entropy. It is the only thing which can. You will go around in circles trying to define it
-further or break it apart because it is fundamental.
-
-It is essential, therefore, that local AI, under conscious control, plays a significant role in the future.
-
-The last one? Well, that's deeper.
-
-These maxims are not intended as ""laws"" to be imposed, but rather lessons which we must learn. Much of it is merely common
-sense of the past, but codified for modern times. This thinking guides the Marklet software.
 ";
     }
 }

@@ -1,8 +1,10 @@
 // -----------------------------------------------------------------------------
-// PROJECT   : KuiperZone.Marklet
-// AUTHOR    : Andrew Thomas
-// COPYRIGHT : Andrew Thomas © 2025-2026 All rights reserved
-// LICENSE   : AGPL-3.0-only
+// SPDX-FileNotice: KuiperZone.Marklet - Local AI Client
+// SPDX-License-Identifier: AGPL-3.0-only
+// SPDX-FileCopyrightText: © 2025-2026 Andrew Thomas <kuiperzone@users.noreply.github.com>
+// SPDX-ProjectHomePage: https://kuiper.zone/marklet-ai/
+// SPDX-FileType: Source
+// SPDX-FileComment: This is NOT AI generated source code but was created with human thinking and effort.
 // -----------------------------------------------------------------------------
 
 // Marklet is free software: you can redistribute it and/or modify it under
@@ -106,11 +108,8 @@ public class DispatchCoalescer<T> where T : EventArgs
     /// </remarks>
     public bool Post(T e)
     {
-        const string NSpace = $"{nameof(DispatchCoalescer)}.{nameof(Post)}";
-
         if (Swap(e) == null)
         {
-            ConditionalDebug.WriteLine(NSpace, "Posting");
             Dispatcher.UIThread.Post(PostReceiver, Priority);
             return true;
         }
@@ -128,18 +127,17 @@ public class DispatchCoalescer<T> where T : EventArgs
 
     private void PostReceiver()
     {
-        const string NSpace = $"{nameof(DispatchCoalescer)}.{nameof(PostReceiver)}";
         var args = Swap(null);
 
         if (args != null)
         {
             try
             {
-                ConditionalDebug.WriteLine(NSpace, $"INVOKING");
                 Posted?.Invoke(this, args);
             }
             catch (Exception ex)
             {
+                const string NSpace = $"{nameof(DispatchCoalescer)}.{nameof(PostReceiver)}";
                 ConditionalDebug.WriteLine(NSpace, "EXCEPTION IN UI THREAD HANDLER");
                 ConditionalDebug.WriteLine(NSpace, ex);
             }

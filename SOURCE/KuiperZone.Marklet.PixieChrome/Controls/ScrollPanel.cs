@@ -1,8 +1,10 @@
 // -----------------------------------------------------------------------------
-// PROJECT   : KuiperZone.Marklet
-// AUTHOR    : Andrew Thomas
-// COPYRIGHT : Andrew Thomas © 2025-2026 All rights reserved
-// LICENSE   : AGPL-3.0-only
+// SPDX-FileNotice: KuiperZone.Marklet - Local AI Client
+// SPDX-License-Identifier: AGPL-3.0-only
+// SPDX-FileCopyrightText: © 2025-2026 Andrew Thomas <kuiperzone@users.noreply.github.com>
+// SPDX-ProjectHomePage: https://kuiper.zone/marklet-ai/
+// SPDX-FileType: Source
+// SPDX-FileComment: This is NOT AI generated source code but was created with human thinking and effort.
 // -----------------------------------------------------------------------------
 
 // Marklet is free software: you can redistribute it and/or modify it under
@@ -34,13 +36,13 @@ namespace KuiperZone.Marklet.PixieChrome.Controls;
 /// The inner panel is aligned Top and horizontally centered. The <see cref="ScrollViewer.VerticalScrollBarVisibility"/>
 /// is initialized to Auto. The <see cref="Children"/> are centered in the view.
 /// </remarks>
-public sealed class ScrollPanel : ScrollViewer
+public class ScrollPanel : ScrollViewer
 {
     private readonly StackPanel _contentPanel = new();
     private readonly DispatchCoalescer _dispatcher = new(DispatcherPriority.ContextIdle);
     private double _pendingY;
 
-    private Thickness _contentPadding;
+    private Thickness _contentMargin;
     private double _contentMinWidth;
     private double _contentMaxWidth = double.PositiveInfinity;
     private double _verticalSpacing;
@@ -55,7 +57,7 @@ public sealed class ScrollPanel : ScrollViewer
     /// </summary>
     public ScrollPanel()
     {
-        Content = _contentPanel;
+        base.Content = _contentPanel;
         Children = _contentPanel.Children;
 
         _contentPanel.Orientation = Avalonia.Layout.Orientation.Vertical;
@@ -107,8 +109,8 @@ public sealed class ScrollPanel : ScrollViewer
     /// </summary>
     public Thickness ContentMargin
     {
-        get { return _contentPadding; }
-        set { SetAndRaise(ContentMarginProperty, ref _contentPadding, value); }
+        get { return _contentMargin; }
+        set { SetAndRaise(ContentMarginProperty, ref _contentMargin, value); }
     }
 
     /// <summary>
@@ -148,8 +150,8 @@ public sealed class ScrollPanel : ScrollViewer
     {
         get
         {
-            var range = Extent.Height - Viewport.Height;
-            return Math.Max(Offset.Y / range, 0.0);
+            var range = Offset.Y / (Extent.Height - Viewport.Height);
+            return range <= double.Epsilon || double.IsNaN(range) ? 0.0 : range;
         }
 
         set
@@ -163,7 +165,7 @@ public sealed class ScrollPanel : ScrollViewer
     }
 
     /// <summary>
-    /// Gets the actual internal content width in pixels.
+    /// Gets the current internal content width from Bounds in pixels.
     /// </summary>
     public double ActualContentWidth
     {
@@ -176,9 +178,10 @@ public sealed class ScrollPanel : ScrollViewer
     protected override Type StyleKeyOverride { get; } = typeof(ScrollViewer);
 
     /// <summary>
-    /// Hide Content from XAML.
+    /// Do not use.
     /// </summary>
-    private new object? Content
+    [Obsolete($"Do not use.", true)]
+    protected new object? Content
     {
         get { return base.Content; }
         set { base.Content = value; }
@@ -245,7 +248,7 @@ public sealed class ScrollPanel : ScrollViewer
         _contentPanel.Width = Math.Max(e.NewSize.Width - ContentMargin.Width(), ContentMinWidth);
     }
 
-    private bool SetNormalizedVerticalPosition(double normY)
+    private bool SetNormalizedY(double normY)
     {
         if (double.IsNaN(normY))
         {
@@ -265,7 +268,7 @@ public sealed class ScrollPanel : ScrollViewer
 
     private void NormYHandler(object? _, EventArgs __)
     {
-        SetNormalizedVerticalPosition(_pendingY);
+        SetNormalizedY(_pendingY);
         _pendingY = 0.0;
     }
 

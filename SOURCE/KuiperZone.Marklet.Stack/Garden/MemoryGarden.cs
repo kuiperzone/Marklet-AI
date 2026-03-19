@@ -1,8 +1,10 @@
 // -----------------------------------------------------------------------------
-// PROJECT   : KuiperZone.Marklet
-// AUTHOR    : Andrew Thomas
-// COPYRIGHT : Andrew Thomas © 2025-2026 All rights reserved
-// LICENSE   : AGPL-3.0-only
+// SPDX-FileNotice: KuiperZone.Marklet - Local AI Client
+// SPDX-License-Identifier: AGPL-3.0-only
+// SPDX-FileCopyrightText: © 2025-2026 Andrew Thomas <kuiperzone@users.noreply.github.com>
+// SPDX-ProjectHomePage: https://kuiper.zone/marklet-ai/
+// SPDX-FileType: Source
+// SPDX-FileComment: This is NOT AI generated source code but was created with human thinking and effort.
 // -----------------------------------------------------------------------------
 
 // Marklet is free software: you can redistribute it and/or modify it under
@@ -17,70 +19,217 @@
 // with Marklet. If not, see <https://www.gnu.org/licenses/>.
 
 using System.Collections;
-using System.Data.Common;
+using System.Diagnostics.CodeAnalysis;
 using KuiperZone.Marklet.Stack.Garden.Internal;
 using KuiperZone.Marklet.Tooling;
 
 namespace KuiperZone.Marklet.Stack.Garden;
 
 /// <summary>
-/// A sequence container for <see cref="GardenSession"/> items backed by a database implementation provided by the <see
-/// cref="IMemoryGardener"/> implementation.
+/// A sequence container for <see cref="GardenDeck"/> items backed by application logic, and a database implementation
+/// provided by the <see cref="IMemoryGardener"/> implementation.
 /// </summary>
 /// <remarks>
-/// A single instance is to be used by the application which shall be long-lived. Thanks to Molly Rocket for the helpful
-/// metaphors.
+/// This and related class are not thread safe. While backed by a database, it does not need one to operate. However, in
+/// this case, all data is held in memory and lost on exit. Thanks to Molly Rocket for the helpful metaphor.
 /// </remarks>
-public sealed class MemoryGarden : IReadOnlyCollection<GardenSession>
+public sealed class MemoryGarden : IReadOnlyCollection<GardenDeck>
 {
-    /// <summary>
-    /// Gets the maximum length of "name" strings.
-    /// </summary>
-    public const int MaxNameLength = 64;
-
-    private const string TableName = "garden_info"; // Do not change
-    private readonly IReadOnlyList<GardenSession> Empty = new List<GardenSession>();
-    private readonly GardenBin[] _allBins;
+    private const long MinBasketAlloc = 100 * 1024 * 1024; // 100MB
 
     /// <summary>
-    /// Constructor with "gardener" instance.
-    /// </summary>
-    public MemoryGarden(IMemoryGardener gardener)
-    {
-        Gardener = gardener;
-
-        HomeBin = new(this, false);
-        ArchiveBin = new(this, false);
-        WasteBin = new(this, true);
-
-        _allBins = [HomeBin, ArchiveBin, WasteBin];
-    }
-
-
-    /// <summary>
-    /// Occurs when the <see cref="Selected"/> reference instance changes.
-    /// </summary>
-    public event EventHandler<SelectedChangedEventArgs>? SelectedChanged;
-
-    /// <summary>
-    /// Occurs when the properties on the <see cref="Selected"/> instance are updated.
+    /// Gets the maximum character length of meta and name strings.
     /// </summary>
     /// <remarks>
-    /// The event is invoked only for the instance given by <see cref="Selected"/>. It is not invoked when items are
-    /// added or removed.
+    /// Strings truncated where exceeded.
     /// </remarks>
-    public event EventHandler<SelectedUpdatedEventArgs>? SelectedUpdated;
+    public const int MaxMetaLength = 48;
 
     /// <summary>
-    /// Provides the gardener instance.
+    /// Gets the maximum character length of "summary" text.
     /// </summary>
-    public IMemoryGardener Gardener { get; }
+    /// <remarks>
+    /// Strings truncated where exceeded.
+    /// </remarks>
+    public const int MaxSummaryLength = 16 * 1024; // 16KB
+
+    /// <summary>
+    /// Gets the maximum character length of <see cref="GardenLeaf.Content"/>.
+    /// </summary>
+    /// <remarks>
+    /// Strings truncated where exceeded.
+    /// </remarks>
+    public const int MaxContentLength = 16 * 1024 * 1024; // 16MB
+
+    /// <summary>
+    /// Gets maximum length for non-cached binary data.
+    /// </summary>
+    public const int MaxBinaryLength = 100 * 1024 * 1024; // 100MB
+
+    /// <summary>
+    /// Gets the maximum number of <see cref="GardenLeaf"/> items in <see cref="GardenDeck"/>.
+    /// </summary>
+    /// <remarks>
+    /// Oldest items are to be removed when this limit is reached.
+    /// </remarks>
+    public const int MaxDeckCount = 1000;
+
+    private readonly IReadOnlyList<GardenDeck> Empty = new List<GardenDeck>();
+    private readonly List<GardenBasket> _baskets = new(4);
+    private double _allocFactor = 0.025; // <- 2.5% of 16GB, = 410MB
+
+    /// <summary>
+    /// Static constructor.
+    /// </summary>
+    static MemoryGarden()
+    {
+        var list = new List<BasketKind>(4);
+        LegalBaskets = list;
+
+        foreach (var item in Enum.GetValues<BasketKind>())
+        {
+            if (item.IsLegal() && item != BasketKind.Waste)
+            {
+                list.Add(item);
+            }
+        }
+
+        // Waste last
+        list.Add(BasketKind.Waste);
+    }
+
+    /// <summary>
+    /// Default constructor.
+    /// </summary>
+    public MemoryGarden()
+    {
+        const string NSpace = $"{nameof(MemoryGarden)}.constructor";
+        ConditionalDebug.WriteLine(NSpace, "System memory: " + SystemMemory);
+        ConditionalDebug.ThrowIfNegativeOrZero(SystemMemory);
+
+        Baskets = _baskets;
+
+        foreach (var item in LegalBaskets)
+        {
+            if (item.IsLegal())
+            {
+                _baskets.Add(new(this, item));
+            }
+        }
+    }
+
+    /// <summary>
+    /// Gets a sequence of legal <see cref="BasketKind"/> values for use with <see cref="GetBasket"/>.
+    /// </summary>
+    public static readonly IReadOnlyList<BasketKind> LegalBaskets;
+
+    /// <summary>
+    /// Gets total system memory in bytes.
+    /// </summary>
+    public static readonly long SystemMemory = GC.GetGCMemoryInfo().TotalAvailableMemoryBytes;
+
+    /// <summary>
+    /// Occurs when the <see cref="Current"/> reference changes, including being set to null.
+    /// </summary>
+    public event EventHandler<CurrentDeckChangedEventArgs>? CurrentChanged;
+
+    /// <summary>
+    /// Occurs when the properties of <see cref="Current"/> are modified.
+    /// </summary>
+    /// <remarks>
+    /// The event is invoked only for the instance given by <see cref="Current"/>. It is not invoked when items are
+    /// added or removed. It does occur when <see cref="Current"/> is null
+    /// </remarks>
+    public event EventHandler<CurrentDeckUpdatedEventArgs>? CurrentUpdated;
+
+    /// <summary>
+    /// Gets a sequence of baskets belonging to this <see cref="MemoryGarden"/> instance.
+    /// </summary>
+    public IReadOnlyList<GardenBasket> Baskets { get; }
+
+    /// <summary>
+    /// Gets the datbase backing "gardener" instance.
+    /// </summary>
+    public IMemoryGardener? Gardener { get; private set; }
+
+    /// <summary>
+    /// Gets whether data added to the garden is persistant.
+    /// </summary>
+    /// <remarks>
+    /// The value is false where <see cref="Gardener"/> is null or where <see cref="IMemoryGardener.IsReadOnly"/> gives
+    /// true.
+    /// </remarks>
+    public bool IsPersistant
+    {
+        get
+        {
+            if (Gardener != null)
+            {
+                return !Gardener.IsReadOnly;
+            }
+
+            return false;
+        }
+    }
+
+    /// <summary>
+    /// Gets a value in bytes above which cached <see cref="GardenLeaf"/> data will be restricted on a per basket basis.
+    /// </summary>
+    /// <remarks>
+    /// Once read and accessed, data is cached in memory. While not intended to be perfect, this provides a means to
+    /// free memory not in use.
+    /// </remarks>
+    public long BasketAlloc
+    {
+        get
+        {
+            if (double.IsNaN(_allocFactor))
+            {
+                return SystemMemory;
+            }
+
+            return Math.Max((long)(_allocFactor * SystemMemory), MinBasketAlloc);
+        }
+    }
+
+    /// <summary>
+    /// Gets or sets a value expected to be in the range [0.01, 1.0] which permits memory usage on a per-basket basis up
+    /// to (very approximately) <see cref="AllocFactor"/> multiplied by <see cref="SystemMemory"/>.
+    /// </summary>
+    /// <remarks>
+    /// This exists only for edge cases where a user runs many mega-chats over an extended period. A value of NaN
+    /// implies no limit. Default is 0.025.
+    /// </remarks>
+    public double AllocFactor
+    {
+        get { return _allocFactor; }
+        set { _allocFactor = Math.Clamp(value, 0.01, 1.0); }
+    }
+
+    /// <summary>
+    /// Gets whether the data is empty.
+    /// </summary>
+    public bool IsEmpty
+    {
+        get
+        {
+            foreach (var item in _baskets)
+            {
+                if (!item.IsEmpty)
+                {
+                    return false;
+                }
+            }
+
+            return true;
+        }
+    }
 
     /// <summary>
     /// Implements <see cref="IReadOnlyCollection{T}.Count"/> and gets the total open count.
     /// </summary>
     /// <remarks>
-    /// Always returns 0 if <see cref="IsOpen"/> is false.
+    /// Always returns 0 if <see cref="Gardener"/> is null.
     /// </remarks>
     public int Count
     {
@@ -88,9 +237,9 @@ public sealed class MemoryGarden : IReadOnlyCollection<GardenSession>
         {
             int count = 0;
 
-            for(int n = 0; n < _allBins.Length; ++n)
+            for (int n = 0; n < _baskets.Count; ++n)
             {
-                count += _allBins[n].Count;
+                count += _baskets[n].Count;
             }
 
             return count;
@@ -98,311 +247,177 @@ public sealed class MemoryGarden : IReadOnlyCollection<GardenSession>
     }
 
     /// <summary>
-    /// Gets whether <see cref="GardenSession"/> contents are loaded into memory.
-    /// </summary>
-    public bool IsOpen { get; private set; }
-
-    /// <summary>
-    /// Gets the "selected" <see cref="GardenSession"/> child.
+    /// Gets the currently selected <see cref="GardenDeck"/> child.
     /// </summary>
     /// <remarks>
-    /// The term "selected" means that the item is selected for display. Initial value is null (none).
+    /// The term "current" means that the item is selected for display. Initial value is null (none).
     /// </remarks>
-    public GardenSession? Selected { get; private set; }
+    public GardenDeck? Current { get; private set; }
 
     /// <summary>
-    /// Gets the "home" bin.
-    /// </summary>
-    public GardenBin HomeBin { get; }
-
-    /// <summary>
-    /// Gets the "archive" bin.
-    /// </summary>
-    public GardenBin ArchiveBin { get; }
-
-    /// <summary>
-    /// Gets the "waste" bin.
+    /// Common sanitization method.
     /// </summary>
     /// <remarks>
-    /// Items in this bin will eventually go to landfill if not recycled.
+    /// The result is null if given an empty of whitespace string.
     /// </remarks>
-    public GardenBin WasteBin { get; }
-
-    /// <summary>
-    /// Implements <see cref="IEnumerable{T}.GetEnumerator()"/>.
-    /// </summary>
-    /// <remarks>
-    /// The order of items should be assumed to be arbitrary. Always returns an empty sequence if <see cref="IsOpen"/>
-    /// is false.
-    /// </remarks>
-    public IEnumerator<GardenSession> GetEnumerator()
+    public static string? Sanitize(string? text, int maxLength)
     {
-        int count = Count;
-
-        if (count != 0)
-        {
-            var list = new List<GardenSession>(count);
-
-            for (int n = 0; n < _allBins.Length; ++n)
-            {
-                list.AddRange(_allBins[n].AsDirectEnumerable());
-            }
-
-            return list.GetEnumerator();
-        }
-
-        return Empty.GetEnumerator();
-    }
-
-    IEnumerator IEnumerable.GetEnumerator()
-    {
-        return GetEnumerator();
+        const SanFlags SanFlags = SanFlags.Trim | SanFlags.NormC | SanFlags.SubControl;
+        text = Sanitizer.Sanitize(text, SanFlags, maxLength);
+        return string.IsNullOrEmpty(text) ? null : text;
     }
 
     /// <summary>
-    /// Opens the database, loads session headers, and sets <see cref="IsOpen"/> to true.
+    /// Determines whether <see cref="OpenDatabase"/> will upgrade the database schema when called.
     /// </summary>
-    /// <remarks>
-    /// It does nothing if <see cref="IsOpen"/> is already true. It may be called immediately after construction.
-    /// </remarks>
-    public OpenInit Open()
+    public static bool IsUpgradeRequired(IMemoryGardener gardener)
     {
-        const string NSpace = $"{nameof(MemoryGarden)}.{nameof(Open)}";
-        ConditionalDebug.WriteLine(NSpace, "OPEN GARDEN");
-
-        if (!IsOpen)
-        {
-            using var con = Gardener.Connect();
-
-            var init = Init(con);
-            ConditionalDebug.WriteLine(NSpace, $"GARDEN INIT: {init}");
-
-            var list = new List<GardenSession>(32);
-            GardenSession.Read(con, this, list);
-
-            IsOpen = true;
-            var binSet = new HashSet<GardenBin>();
-
-            foreach (var item in list)
-            {
-                var b = GetBin(item);
-                binSet.Add(b);
-
-                // Do not invoke event for every item
-                b.Add(item, false);
-            }
-
-            foreach (var item in binSet)
-            {
-                // Single event for multiple insertions
-                item.OnChanged(true);
-            }
-
-            return init;
-        }
-
-        ConditionalDebug.WriteLine(NSpace, "Already open");
-        return OpenInit.Open;
+        using var con = gardener.Connect();
+        var version = MetaOps.ReadSchema(con);
+        return version != 0 && version < MetaOps.SchemaVersion;
     }
 
     /// <summary>
-    /// Frees memory and sets <see cref="IsOpen"/> to false, returning true on success.
+    /// Returns the corresponding <see cref="GardenBasket"/> instance given a <see cref="GardenDeck.Basket"/> value.
     /// </summary>
-    public bool Close()
+    /// <exception cref="ArgumentException">Invalid BasketKind</exception>
+    public GardenBasket GetBasket(BasketKind kind)
     {
-        if (IsOpen)
+        foreach (var item in _baskets)
         {
-            try
+            if (item.Kind == kind)
             {
-                foreach (var bin in _allBins)
-                {
-                    bin.Close();
-                }
-
-                // Discard should clear this
-                ConditionalDebug.ThrowIfNotNull(Selected);
-                return true;
-            }
-            finally
-            {
-                IsOpen = false;
+                return item;
             }
         }
 
-        return false;
-    }
-
-    /// <summary>
-    /// Simply calls <see cref="Close"/> followed by <see cref="Open"/>.
-    /// </summary>
-    public OpenInit Reload()
-    {
-        Close();
-        return Open();
+        throw new ArgumentException($"Invalid {nameof(BasketKind)} {kind}", nameof(kind));
     }
 
     /// <summary>
     /// Returns true if the garden contains the given item.
     /// </summary>
-    public bool Contains(GardenSession item)
+    public bool Contains(GardenDeck obj)
     {
-        // We should have to call container for this.
-        return IsOpen && item.Owner == this;
+        return Gardener != null && obj.Garden == this;
     }
 
     /// <summary>
-    /// Inserts a new <see cref="GardenSession"/> instance and returns the same instance.
+    /// Opens the database, loads <see cref="GardenDeck"/> headers, and sets <see cref="Gardener"/> to the instance
+    /// supplied.
     /// </summary>
     /// <remarks>
-    /// The instance is not committed (persistant) until a message is appended or properties are changed. Throws if <see
-    /// cref="IsOpen"/> is false.
+    /// The result is true on success. It does nothing and returns false if <see cref="Gardener"/> equals the supplied
+    /// "gardener" instance. If the garden is already open, <see cref="CloseDatabase"/> if first called to clear all
+    /// cached data.
     /// </remarks>
-    /// <exception cref="ArgumentException">Already inserted</exception>
-    /// <exception cref="InvalidOperationException">Garden closed</exception>
-    public GardenSession Insert(GardenSession item)
+    public bool OpenDatabase(IMemoryGardener gardener)
     {
-        const string NSpace = $"{nameof(MemoryGarden)}.{nameof(Insert)}";
-        ConditionalDebug.WriteLine(NSpace, "NEW INSTANCE");
-        ConditionalDebug.WriteLine(NSpace, $"Bin Kind: {item.HomeBin}");
+        const string NSpace = $"{nameof(MemoryGarden)}.{nameof(OpenDatabase)}";
+        ConditionalDebug.WriteLine(NSpace, "OPEN GARDEN");
 
-        ThrowIfClosed();
-        item.InsertDbNoRaise(this);
-        GetBin(item).Add(item, true);
-
-        if (item.IsSelected)
+        if (Gardener == gardener)
         {
-            OnSelected(item);
+            ConditionalDebug.WriteLine(NSpace, "Already open");
+            return false;
         }
 
-        return item;
-    }
+        ConditionalDebug.WriteLine(NSpace, "Getting connection");
+        using var con = gardener.Connect();
+        MetaOps.Init(gardener);
 
-    /// <summary>
-    /// Overload.
-    /// </summary>
-    public GardenSession Insert(BinKind bin = BinKind.Home)
-    {
-        return Insert(new GardenSession(bin));
-    }
+        ConditionalDebug.WriteLine(NSpace, "Close existing");
+        CloseDatabase();
 
-    /// <summary>
-    /// Deletes all data from the database, including all messages, and sets <see cref="Count"/> to 0, but does not
-    /// delete the database itself.
-    /// </summary>
-    /// <remarks>
-    /// It returns true if data was removed, or false if the database was already empty. The database is not closed
-    /// after the call, but will be empty. Throws if <see cref="IsOpen"/> is false when called.
-    /// </remarks>
-    /// <exception cref="InvalidOperationException">Garden closed</exception>
-    public bool Purge()
-    {
-        const string NSpace = $"{nameof(MemoryGarden)}.{nameof(Purge)}";
-        ConditionalDebug.WriteLine(NSpace, "PURGE");
+        ConditionalDebug.ThrowIfNotNull(Gardener);
 
-        ThrowIfClosed();
+        ConditionalDebug.WriteLine(NSpace, "Read headers");
+        var list = new List<GardenDeck>(64);
+        GardenDeck.ReadAllDb(con, this, list);
 
-        if (Count != 0)
+        foreach (var item in list)
         {
-            ConditionalDebug.WriteLine(NSpace, "Clear memory");
-
-            Close();
-            IsOpen = true;
-
-            const string Sql = $"DELETE FROM {GardenSession.TableName};";
-            ConditionalDebug.WriteLine(NSpace, Sql);
-
-            using var con = Gardener.Connect();
-            using var cmd = con.CreateCommand();
-            cmd.CommandText = Sql;
-            cmd.ExecuteNonQuery();
+            // Do not invoke event for every item
+            GetBasket(item.Basket).InsertCache(item, false);
         }
 
-        ConditionalDebug.ThrowIfNotNull(Selected);
-        return false;
-    }
+        Gardener = gardener;
+        ConditionalDebug.WriteLine(NSpace, "Garden formally open");
 
-    /// <summary>
-    /// Moves items which expire from <see cref="HomeBin"/> to <see cref="WasteBin"/>, and sends items that have
-    /// expired in <see cref="WasteBin"/> to landfill, and closes unused children to free up memory.
-    /// </summary>
-    /// <remarks>
-    /// This house cleaning method is to be polled periodically with "emptyCompose" equal to false (approx. once a
-    /// minute). It returns true on any change. Idle children are moved to <see cref="WasteBin"/> according to <see
-    /// cref="GardenBin.Timeout"/>, and children already in <see cref="WasteBin"/> are deleted. Moreover, large
-    /// children may be closed to free memory. Throws if <see cref="IsOpen"/> is false.
-    /// </remarks>
-    /// <exception cref="InvalidOperationException">Garden closed</exception>
-    public bool Prune()
-    {
-        ThrowIfClosed();
-
-        bool deleted = false;
-        long openLength = 0;
-        var waste = new List<GardenSession>(8);
-
-        foreach (var item in _allBins)
+        foreach (var item in _baskets)
         {
-            deleted |= item.Prune(waste, ref openLength);
-        }
-
-        if (waste.Count != 0)
-        {
-            var con = Gardener.Connect();
-            var oldBins = new HashSet<GardenBin>();
-
-            foreach (var item in waste)
+            if (item.Count != 0)
             {
-                ConditionalDebug.ThrowIfTrue(item.IsWaste);
-
-                // Hold the bin before change
-                oldBins.Add(GetBin(item));
-
-                // Write change
-                item.SetIsWasteNoRaise(con, true);
+                // Single event for multiple insertions
+                item.OnChangedInternal(true);
             }
-
-            // Raise single change on each bin
-            // rather than invoking for every item.
-            foreach (var item in oldBins)
-            {
-                item.OnChanged(true);
-            }
-
-            WasteBin.OnChanged(true);
-            return true;
         }
 
-        if (deleted)
-        {
-            WasteBin.OnChanged(true);
-            return true;
-        }
-
-        return false;
+        return true;
     }
 
     /// <summary>
-    /// Finds first child instance with matching "title", or null.
+    /// Sets <see cref="Gardener"/> to null and discards all cached data.
+    /// </summary>
+    public void CloseDatabase()
+    {
+        if (Gardener == null && IsEmpty)
+        {
+            return;
+        }
+
+        Gardener = null;
+
+        foreach (var item in _baskets)
+        {
+            item.ClearCache(true);
+        }
+
+        // Discard should clear this
+        ConditionalDebug.ThrowIfNotNull(Current);
+    }
+
+    /// <summary>
+    /// Discards all data and re-loads from <see cref="Gardener"/>.
     /// </summary>
     /// <remarks>
-    /// Matching is simple and case sensitive. The <see cref="GardenSession.Title"/> value does not have to be unique and
-    /// only first matching instance is returned, or null if not found. The call always returns null if <see
-    /// cref="IsOpen"/> is false.
+    /// If <see cref="Gardener"/> is null, it does nothing and returns false. Otherwise, it calls <see
+    /// cref="CloseDatabase"/> followed by <see cref="OpenDatabase"/> with same <see cref="Gardener"/>.
     /// </remarks>
-    public GardenSession? FindFirstOnTitle(string? title)
+    public bool Reload()
     {
-        title = SanitizeName(title);
-
-        if (title != null && IsOpen)
+        if (Gardener == null)
         {
-            foreach (var bin in _allBins)
+            return false;
+        }
+
+        var g = Gardener;
+        CloseDatabase();
+        OpenDatabase(g);
+        return true;
+    }
+
+    /// <summary>
+    /// Finds the child or returns null.
+    /// </summary>
+    /// <remarks>
+    /// Matching is simple and case sensitive. The <see cref="GardenDeck.Title"/> value does not have to be unique and
+    /// only the most recent in terms of creation is returned. The call always returns null if <see cref="Gardener"/> is
+    /// null.
+    /// </remarks>
+    public GardenDeck? FindOnId(Zuid id)
+    {
+        if (Gardener != null)
+        {
+            var stub = new GardenDeck(id);
+
+            foreach (var item in _baskets)
             {
-                foreach (var item in bin)
+                var obj = item.FindInternal(stub);
+
+                if (obj != null)
                 {
-                    if (item.Title == title)
-                    {
-                        return item;
-                    }
+                    return obj;
                 }
             }
         }
@@ -411,273 +426,251 @@ public sealed class MemoryGarden : IReadOnlyCollection<GardenSession>
     }
 
     /// <summary>
-    /// Returns the <see cref="GardenBin"/> instance.
+    /// Finds a recent child instance with matching "title", or returns null.
     /// </summary>
     /// <remarks>
-    /// The result is always <see cref="WasteBin"/> where "isWaste" is true.
+    /// The <see cref="GardenDeck.Title"/> value does not have to be unique and only the most recent in terms of
+    /// creation time is returned. Simple match is used. The call always returns null if "title" is null or empty.
     /// </remarks>
-    public GardenBin GetBin(BinKind kind, bool isWaste = false)
+    public GardenDeck? FindTitleExact(string? title, StringComparison comparison = StringComparison.Ordinal)
     {
-        if (isWaste)
+        title = Sanitize(title, MaxMetaLength);
+
+        if (title == null)
         {
-            return WasteBin;
+            return null;
         }
 
-        switch (kind)
+        foreach (var basket in _baskets)
         {
-            case BinKind.Archive:
-                return ArchiveBin;
-            default:
-                return HomeBin;
+            // Items otherwise ordered creation first
+            foreach (var item in basket)
+            {
+                if (title.Equals(item.Title, comparison))
+                {
+                    return item;
+                }
+            }
         }
-    }
 
-    internal static string? SanitizeName(string? text)
-    {
-        const SanFlags SanNameFlags = SanFlags.Trim | SanFlags.NormC | SanFlags.SubControl;
-        text = Sanitizer.Sanitize(text, SanNameFlags, MaxNameLength);
-        return !string.IsNullOrEmpty(text) ? text : null;
+        return null;
     }
 
     /// <summary>
-    /// Sets <see cref="Selected"/> on the given child and returns true if selection changed.
+    /// Inserts new <see cref="GardenDeck"/> instance and returns instance give.
     /// </summary>
-    /// <remarks>
-    /// Does nothing if <see cref="IsOpen"/> is false.
-    /// </remarks>
-    internal void OnSelected(GardenSession? item)
+    /// <exception cref="ArgumentException">Already member in garden</exception>
+    public GardenDeck Insert(GardenDeck obj)
     {
-        if (Selected != item)
+        const string NSpace = $"{nameof(MemoryGarden)}.{nameof(Insert)}";
+        ConditionalDebug.WriteLine(NSpace, "NEW INSTANCE");
+        ConditionalDebug.WriteLine(NSpace, $"Kind: {obj.Kind}, {obj.Basket}");
+
+        if (obj.Garden != null)
         {
-            ConditionalDebug.ThrowIfTrue(item?.IsSelected == false);
-
-            // Silent
-            var old = Selected;
-            old?.DeselectNoRaise();
-
-            if (IsOpen && item != null)
-            {
-                Selected = item;
-                SelectedChanged?.Invoke(this, new(item, old));
-                return;
-            }
-
-            Selected = null;
-            SelectedChanged?.Invoke(this, new(null, old));
+            // This should reliably determine whether already
+            // exists or even a member of other Garden database
+            throw new ArgumentException("Already member in garden");
         }
-    }
 
+        if (!obj.InsertDb(this) || !GetBasket(obj.Basket).InsertCache(obj, true))
+        {
+            // Unexpected failure here
+            throw new InvalidOperationException($"Unexpected failure insert {nameof(GardenDeck)}");
+        }
+
+        ConditionalDebug.ThrowIfNull(obj.Garden);
+
+        if (obj.IsCurrent)
+        {
+            OnCurrentChanged(obj);
+        }
+
+        ConditionalDebug.WriteLine(NSpace, $"Success OK");
+        return obj;
+    }
 
     /// <summary>
-    /// Called when child properties changes.
+    /// Deletes the given instance and returns true on success.
     /// </summary>
-    internal void OnChildChanged(GardenSession item, ModFlags flags, bool raiseBin)
+    public bool Delete(GardenDeck obj)
     {
-        const string NSpace = $"{nameof(MemoryGarden)}.{nameof(OnChildChanged)}";
-        ConditionalDebug.WriteLine(NSpace, "CHANGED EVENT: " + item.ToString());
-        ConditionalDebug.WriteLine(NSpace, "Flags: " + flags);
+        const string NSpace = $"{nameof(MemoryGarden)}.{nameof(Delete)}";
+        ConditionalDebug.WriteLine(NSpace, "DELETE");
+        ConditionalDebug.WriteLine(NSpace, $"Kind: {obj.Kind}, {obj.Basket}");
 
-        if (flags != ModFlags.None)
+        if (GetBasket(obj.Basket).RemoveCache(obj, true))
         {
-            try
-            {
-                if (flags.HasFlag(ModFlags.IsWaste))
-                {
-                    RemoveFromBins(item, raiseBin);
-                    GetBin(item).Add(item, raiseBin);
-                    return;
-                }
-
-                if (flags.HasFlag(ModFlags.HomeBin) && !item.IsWaste)
-                {
-                    RemoveFromBins(item, raiseBin);
-                    GetBin(item).Add(item, raiseBin);
-                    return;
-                }
-
-                GetBin(item).OnChanged(raiseBin);
-            }
-            finally
-            {
-                if (Selected == item)
-                {
-                    SelectedUpdated?.Invoke(this, new(item));
-                }
-            }
-        }
-    }
-
-    internal void OnChildDeleted(GardenSession item, bool raiseBin)
-    {
-        GetBin(item).Remove(item, raiseBin);
-    }
-
-    private static void CreateTableIfNotExist(DbConnection con, DbTransaction? tran)
-    {
-        const string NSpace = $"{nameof(MemoryGarden)}.{nameof(CreateTableIfNotExist)}";
-        ConditionalDebug.WriteLine(NSpace, $"CREATE TABLE: {TableName}");
-
-        const string Sql = $@"CREATE TABLE IF NOT EXISTS {TableName} (
-    table_name  VARCHAR(255) PRIMARY KEY,
-    version     INTEGER NOT NULL DEFAULT 0,
-    meta        TEXT
-);";
-        ConditionalDebug.WriteLine(NSpace, Sql);
-
-        using var cmd = con.CreateCommand();
-        cmd.CommandText = Sql;
-        cmd.Transaction = tran;
-        cmd.ExecuteNonQuery();
-    }
-
-    private static int SelectVersion(DbConnection con, DbTransaction tran, string table)
-    {
-        const string NSpace = $"{nameof(MemoryGarden)}.{nameof(SelectVersion)}";
-        ConditionalDebug.WriteLine(NSpace, $"SELECT VERSION from: {TableName}");
-
-        const string Sql = $"SELECT version FROM {TableName} WHERE table_name = @table_name;";
-        ConditionalDebug.WriteLine(NSpace, Sql);
-
-        using var cmd = CreateCommand(con, tran, Sql, table);
-        using var reader = cmd.ExecuteReader();
-
-        if (reader.Read())
-        {
-            int version = reader.GetInt32("version");
-            ConditionalDebug.WriteLine(NSpace, $"Table {table} = {version}");
-            return version;
-        }
-
-        // Not found
-        return 0;
-    }
-
-    private static void InsertVersion(DbConnection con, DbTransaction tran, string table, int version)
-    {
-        const string NSpace = $"{nameof(MemoryGarden)}.{nameof(InsertVersion)}";
-        ConditionalDebug.WriteLine(NSpace, $"INSERT VERSION: {table} = {version}");
-
-        const string Sql = $"INSERT INTO {TableName} (table_name, version) VALUES (@table_name, @version);";
-        ConditionalDebug.WriteLine(NSpace, Sql);
-
-        using var cmd = CreateCommand(con, tran, Sql, table, version);
-        cmd.ExecuteNonQuery();
-    }
-
-    private static void UpdateVersion(DbConnection con, DbTransaction tran, string table, int version)
-    {
-        const string NSpace = $"{nameof(MemoryGarden)}.{nameof(UpdateVersion)}";
-        ConditionalDebug.WriteLine(NSpace, $"UPDATE VERSION: {table} = {version}");
-
-        const string Sql = $"UPDATE {TableName} SET version = @version WHERE table_name = @table_name;";
-        using var cmd = CreateCommand(con, tran, Sql, table, version);
-
-        cmd.ExecuteNonQuery();
-    }
-
-    private static OpenInit Init(DbConnection con)
-    {
-        const string NSpace = $"{nameof(MemoryGarden)}.{nameof(Init)}";
-        ConditionalDebug.WriteLine(NSpace, "INITIALIZE GARDEN");
-
-        const string SessionTable = GardenSession.TableName;
-        const string LeafTable = GardenLeaf.TableName;
-        using var tran = con.BeginTransaction();
-
-        try
-        {
-            // CREATE TABLES
-            var init = OpenInit.Open;
-            CreateTableIfNotExist(con, tran);
-            GardenSession.CreateTable(con, tran);
-            GardenLeaf.CreateTableInternal(con, tran);
-
-            // PARENT
-            int version = SelectVersion(con, tran, SessionTable);
-            ConditionalDebug.WriteLine(NSpace, $"'{SessionTable}' current version  = {version}");
-
-            if (version <= 0)
-            {
-                init = OpenInit.Created;
-                ConditionalDebug.WriteLine(NSpace, $"Register '{SessionTable}' current version = {version}");
-                InsertVersion(con, tran, SessionTable, GardenSession.Version);
-            }
-            else
-            if (GardenSession.UpgradeTable(con, tran, version))
-            {
-                init = OpenInit.SchemaUpgraded;
-                ConditionalDebug.WriteLine(NSpace, $"Upgrade '{SessionTable}' current version = {version}");
-                UpdateVersion(con, tran, SessionTable, version);
-            }
-
-            // LEAF
-            version = SelectVersion(con, tran, LeafTable);
-            ConditionalDebug.WriteLine(NSpace, $"'{LeafTable}' current version = {version}");
-
-            if (version <= 0)
-            {
-                // Don't set FirstRun in subsequence calls
-                ConditionalDebug.WriteLine(NSpace, $"Register '{LeafTable}' current version = {version}");
-                InsertVersion(con, tran, LeafTable, GardenLeaf.Version);
-            }
-            else
-            if (GardenLeaf.UpgradeTableInternal(con, tran, version))
-            {
-                init = OpenInit.SchemaUpgraded;
-                ConditionalDebug.WriteLine(NSpace, $"Upgrade '{LeafTable}' current version = {version}");
-                UpdateVersion(con, tran, LeafTable, version);
-            }
-
-            tran.Commit();
-            return init;
-        }
-        catch
-        {
-            tran.Rollback();
-            throw;
-        }
-    }
-
-    private static DbCommand CreateCommand(DbConnection con, DbTransaction? tran, string sql, string table, int version = -1)
-    {
-        var cmd = con.CreateCommand();
-        cmd.CommandText = sql;
-        cmd.Transaction = tran;
-
-        cmd.AddParameter("@table_name", table);
-
-        if (version > -1)
-        {
-            cmd.AddParameter("@version", version);
-        }
-
-        return cmd;
-    }
-
-    private GardenBin GetBin(GardenSession obj)
-    {
-        return GetBin(obj.HomeBin, obj.IsWaste);
-    }
-
-    private bool RemoveFromBins(GardenSession obj, bool raiseBin)
-    {
-        // Assumed container has changed, but we don't know old container.
-        foreach (var item in _allBins)
-        {
-            if (item.Remove(obj, raiseBin))
-            {
-                return true;
-            }
+            using var con = Gardener?.Connect();
+            return obj.DeleteDb(con);
         }
 
         return false;
     }
 
-    private void ThrowIfClosed()
+    /// <summary>
+    /// Deletes all message data from the database, including all messages, and sets <see cref="Count"/> to 0.
+    /// </summary>
+    /// <remarks>
+    /// Where <see cref="Gardener"/> is null, <see cref="Purge"/> merely discard cache. The result is true if <see
+    /// cref="IsEmpty"/> was false when called.
+    /// </remarks>
+    public bool Purge()
     {
-        if (!IsOpen)
+        const string NSpace = $"{nameof(MemoryGarden)}.{nameof(Purge)}";
+        ConditionalDebug.WriteLine(NSpace, "PURGE");
+
+        bool result = !IsEmpty;
+
+        var g = Gardener;
+        CloseDatabase();
+        ConditionalDebug.ThrowIfNotNull(Current);
+
+        if (g != null)
         {
-            throw new InvalidOperationException("Garden closed");
+            using var con = g.Connect();
+            MetaOps.Purge(con);
+
+            OpenDatabase(g);
+        }
+
+        return result;
+    }
+
+    /// <summary>
+    /// Gets a count of the number of items to be pruned.
+    /// </summary>
+    public int GetCount(PruneOptions options)
+    {
+        int count = 0;
+
+        foreach (var item in LegalBaskets)
+        {
+            count += GetBasket(item).PruneCount(options);
+        }
+
+        return count;
+    }
+
+    /// <summary>
+    /// Prunes items in all baskets and returns removal count.
+    /// </summary>
+    /// <remarks>
+    /// Where "options" is null, the method may be used to reduce excessive memory use.
+    /// </remarks>
+    public int Prune(PruneOptions? options)
+    {
+        // Do waste first
+        int count = GetBasket(BasketKind.Waste).Prune(options);
+
+        foreach (var item in _baskets)
+        {
+            if (item.Kind != BasketKind.Waste)
+            {
+                count += item.Prune(options);
+            }
+        }
+
+        return count;
+    }
+
+    /// <summary>
+    /// Implements <see cref="IEnumerable{T}.GetEnumerator()"/>.
+    /// </summary>
+    /// <remarks>
+    /// The order of items should be assumed to be arbitrary. Always returns an empty sequence if <see cref="Gardener"/>
+    /// is null.
+    /// </remarks>
+    public IEnumerator<GardenDeck> GetEnumerator()
+    {
+        return GetEnumerable()?.GetEnumerator() ?? Empty.GetEnumerator();
+    }
+
+    IEnumerator IEnumerable.GetEnumerator()
+    {
+        return GetEnumerator();
+    }
+
+    /// <summary>
+    /// Sets <see cref="Current"/> on the given child and returns true if selection changed.
+    /// </summary>
+    /// <remarks>
+    /// Does nothing if <see cref="Gardener"/> is null.
+    /// </remarks>
+    internal void OnCurrentChanged(GardenDeck? obj)
+    {
+        if (Current != obj)
+        {
+            ConditionalDebug.ThrowIfTrue(obj?.IsCurrent == false);
+
+            // Silent
+            var old = Current;
+            old?.DeselectNoRaise();
+
+            Current = obj;
+            CurrentChanged?.Invoke(this, new(obj, old));
         }
     }
+
+
+    /// <summary>
+    /// Called when properties of "obj" have changed.
+    /// </summary>
+    internal void OnUpdated(GardenDeck obj, DeckMods mods, bool raiseBasket)
+    {
+        const string NSpace = $"{nameof(MemoryGarden)}.{nameof(OnUpdated)}";
+        ConditionalDebug.WriteLine(NSpace, "Deck: " + obj.ToString());
+        ConditionalDebug.WriteLine(NSpace, "Mods: " + mods);
+
+        if (mods != DeckMods.None)
+        {
+            try
+            {
+                if (mods.HasFlag(DeckMods.Basket))
+                {
+                    foreach (var b in _baskets)
+                    {
+                        if (b.RemoveCache(obj, raiseBasket))
+                        {
+                            break;
+                        }
+                    }
+
+                    GetBasket(obj.Basket).InsertCache(obj, raiseBasket);
+                    ConditionalDebug.ThrowIfNotSame(obj.Garden, this);
+                    return;
+                }
+
+                GetBasket(obj.Basket).OnChangedInternal(raiseBasket);
+                ConditionalDebug.ThrowIfNotSame(obj.Garden, this);
+            }
+            finally
+            {
+                if (Current == obj)
+                {
+                    CurrentUpdated?.Invoke(this, new(obj));
+                }
+            }
+        }
+    }
+
+    private List<GardenDeck>? GetEnumerable()
+    {
+        int count = Count;
+
+        if (count != 0)
+        {
+            var list = new List<GardenDeck>(count);
+
+            for (int n = 0; n < _baskets.Count; ++n)
+            {
+                list.AddRange(_baskets[n]);
+            }
+
+            return list;
+        }
+
+        return null;
+    }
+
 }

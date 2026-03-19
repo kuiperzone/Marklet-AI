@@ -1,8 +1,10 @@
 // -----------------------------------------------------------------------------
-// PROJECT   : KuiperZone.Marklet
-// AUTHOR    : Andrew Thomas
-// COPYRIGHT : Andrew Thomas © 2025-2026 All rights reserved
-// LICENSE   : AGPL-3.0-only
+// SPDX-FileNotice: KuiperZone.Marklet - Local AI Client
+// SPDX-License-Identifier: AGPL-3.0-only
+// SPDX-FileCopyrightText: © 2025-2026 Andrew Thomas <kuiperzone@users.noreply.github.com>
+// SPDX-ProjectHomePage: https://kuiper.zone/marklet-ai/
+// SPDX-FileType: Source
+// SPDX-FileComment: This is NOT AI generated source code but was created with human thinking and effort.
 // -----------------------------------------------------------------------------
 
 // Marklet is free software: you can redistribute it and/or modify it under
@@ -51,7 +53,7 @@ public class CrossRun : Run
     /// Gets or sets the link URI.
     /// </summary>
     /// <remarks>
-    /// If the Foreground property is unset when setting a Uri instance, the Foreground is set to <see
+    /// If the Foreground property is unset when setting <see cref="Uri"/>, the Run.Foreground is set to <see
     /// cref="CrossTextBlock.DefaultLinkBrush"/>. If Foreground was already set, it is not changed. When setting <see
     /// cref="Uri"/> from non-null to null, the Foreground property is cleared.
     /// </remarks>

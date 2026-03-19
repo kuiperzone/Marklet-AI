@@ -1,8 +1,10 @@
 // -----------------------------------------------------------------------------
-// PROJECT   : KuiperZone.Marklet
-// AUTHOR    : Andrew Thomas
-// COPYRIGHT : Andrew Thomas © 2025-2026 All rights reserved
-// LICENSE   : AGPL-3.0-only
+// SPDX-FileNotice: KuiperZone.Marklet - Local AI Client
+// SPDX-License-Identifier: AGPL-3.0-only
+// SPDX-FileCopyrightText: © 2025-2026 Andrew Thomas <kuiperzone@users.noreply.github.com>
+// SPDX-ProjectHomePage: https://kuiper.zone/marklet-ai/
+// SPDX-FileType: Source
+// SPDX-FileComment: This is NOT AI generated source code but was created with human thinking and effort.
 // -----------------------------------------------------------------------------
 
 // Marklet is free software: you can redistribute it and/or modify it under
@@ -24,32 +26,32 @@ namespace KuiperZone.Marklet.PixieChrome.Controls;
 /// <summary>
 /// Composite control with selectable <see cref="PixieControl.Title"/> text.
 /// </summary>
-public sealed class PixieSelectable : PixieControl
+public class PixieSelectable : PixieControl
 {
     private readonly CrossTextBlock _block = new();
 
     private double _titleSize = ChromeFonts.DefaultFontSize;
     private TextAlignment _titleAlignment;
-    private TextWrapping _titleWrapping = TextWrapping.Wrap;
 
     /// <summary>
     /// Default constructor.
     /// </summary>
     public PixieSelectable()
+        : base(false, Avalonia.Layout.VerticalAlignment.Center)
     {
         IsTitleVisible = false;
+        SetSubject(_block);
 
-        SetChildControl(_block);
         _block.Focusable = true;
         _block.FocusAdorner = null;
 
         _block.FontWeight = TitleWeight;
         _block.FontSize = _titleSize;
         _block.TextAlignment = _titleAlignment;
-        _block.TextWrapping = _titleWrapping;
-        _block.TextWrapping = TextWrapping.Wrap;
         _block.VerticalAlignment = VerticalContentAlignment;
         _block.Margin = new(0.0, VerticalContentOffset, 0.0, VerticalContentOffset);
+
+        TitleWrapping = TextWrapping.Wrap;
     }
 
     /// <summary>
@@ -67,13 +69,6 @@ public sealed class PixieSelectable : PixieControl
         o => o.TitleAlignment, (o, v) => o.TitleAlignment = v);
 
     /// <summary>
-    /// Defines the <see cref="TitleWrapping"/> property.
-    /// </summary>
-    public static readonly DirectProperty<PixieSelectable, TextWrapping> TitleWrappingProperty =
-        AvaloniaProperty.RegisterDirect<PixieSelectable, TextWrapping>(nameof(TitleWrapping),
-        o => o.TitleWrapping, (o, v) => o.TitleWrapping = v);
-
-    /// <summary>
     /// Gets or sets the title font size.
     /// </summary>
     public double TitleSize
@@ -89,18 +84,6 @@ public sealed class PixieSelectable : PixieControl
     {
         get { return _titleAlignment; }
         set { SetAndRaise(TitleAlignmentProperty, ref _titleAlignment, value); }
-    }
-
-    /// <summary>
-    /// Gets or sets the title wrapping.
-    /// </summary>
-    /// <remarks>
-    /// Default is <see cref="TextWrapping.Wrap"/>.
-    /// </remarks>
-    public TextWrapping TitleWrapping
-    {
-        get { return _titleWrapping; }
-        set { SetAndRaise(TitleWrappingProperty, ref _titleWrapping, value); }
     }
 
     /// <summary>

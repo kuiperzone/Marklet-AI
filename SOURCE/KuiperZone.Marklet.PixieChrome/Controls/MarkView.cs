@@ -1,8 +1,10 @@
 // -----------------------------------------------------------------------------
-// PROJECT   : KuiperZone.Marklet
-// AUTHOR    : Andrew Thomas
-// COPYRIGHT : Andrew Thomas © 2025-2026 All rights reserved
-// LICENSE   : AGPL-3.0-only
+// SPDX-FileNotice: KuiperZone.Marklet - Local AI Client
+// SPDX-License-Identifier: AGPL-3.0-only
+// SPDX-FileCopyrightText: © 2025-2026 Andrew Thomas <kuiperzone@users.noreply.github.com>
+// SPDX-ProjectHomePage: https://kuiper.zone/marklet-ai/
+// SPDX-FileType: Source
+// SPDX-FileComment: This is NOT AI generated source code but was created with human thinking and effort.
 // -----------------------------------------------------------------------------
 
 // Marklet is free software: you can redistribute it and/or modify it under
@@ -19,11 +21,7 @@
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
-using Avalonia.Interactivity;
-using Avalonia.Threading;
-using Avalonia.VisualTree;
 using KuiperZone.Marklet.PixieChrome.Controls.Internal;
-using KuiperZone.Marklet.PixieChrome.Shared;
 using KuiperZone.Marklet.Tooling;
 using KuiperZone.Marklet.Tooling.Markdown;
 
@@ -37,53 +35,39 @@ namespace KuiperZone.Marklet.PixieChrome.Controls;
 /// </remarks>
 public class MarkView : MarkControl, ICrossTrackOwner
 {
-    /// <summary>
-    /// Gets <see cref="ChromeStyling.Global"/> for convenience.
-    /// </summary>
-    protected static readonly ChromeStyling Styling = ChromeStyling.Global;
-
-    /// <summary>
-    /// The <see cref="DispatchCoalescer{T}.Posted"/> occurs whenever a property of this base class changes.
-    /// </summary>
-    /// <remarks>
-    /// Subclass to handle the change.
-    /// </remarks>
-    protected readonly DispatchCoalescer? Refresher;
-
     private readonly StackPanel _panel = new();
     private readonly List<MarkVisualHost> _cache = new();
-
     private readonly MarkDocument _source = new();
     private Control? _header;
     private Control? _footer;
 
     private string? _content;
-    private bool _isChromeStyled;
 
     /// <summary>
     /// Default constructor.
     /// </summary>
     public MarkView()
-        : this(new CrossTracker())
     {
+        Focusable = true;
+        IsTabStop = false;
+        FocusAdorner = null;
+
+        ContextMenu = CrossContextMenu.Global;
+        base.Child = _panel;
     }
 
     /// <summary>
     /// Constructor with shared selection host.
     /// </summary>
     public MarkView(CrossTracker tracker)
+        : base(tracker)
     {
         Focusable = true;
         IsTabStop = false;
         FocusAdorner = null;
 
-        Tracker = tracker;
         ContextMenu = CrossContextMenu.Global;
         base.Child = _panel;
-
-        Refresher = new(DispatcherPriority.Render);
-        Refresher.Posted += RefresherHandler;
-        Zoom.Changed += RefresherHandler;
     }
 
     /// <summary>
@@ -92,48 +76,20 @@ public class MarkView : MarkControl, ICrossTrackOwner
     /// <remarks>
     /// Intended where the instance is one of many children within a more sophisticated control.
     /// </remarks>
-    protected MarkView(MarkControl owner, CrossTracker tracker)
+    protected MarkView(MarkControl owner)
         : base(owner)
     {
         // Ensure these are off
         ConditionalDebug.ThrowIfTrue(Focusable);
         ConditionalDebug.ThrowIfTrue(IsTabStop);
-
-        Tracker = tracker;
         base.Child = _panel;
     }
-
-    /// <summary>
-    /// Defines the <see cref="LinkClick"/> event.
-    /// </summary>
-    public static readonly RoutedEvent<LinkClickEventArgs> LinkClickEvent =
-        RoutedEvent.Register<MarkView, LinkClickEventArgs>(nameof(LinkClick), RoutingStrategies.Direct);
 
     /// <summary>
     /// Defines the <see cref="Content"/> property.
     /// </summary>
     public static readonly DirectProperty<MarkView, string?> ContentProperty =
         AvaloniaProperty.RegisterDirect<MarkView, string?>(nameof(Content), o => o.Content, (o, v) => o.Content = v);
-
-    /// <summary>
-    /// Defines the <see cref="IsChromeStyled"/> property.
-    /// </summary>
-    public static readonly DirectProperty<MarkView, bool> IsChromeStyledProperty =
-        AvaloniaProperty.RegisterDirect<MarkView, bool>(nameof(IsChromeStyled), o => o.IsChromeStyled, (o, v) => o.IsChromeStyled = v);
-
-    /// <summary>
-    /// Occurs when the user clicks on an URI within the text.
-    /// </summary>
-    /// <remarks>
-    /// When a link is clicked, the default behaviour is to attempt to open the link in an external browser. However,
-    /// this event is invoked first and, if <see cref="RoutedEventArgs.Handled"/> is set to true, the link will NOT be
-    /// opened when the event returns.
-    /// </remarks>
-    public event EventHandler<LinkClickEventArgs> LinkClick
-    {
-        add { AddHandler(LinkClickEvent, value); }
-        remove { RemoveHandler(LinkClickEvent, value); }
-    }
 
     /// <summary>
     /// Gets or sets the markdown content.
@@ -146,23 +102,6 @@ public class MarkView : MarkControl, ICrossTrackOwner
         get { return _content; }
         set { SetAndRaise(ContentProperty, ref _content, value); }
     }
-
-    /// <summary>
-    /// Gets or sets whether visual properties follow <see cref="ChromeStyling"/> values and respond to changes.
-    /// </summary>
-    /// <remarks>
-    /// The default is false.
-    /// </remarks>
-    public bool IsChromeStyled
-    {
-        get { return _isChromeStyled; }
-        set { SetAndRaise(IsChromeStyledProperty, ref _isChromeStyled, value); }
-    }
-
-    /// <summary>
-    /// Gets the shared <see cref="CrossTracker"/> instance.
-    /// </summary>
-    public CrossTracker Tracker { get; }
 
     /// <summary>
     /// Gets or sets the markdown options used for processing <see cref="Content"/>.
@@ -230,18 +169,12 @@ public class MarkView : MarkControl, ICrossTrackOwner
     /// <summary>
     /// Gets the first <see cref="ICrossTrackable.TrackKey"/> value consumed.
     /// </summary>
-    /// <remarks>
-    /// The value is 0 by default.
-    /// </remarks>
-    public ulong TrackKey0 { get; protected set; }
+    public ICrossTrackable? Track0 { get; protected set; }
 
     /// <summary>
     /// Gets the last <see cref="ICrossTrackable.TrackKey"/> value consumed.
     /// </summary>
-    /// <remarks>
-    /// The <see cref="TrackKey1"/> value must always be equal or greater than <see cref="TrackKey0"/>.
-    /// </remarks>
-    public ulong TrackKey1 { get; protected set; }
+    public ICrossTrackable? Track1 { get; protected set; }
 
     /// <summary>
     /// Do not use.
@@ -268,12 +201,17 @@ public class MarkView : MarkControl, ICrossTrackOwner
     /// Selects just this block.
     /// </summary>
     /// <remarks>
-    /// Applicable only where <see cref="Tracker"/> is shared, otherwise behaviour of <see cref="SelectBlock"/> and <see
-    /// cref="SelectAll"/> are the same.
+    /// Applicable only where <see cref="MarkControl.Tracker"/> is shared, otherwise behaviour of <see
+    /// cref="SelectBlock"/> and <see cref="SelectAll"/> are the same.
     /// </remarks>
     public bool SelectBlock()
     {
-        return Tracker.Select(TrackKey0, TrackKey1) != 0;
+        if (Track0 != null)
+        {
+            return Tracker.SelectRange(Track0, Track1) != 0;
+        }
+
+        return false;
     }
 
     /// <summary>
@@ -307,77 +245,14 @@ public class MarkView : MarkControl, ICrossTrackOwner
         return array;
     }
 
-    /// <summary>
-    /// Required to feed click event from internal control <see cref="LinkClickEvent"/>.
-    /// </summary>
-    internal virtual void LinkClickHandler(object? _, LinkClickEventArgs e)
-    {
-        e.Source = this;
-        e.RoutedEvent = LinkClickEvent;
-        RaiseEvent(e);
-    }
-
-    /// <summary>
-    /// Forces a visual refresh where properties may have changed.
-    /// </summary>
-    /// <remarks>
-    /// Only necessary where the "owner" constructor was used.
-    /// </remarks>
-    protected void RefreshLook()
+    /// <inheritdoc cref="MarkControl.ImmediateRefresh"/>
+    protected override void ImmediateRefresh()
     {
         int nm1 = _cache.Count - 1;
 
         for (int n = 0; n < _cache.Count; ++n)
         {
-            _cache[n].RefreshLook(n == 0, n == nm1);
-        }
-    }
-
-    /// <summary>
-    /// Called only where <see cref="IsChromeStyled"/> is true and <see cref="ChromeStyling.Global"/> properties
-    /// change.
-    /// </summary>
-    protected virtual void OnStylingChanged()
-    {
-        // This will asynchronously invoke Refresh() provided has Refresher coalescer.
-        SelectionBrush = Styling.SemiAccent;
-        LinkForeground = Styling.LinkForeground;
-        LinkHoverBrush = Styling.LinkHover;
-
-        HeadingForeground = Styling.AccentBrush;
-        MonoFamily = ChromeFonts.MonospaceFamily;
-
-        QuoteDecor = Styling.AccentBrush;
-        RuleLine = ChromeStyling.ForegroundGray;
-
-        FencedBorder = ChromeStyling.ForegroundGray;
-        FencedCornerRadius = Styling.SmallCornerRadius;
-        FencedBackground = Styling.BackgroundLow;
-    }
-
-    /// <summary>
-    /// Overrides.
-    /// </summary>
-    protected override void OnAttachedToVisualTree(VisualTreeAttachmentEventArgs e)
-    {
-        base.OnAttachedToVisualTree(e);
-
-        if (_isChromeStyled)
-        {
-            Styling.StylingChanged += StylingChangedHandler;
-        }
-    }
-
-    /// <summary>
-    /// Overrides.
-    /// </summary>
-    protected override void OnDetachedFromVisualTree(VisualTreeAttachmentEventArgs e)
-    {
-        base.OnDetachedFromVisualTree(e);
-
-        if (_isChromeStyled)
-        {
-            Styling.StylingChanged -= StylingChangedHandler;
+            _cache[n].Refresh(n == 0, n == nm1);
         }
     }
 
@@ -397,33 +272,13 @@ public class MarkView : MarkControl, ICrossTrackOwner
             {
                 ConditionalDebug.WriteLine(NSpace, "Update content");
 
-                // TBD Test performance?
-                // UpdateInternal(_source);
-
                 // Supply coalesced clone
+                // This is intended to be efficient as it requires
+                // fewer visual controls but does work in Coalesce().
                 UpdateInternal(_source.Coalesce());
-            }
 
-            return;
-        }
-
-        if (p == IsChromeStyledProperty)
-        {
-            var value = change.GetNewValue<bool>();
-
-            if (value)
-            {
-                OnStylingChanged();
-
-                if (this.IsAttachedToVisualTree())
-                {
-                    Styling.StylingChanged += StylingChangedHandler;
-                }
-            }
-            else
-            if (!value)
-            {
-                Styling.StylingChanged -= StylingChangedHandler;
+                // Alternatively...
+                //UpdateInternal(_source);
             }
 
             return;
@@ -440,18 +295,6 @@ public class MarkView : MarkControl, ICrossTrackOwner
             }
 
             return;
-        }
-
-        if (IsMarkControlProperty(change.Property))
-        {
-            // Asynchronous
-            Refresher?.Post();
-            return;
-        }
-
-        if (p == ChildProperty && change.OldValue != null)
-        {
-            throw new InvalidOperationException($"Cannot set {p.Name} on {GetType().Name}");
         }
     }
 
@@ -491,87 +334,82 @@ public class MarkView : MarkControl, ICrossTrackOwner
         const string NSpace = $"{nameof(MarkView)}.{nameof(UpdateInternal)}";
         ConditionalDebug.WriteLine(NSpace, "UPDATE PROCESSSING");
 
-        int index = 0;
-        int cacheN = 0;
-        int blockCount = doc.Count;
-        var buffer = new List<Control>(blockCount);
-
-        TrackKey0 = 0;
-        TrackKey1 = 0;
-
-        if (_header != null)
+        try
         {
-            buffer.Add(_header);
-        }
+            int index = 0;
+            int cacheN = 0;
+            var buffer = new List<Control>(doc.Count);
 
-        while (index < blockCount)
-        {
-            if (cacheN < _cache.Count)
+            Track0 = null;
+            Track1 = null;
+
+            if (_header != null)
             {
-                var cache = _cache[cacheN];
+                buffer.Add(_header);
+            }
 
-                if (cache.ConsumeUpdates(doc, ref index) != MarkConsumed.Incompatible)
+            while (index < doc.Count)
+            {
+                MarkVisualHost host;
+
+                if (cacheN < _cache.Count)
                 {
+                    host = _cache[cacheN];
+
+                    if (host.ConsumeUpdates(doc, ref index) == MarkConsumed.Incompatible)
+                    {
+                        host = MarkVisualHost.New(this, doc, ref index);
+                        _cache[cacheN] = host;
+                    }
+
                     cacheN += 1;
-                    buffer.Add(cache.Control);
-                    SetTrackKey(cache);
+                    AddTracks(host);
+                    buffer.Add(host.Control);
                     continue;
                 }
 
-                _cache.RemoveRange(cacheN, _cache.Count - cacheN);
+                host = MarkVisualHost.New(this, doc, ref index);
+
+                _cache.Add(host);
+                cacheN = _cache.Count;
+
+                AddTracks(host);
+                buffer.Add(host.Control);
             }
 
-            var host = MarkVisualHost.New(this, doc, ref index);
+            _cache.RemoveRange(cacheN, _cache.Count - cacheN);
+            _cache.TrimCapacity();
 
-            _cache.Add(host);
-            cacheN = _cache.Count;
-
-            buffer.Add(host.Control);
-            SetTrackKey(host);
-        }
-
-        _cache.RemoveRange(cacheN, _cache.Count - cacheN);
-        _cache.TrimCapacity();
-
-        if (_footer != null)
-        {
-            buffer.Add(_footer);
-        }
-
-        // WRITE NEW CONTENTS
-        // Relies on extension method that avoids removing objects from visual tree.
-        var children = _panel.Children;
-        children.Replace(buffer);
-
-        if (children.Capacity - children.Count > 32)
-        {
-            children.Capacity = children.Count;
-        }
-
-        ConditionalDebug.WriteLine(NSpace, "END OF UPDATE");
-    }
-
-    private void SetTrackKey(MarkVisualHost host)
-    {
-        if (host.TrackKey0 != 0U)
-        {
-            if (TrackKey0 == 0)
+            if (_footer != null)
             {
-                TrackKey0 = host.TrackKey0;
+                buffer.Add(_footer);
             }
 
-            TrackKey1 = host.TrackKey1;
-            ConditionalDebug.ThrowIfLessThan(TrackKey1, TrackKey0);
+            // WRITE NEW CONTENTS
+            // Relies on extension method that avoids removing objects from visual tree.
+            var children = _panel.Children;
+            children.Replace(buffer);
+
+            if (children.Capacity - children.Count > 32)
+            {
+                children.Capacity = children.Count;
+            }
+
+            ConditionalDebug.WriteLine(NSpace, "END OF UPDATE");
+        }
+        catch (Exception e)
+        {
+            ConditionalDebug.WriteLine(NSpace, e);
+            throw;
         }
     }
 
-    private void RefresherHandler(object? _, EventArgs __)
+    private void AddTracks(MarkVisualHost host)
     {
-        RefreshLook();
-    }
-
-    private void StylingChangedHandler(object? _, EventArgs __)
-    {
-        OnStylingChanged();
+        if (host.Track0 != null)
+        {
+            Track0 ??= host.Track0;
+            Track1 = host.Track1 ?? host.Track0;
+        }
     }
 }

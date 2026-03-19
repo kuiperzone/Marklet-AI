@@ -1,8 +1,10 @@
 ﻿// -----------------------------------------------------------------------------
-// PROJECT   : KuiperZone.Marklet
-// AUTHOR    : Andrew Thomas
-// COPYRIGHT : Andrew Thomas © 2025-2026 All rights reserved
-// LICENSE   : AGPL-3.0-only
+// SPDX-FileNotice: KuiperZone.Marklet - Local AI Client
+// SPDX-License-Identifier: AGPL-3.0-only
+// SPDX-FileCopyrightText: © 2025-2026 Andrew Thomas <kuiperzone@users.noreply.github.com>
+// SPDX-ProjectHomePage: https://kuiper.zone/marklet-ai/
+// SPDX-FileType: Source
+// SPDX-FileComment: This is NOT AI generated source code but was created with human thinking and effort.
 // -----------------------------------------------------------------------------
 
 // Marklet is free software: you can redistribute it and/or modify it under
@@ -24,7 +26,7 @@ namespace KuiperZone.Marklet.Stack.Garden;
 /// <remarks>
 /// Integer values are written to storage and must not change.
 /// </remarks>
-public enum LeafKind
+public enum LeafKind : byte
 {
     /// <summary>
     /// None (invalid).
@@ -37,7 +39,7 @@ public enum LeafKind
     User = 1,
 
     /// <summary>
-    /// Assistant message or response.
+    /// Assistant message.
     /// </summary>
     Assistant = 2,
 
@@ -62,14 +64,7 @@ public static partial class HelperExt
     /// </summary>
     public static bool IsPersistant(this LeafKind src)
     {
-        switch (src)
-        {
-            case LeafKind.User:
-            case LeafKind.Assistant:
-                return true;
-            default:
-                return false;
-        }
+        return src == LeafKind.User || src == LeafKind.Assistant;
     }
 
     /// <summary>
@@ -81,9 +76,25 @@ public static partial class HelperExt
     }
 
     /// <summary>
-    /// Returns whether the leaf content is nominally visible to the user.
+    /// Returns a default entity name such as "User", "Assistant" or null.
     /// </summary>
-    public static bool IsVisible(this LeafKind src)
+    public static string? DefaultEntity(this LeafKind src)
+    {
+        switch (src)
+        {
+            case LeafKind.User:
+                return "User";
+            case LeafKind.Assistant:
+                return "Assistant";
+            default:
+                return null;
+        }
+    }
+
+    /// <summary>
+    /// Returns whether the leaf content is nominally show to the user.
+    /// </summary>
+    public static bool IsShown(this LeafKind src)
     {
         return src != LeafKind.None;
     }
@@ -99,8 +110,17 @@ public static partial class HelperExt
     /// <summary>
     /// Ensure underlying value is legal.
     /// </summary>
-    public static LeafKind TrimLegal(this LeafKind src)
+    public static bool IsLegal(this LeafKind src)
     {
-        return Enum.IsDefined(src) ? src : LeafKind.None;
+        switch (src)
+        {
+            case LeafKind.User:
+            case LeafKind.Assistant:
+            case LeafKind.DisplayMessage:
+            case LeafKind.DisplayError:
+                return true;
+            default:
+                return false;
+        }
     }
 }

@@ -1,8 +1,10 @@
 // -----------------------------------------------------------------------------
-// PROJECT   : KuiperZone.Marklet
-// AUTHOR    : Andrew Thomas
-// COPYRIGHT : Andrew Thomas © 2025-2026 All rights reserved
-// LICENSE   : AGPL-3.0-only
+// SPDX-FileNotice: KuiperZone.Marklet - Local AI Client
+// SPDX-License-Identifier: AGPL-3.0-only
+// SPDX-FileCopyrightText: © 2025-2026 Andrew Thomas <kuiperzone@users.noreply.github.com>
+// SPDX-ProjectHomePage: https://kuiper.zone/marklet-ai/
+// SPDX-FileType: Source
+// SPDX-FileComment: This is NOT AI generated source code but was created with human thinking and effort.
 // -----------------------------------------------------------------------------
 
 // Marklet is free software: you can redistribute it and/or modify it under
@@ -45,7 +47,7 @@ public enum FontCategory
     Slab = 2,
 
     /// <summary>
-    /// A artistic font.
+    /// Vintage font.
     /// </summary>
     Vintage = 3,
 
@@ -53,6 +55,11 @@ public enum FontCategory
     /// A artistic font.
     /// </summary>
     Artistic = 4,
+
+    /// <summary>
+    /// A artistic font.
+    /// </summary>
+    Cathode = 5,
 }
 
 /// <summary>
@@ -65,7 +72,7 @@ public static partial class HelperExt
     /// </summary>
     public static bool IsMonospace(this FontCategory src)
     {
-        return src == FontCategory.Mono;
+        return src == FontCategory.Mono || src == FontCategory.Cathode;
     }
 
     /// <summary>
@@ -83,6 +90,8 @@ public static partial class HelperExt
                 return AppFonts.VintageFamily;
             case FontCategory.Artistic:
                 return AppFonts.ArtisticFamily;
+            case FontCategory.Cathode:
+                return AppFonts.CathodeFamily;
             default:
                 return ChromeFonts.DefaultFamily;
         }
@@ -103,6 +112,8 @@ public static partial class HelperExt
                 return AppFonts.VintageCorrection;
             case FontCategory.Artistic:
                 return AppFonts.ArtisticCorrection;
+            case FontCategory.Cathode:
+                return AppFonts.CathodeCorrection;
             default:
                 return 1.0;
         }

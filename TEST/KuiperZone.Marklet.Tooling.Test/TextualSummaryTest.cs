@@ -1,8 +1,10 @@
 // -----------------------------------------------------------------------------
-// PROJECT   : KuiperZone.Marklet
-// COPYRIGHT : Andrew Thomas © 2025-2026 All rights reserved
-// AUTHOR    : Andrew Thomas
-// LICENSE   : AGPL-3.0-only
+// SPDX-FileNotice: KuiperZone.Marklet - Local AI Client
+// SPDX-License-Identifier: AGPL-3.0-only
+// SPDX-FileCopyrightText: © 2025-2026 Andrew Thomas <kuiperzone@users.noreply.github.com>
+// SPDX-ProjectHomePage: https://kuiper.zone/marklet-ai/
+// SPDX-FileType: Source
+// SPDX-FileComment: This is NOT AI generated source code but was created with human thinking and effort.
 // -----------------------------------------------------------------------------
 
 // Marklet is free software: you can redistribute it and/or modify it under
@@ -165,13 +167,6 @@ DoSomething()
     }
 
     [Fact]
-    public void SigText_SubsThe()
-    {
-        Assert.Equal("Quick brown fox.", Textual.SigText("Hello World. The quick brown fox."));
-        Assert.Equal("Quick brown fox.", Textual.SigText("Hello World. 23. The quick brown fox."));
-    }
-
-    [Fact]
     public void SigText_SkipsCodeAndPipeTable()
     {
         var text = @"Hi, here data:
@@ -231,17 +226,17 @@ If you want, I can provide a ready-to-use C# function that applies this.";
         text = @"The following was suggested by the IDE in C#. You see the doc comment. Is this really correct?
 
     private static readonly System.Buffers.SearchValues<char> s_lineTerminators = System.Buffers.SearchValues";
-        Assert.Equal("Following was suggested by the IDE in C#.", Textual.SigText(text));
+        Assert.Equal("The following was suggested by the IDE in C#.", Textual.SigText(text));
 
         text = @"    private static readonly System.Buffers.SearchValues<char> s_lineTerminators = System.Buffers.SearchValues
 
 The following was suggested by the IDE in C#. You see the doc comment. Is this really correct?";
-        Assert.Equal("Following was suggested by the IDE in C#.", Textual.SigText(text));
+        Assert.Equal("The following was suggested by the IDE in C#.", Textual.SigText(text));
 
         text = @"You see the doc comment. Is this really correct? The following was suggested by the IDE in C#.
 
     private static readonly System.Buffers.SearchValues<char> s_lineTerminators = System.Buffers.SearchValues";
-        Assert.Equal("Following was suggested by the IDE in C#.", Textual.SigText(text));
+        Assert.Equal("The following was suggested by the IDE in C#.", Textual.SigText(text));
 
     }
 

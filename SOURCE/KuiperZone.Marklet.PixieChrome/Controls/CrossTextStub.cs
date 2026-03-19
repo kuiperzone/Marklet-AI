@@ -1,8 +1,10 @@
 // -----------------------------------------------------------------------------
-// PROJECT   : KuiperZone.Marklet
-// AUTHOR    : Andrew Thomas
-// COPYRIGHT : Andrew Thomas © 2025-2026 All rights reserved
-// LICENSE   : AGPL-3.0-only
+// SPDX-FileNotice: KuiperZone.Marklet - Local AI Client
+// SPDX-License-Identifier: AGPL-3.0-only
+// SPDX-FileCopyrightText: © 2025-2026 Andrew Thomas <kuiperzone@users.noreply.github.com>
+// SPDX-ProjectHomePage: https://kuiper.zone/marklet-ai/
+// SPDX-FileType: Source
+// SPDX-FileComment: This is NOT AI generated source code but was created with human thinking and effort.
 // -----------------------------------------------------------------------------
 
 // Marklet is free software: you can redistribute it and/or modify it under
@@ -16,6 +18,7 @@
 // You should have received a copy of the GNU Affero General Public License along
 // with Marklet. If not, see <https://www.gnu.org/licenses/>.
 
+using Avalonia;
 using KuiperZone.Marklet.Tooling;
 
 namespace KuiperZone.Marklet.PixieChrome.Controls;
@@ -25,6 +28,8 @@ namespace KuiperZone.Marklet.PixieChrome.Controls;
 /// </summary>
 public class CrossTextStub : ICrossTrackable, ICrossTrackOwner
 {
+    private static ulong s_keyCounter;
+
     // Mirror CrossTextBlock behaviour in implementation.
     private CrossTracker? _tracker;
 
@@ -38,38 +43,21 @@ public class CrossTextStub : ICrossTrackable, ICrossTrackOwner
             if (_tracker != value)
             {
                 _tracker?.RemoveInternal(this);
-                _tracker = value;
 
-                if (value != null)
-                {
-                    TrackKey = CrossTracker.NextKey();
-                    value.AddInternal(this);
-                }
-                else
-                {
-                    TrackKey = 0;
-                }
+                _tracker = value;
+                value?.AddInternal(this);
             }
         }
     }
 
     /// <inheritdoc cref="ICrossTrackable.TrackKey"/>
-    public ulong TrackKey { get; private set; }
+    public CrossKey TrackKey { get; } = new(++s_keyCounter);
 
-    /// <inheritdoc cref="ICrossTrackable.HasSelection"/>
-    public bool HasSelection
-    {
-        get { return SelectionStart != SelectionEnd && !IsEmpty; }
-    }
+    /// <inheritdoc cref="ICrossTrackable.TrackPrefix"/>
+    public string? TrackPrefix { get; set; }
 
-    /// <inheritdoc cref="ICrossTrackable.HasComplexContent"/>
-    public bool HasComplexContent { get; }
-
-    /// <inheritdoc cref="ICrossTrackable.SelectionStart"/>
-    public int SelectionStart { get; private set; }
-
-    /// <inheritdoc cref="ICrossTrackable.SelectionEnd"/>
-    public int SelectionEnd { get; private set; }
+    /// <inheritdoc cref="ICrossTrackable.TrackSeparator"/>
+    public string? TrackSeparator { get; set; }
 
     /// <inheritdoc cref="ICrossTrackable.IsEmpty"/>
     public bool IsEmpty
@@ -83,6 +71,26 @@ public class CrossTextStub : ICrossTrackable, ICrossTrackOwner
         get { return Text?.Length ?? 0; }
     }
 
+    /// <inheritdoc cref="ICrossTrackable.SelectionStart"/>
+    public int SelectionStart { get; private set; }
+
+    /// <inheritdoc cref="ICrossTrackable.SelectionEnd"/>
+    public int SelectionEnd { get; private set; }
+
+    /// <inheritdoc cref="ICrossTrackable.HasSelection"/>
+    public bool HasSelection
+    {
+        get { return SelectionStart != SelectionEnd && !IsEmpty; }
+    }
+
+    /// <inheritdoc cref="ICrossTrackable.IsPointerSelectEnabled"/>
+    public bool IsPointerSelectEnabled { get; }
+
+    /// <summary>
+    /// Gets or sets the text.
+    /// </summary>
+    public string? Text { get; set; }
+
     /// <inheritdoc cref="ICrossTrackable.SelectNone"/>
     public bool SelectNone()
     {
@@ -94,14 +102,11 @@ public class CrossTextStub : ICrossTrackable, ICrossTrackOwner
     {
         if (Tracker != null)
         {
-            return Tracker.SelectInternal(this, start, end);
+            return Tracker.SelectSingle(this, start, end);
         }
 
         return SelectInternal(start, end);
     }
-
-    /// <inheritdoc cref="ICrossTrackable.Text"/>
-    public string? Text { get; set; }
 
     /// <inheritdoc cref="ICrossTrackable.SelectAll"/>
     public bool SelectAll()
@@ -138,6 +143,12 @@ public class CrossTextStub : ICrossTrackable, ICrossTrackOwner
 
         ConditionalDebug.WriteLine(NSpace, $"Plain range: [{start}, {end})");
         return Text?.Substring(start, end - start);
+    }
+
+    /// <inheritdoc cref="ICrossTrackable.GetTextPosition"/>
+    public int GetTextPosition(Point point)
+    {
+        return 0;
     }
 
     /// <summary>

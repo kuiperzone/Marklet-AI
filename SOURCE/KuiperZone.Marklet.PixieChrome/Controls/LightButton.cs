@@ -1,8 +1,10 @@
 // -----------------------------------------------------------------------------
-// PROJECT   : KuiperZone.Marklet
-// AUTHOR    : Andrew Thomas
-// COPYRIGHT : Andrew Thomas © 2025-2026 All rights reserved
-// LICENSE   : AGPL-3.0-only
+// SPDX-FileNotice: KuiperZone.Marklet - Local AI Client
+// SPDX-License-Identifier: AGPL-3.0-only
+// SPDX-FileCopyrightText: © 2025-2026 Andrew Thomas <kuiperzone@users.noreply.github.com>
+// SPDX-ProjectHomePage: https://kuiper.zone/marklet-ai/
+// SPDX-FileType: Source
+// SPDX-FileComment: This is NOT AI generated source code but was created with human thinking and effort.
 // -----------------------------------------------------------------------------
 
 // Marklet is free software: you can redistribute it and/or modify it under
@@ -24,6 +26,7 @@ using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Media;
 using Avalonia.Threading;
+using KuiperZone.Marklet.Tooling;
 
 namespace KuiperZone.Marklet.PixieChrome.Controls;
 
@@ -70,7 +73,7 @@ public class LightButton : Border
     // Backing fields
     private ICommand? _command;
     private object? _commandParameter;
-    private KeyGesture? _displayGesture;
+    private KeyGesture? _gesture;
     private string? _content;
     private TextAlignment _contentAlignment = DefaultAlignment;
     private FontWeight _fontWeight = FontWeight.Normal;
@@ -112,10 +115,6 @@ public class LightButton : Border
 
         _underlay.ClipToBounds = true;
         _underlay.Background = Brushes.Transparent;
-        _underlay.PointerPressed += PointerPressedHandler;
-        _underlay.PointerReleased += PointerReleasedHandler;
-        _underlay.PointerEntered += PointerEnteredHandler;
-        _underlay.PointerExited += PointerExitedHandler;
     }
 
     /// <summary>
@@ -262,7 +261,7 @@ public class LightButton : Border
     /// Defines the <see cref="DisabledForeground"/> property.
     /// </summary>
     public static readonly StyledProperty<IBrush> DisabledForegroundProperty =
-        AvaloniaProperty.Register<LightButton, IBrush>(nameof(DisabledForeground), ChromeStyling.ForegroundGray);
+        AvaloniaProperty.Register<LightButton, IBrush>(nameof(DisabledForeground), ChromeStyling.GrayForeground);
 
     /// <summary>
     /// Defines the <see cref="FocusBorderBrush"/> property.
@@ -315,8 +314,8 @@ public class LightButton : Border
     /// </remarks>
     public KeyGesture? Gesture
     {
-        get { return _displayGesture; }
-        set { SetAndRaise(GestureProperty, ref _displayGesture, value); }
+        get { return _gesture; }
+        set { SetAndRaise(GestureProperty, ref _gesture, value); }
     }
 
     /// <summary>
@@ -569,7 +568,7 @@ public class LightButton : Border
     /// <remarks>
     /// The event occurs even if the button is disabled or invisible.
     /// </remarks>
-    public void OnClick()
+    public virtual void OnClick()
     {
         var command = Command;
         var parameter = CommandParameter;
@@ -588,16 +587,16 @@ public class LightButton : Border
 
         RaiseEvent(e1);
 
-        if (!e1.Handled)
+        if (!e1.Handled && DropMenu != null)
         {
-            var menu = DropMenu;
+            DropMenu.Close();
 
-            if (menu?.IsOpen == false && menu.Normalize())
+            if (DropMenu.Normalize())
             {
-                menu.HorizontalOffset = 0;
-                menu.VerticalOffset = 0;
-                menu.Placement = PlacementMode.Bottom;
-                menu.Open(this);
+                DropMenu.HorizontalOffset = 0;
+                DropMenu.VerticalOffset = 0;
+                DropMenu.Placement = PlacementMode.Bottom;
+                DropMenu.Open(this);
             }
         }
     }
@@ -622,13 +621,67 @@ public class LightButton : Border
                 return true;
             }
 
-            if (dropMenu && HandleMenuKeyGesture(DropMenu?.Items, e))
+            if (dropMenu && DropMenu?.HandleKeyGesture(e) == true)
             {
                 return true;
             }
         }
 
         return false;
+    }
+
+    /// <summary>
+    /// Overrides.
+    /// </summary>
+    protected override void OnPointerPressed(PointerPressedEventArgs e)
+    {
+        if (e.GetCurrentPoint(this).Properties.IsLeftButtonPressed)
+        {
+            e.Handled = true;
+            _isPressing = true;
+            UpdateBlockColors(true);
+
+            if (_repeatTimer != null)
+            {
+                _repeatTimer.Interval = RepeatInitialInterval;
+                _repeatTimer.Restart();
+            }
+        }
+    }
+
+    /// <summary>
+    /// Overrides.
+    /// </summary>
+    protected override void OnPointerReleased(PointerReleasedEventArgs e)
+    {
+        if (_isPressing)
+        {
+            e.Handled = true;
+            _isPressing = false;
+            _repeatTimer?.Stop();
+            UpdateBlockColors(false);
+            OnClick();
+        }
+    }
+
+    /// <summary>
+    /// Overrides.
+    /// </summary>
+    protected override void OnPointerEntered(PointerEventArgs _)
+    {
+        _isHovering = true;
+        _isPressing = false;
+        UpdateBlockColors(false);
+    }
+
+    /// <summary>
+    /// Overrides.
+    /// </summary>
+    protected override void OnPointerExited(PointerEventArgs _)
+    {
+        _isHovering = false;
+        _isPressing = false;
+        UpdateBlockColors(false);
     }
 
     /// <summary>
@@ -735,7 +788,7 @@ public class LightButton : Border
                     inlines.Add(new Run(tip + '\u2002'));
 
                     var run = new Run(Gesture.ToString());
-                    run.Foreground = ChromeStyling.ForegroundGray;
+                    run.Foreground = ChromeStyling.GrayForeground;
                     inlines.Add(run);
 
                     block.Inlines = inlines;
@@ -862,40 +915,14 @@ public class LightButton : Border
         base.OnAttachedToVisualTree(e);
 
         // Want arrow cursor even if parent uses different
-        Cursor ??= ChromeCursors.ArrowCursor;
-    }
-
-    private static bool HandleMenuKeyGesture(IEnumerable<object?>? menu, KeyEventArgs e)
-    {
-        if (menu != null && !e.Handled)
-        {
-            foreach (var item in menu)
-            {
-                if (item is MenuItem m && m.IsEffectivelyEnabled && m.IsEffectivelyVisible)
-                {
-                    if (m.InputGesture?.Matches(e) == true)
-                    {
-                        e.Handled = true;
-                        m.RaiseEvent(new RoutedEventArgs(MenuItem.ClickEvent, m));
-                        return true;
-                    }
-
-                    if (HandleMenuKeyGesture(m.Items, e))
-                    {
-                        return true;
-                    }
-                }
-            }
-        }
-
-        return false;
+        Cursor ??= ChromeCursors.Arrow;
     }
 
     private static double ClampFontScale(double scale)
     {
         if (double.IsNaN(scale))
         {
-            throw new ArgumentException("Invalid NaN", nameof(FontScale));
+            throw new ArgumentException("Invalid NaN");
         }
 
         return Math.Clamp(scale, MinFontScale, MaxFontScale);
@@ -953,7 +980,7 @@ public class LightButton : Border
 
     private void UpdateBlockContent()
     {
-        _block.Inlines = ChromeFonts.NewTextRun(_content, _fontSize, _fontScale);
+        _block.Inlines = ChromeFonts.GetRun(_content, _fontSize, _fontScale);
     }
 
     private void UpdateBlockColors(bool pressing)
@@ -1011,48 +1038,6 @@ public class LightButton : Border
 
         // DISABLED
         _block.Foreground = DisabledForeground;
-    }
-
-    private void PointerPressedHandler(object? _, PointerPressedEventArgs e)
-    {
-        if (e.GetCurrentPoint(this).Properties.IsLeftButtonPressed)
-        {
-            e.Handled = true;
-            _isPressing = true;
-            UpdateBlockColors(true);
-
-            if (_repeatTimer != null)
-            {
-                _repeatTimer.Interval = RepeatInitialInterval;
-                _repeatTimer.Restart();
-            }
-        }
-    }
-
-    private void PointerReleasedHandler(object? _, PointerReleasedEventArgs e)
-    {
-        if (_isPressing)
-        {
-            e.Handled = true;
-            _isPressing = false;
-            _repeatTimer?.Stop();
-            UpdateBlockColors(false);
-            OnClick();
-        }
-    }
-
-    private void PointerEnteredHandler(object? _, RoutedEventArgs __)
-    {
-        _isHovering = true;
-        _isPressing = false;
-        UpdateBlockColors(false);
-    }
-
-    private void PointerExitedHandler(object? _, RoutedEventArgs __)
-    {
-        _isHovering = false;
-        _isPressing = false;
-        UpdateBlockColors(false);
     }
 
     private void RepeatTimerTickHandler(object? _, EventArgs __)

@@ -1,8 +1,10 @@
 // -----------------------------------------------------------------------------
-// PROJECT   : KuiperZone.Marklet
-// AUTHOR    : Andrew Thomas
-// COPYRIGHT : Andrew Thomas © 2025-2026 All rights reserved
-// LICENSE   : AGPL-3.0-only
+// SPDX-FileNotice: KuiperZone.Marklet - Local AI Client
+// SPDX-License-Identifier: AGPL-3.0-only
+// SPDX-FileCopyrightText: © 2025-2026 Andrew Thomas <kuiperzone@users.noreply.github.com>
+// SPDX-ProjectHomePage: https://kuiper.zone/marklet-ai/
+// SPDX-FileType: Source
+// SPDX-FileComment: This is NOT AI generated source code but was created with human thinking and effort.
 // -----------------------------------------------------------------------------
 
 // Marklet is free software: you can redistribute it and/or modify it under
@@ -28,6 +30,7 @@ using System.Collections.Specialized;
 using Avalonia.Controls.Primitives;
 using KuiperZone.Marklet.Tooling;
 using Avalonia.Layout;
+using Avalonia.Threading;
 
 namespace KuiperZone.Marklet.PixieChrome.Controls;
 
@@ -38,21 +41,21 @@ namespace KuiperZone.Marklet.PixieChrome.Controls;
 /// The <see cref="PixieControl.ValueChanged"/> event occurs when <see cref="SelectedIndex"/> changes, not the <see
 /// cref="Text"/> value.
 /// </remarks>
-public sealed class PixieCombo : PixieControl
+public class PixieCombo : PixieControl
 {
     private const int DefaultSelectedIndex = -1;
     private const int DefaultMaxEditLength = 256;
     private const double DefaultMinContentWidth = 100;
     private const double DefaultMaxContentWidth = double.PositiveInfinity;
-    private readonly ComboBox _comboBox = new();
-    private TextBox? _innerBox;
-    private StackPanel? _dropPanel;
+    private readonly SpecialBox _box = new();
 
     // Backing fields
     private int _selectedIndex = DefaultSelectedIndex;
     private string? _text;
+    private string? _placeholderText;
     private bool _isEditable;
     private int _maxEditLength = DefaultMaxEditLength;
+    private bool _isTranslateFriendly;
 
     /// <summary>
     /// Default constructor.
@@ -60,32 +63,27 @@ public sealed class PixieCombo : PixieControl
     public PixieCombo()
         : base(true, VerticalAlignment.Center)
     {
-        SetChildControl(_comboBox);
+        SetSubject(_box);
 
-        _comboBox.Classes.Add("corner-styling");
-        SetComboBoxBorder(false);
+        _box.Background = Brushes.Transparent;
+        _box.MaxDropDownHeight = MaxDropHeight;
+        _box.VerticalAlignment = VerticalContentAlignment;
+        _box.MinWidth = DefaultMinContentWidth;
+        _box.MaxWidth = DefaultMaxContentWidth;
 
-        _comboBox.Background = Brushes.Transparent;
-        _comboBox.MaxDropDownHeight = MaxDropHeight;
-        _comboBox.VerticalAlignment = VerticalContentAlignment;
-        _comboBox.MinWidth = DefaultMinContentWidth;
-        _comboBox.MaxWidth = DefaultMaxContentWidth;
+        var align = SubjectAlignment; // <- follow init
+        _box.HorizontalAlignment = align;
+        _box.HorizontalContentAlignment = align;
+        _box.Margin = new(0.0, ChromeSizes.SmallPx);
+        _box.PlaceholderText = "None";
 
-        var align = ControlAlignment; // <- follow init
-        _comboBox.HorizontalAlignment = align;
-        _comboBox.HorizontalContentAlignment = align;
-
-        _comboBox.ItemsPanel = new FuncTemplate<Panel?>(CreateItemsPanel);
-        _comboBox.GotFocus += InnerGotFocusHandler;
-        _comboBox.LostFocus += InnerLostFocusHandler;
-        _comboBox.DropDownClosed += InnerClosedHandler;
-        _comboBox.SelectionChanged += InnerSelectionIndexChangedHandler;
-        _comboBox.TemplateApplied += InnerTemplateAppliedHandler;
+        _box.SelectionChanged += BoxSelectionIndexChangedHandler;
+        _box.DropDownClosed += DropClosedHandler;
 
         var route = RoutingStrategies.Bubble;
-        _comboBox.AddHandler(KeyDownEvent, InnerKeyDownHandler, route);
-        _comboBox.AddHandler(TextInputEvent, InnerTextInputHandler, route);
-        _comboBox.AddHandler(TextBox.TextChangedEvent, InnerTextChangedHandler, route);
+        _box.AddHandler(KeyDownEvent, BoxKeyDownHandler, route);
+        _box.AddHandler(TextInputEvent, BoxTextInputHandler, route);
+        _box.AddHandler(TextBox.TextChangedEvent, BoxTextChangedHandler, route);
 
         Items.CollectionChanged += ItemsChangedHandler;
     }
@@ -99,9 +97,9 @@ public sealed class PixieCombo : PixieControl
     /// <summary>
     /// Defines the <see cref="Items"/> property.
     /// </summary>
-    public static readonly DirectProperty<PixieCombo, AvaloniaList<string>> ItemsProperty =
-        AvaloniaProperty.RegisterDirect<PixieCombo, AvaloniaList<string>>(
-            nameof(Items), o => o.Items, (o, v) => o.Items = v ?? new AvaloniaList<string>());
+    public static readonly DirectProperty<PixieCombo, AvaloniaList<object>> ItemsProperty =
+        AvaloniaProperty.RegisterDirect<PixieCombo, AvaloniaList<object>>(
+            nameof(Items), o => o.Items, (o, v) => o.Items = v ?? new AvaloniaList<object>());
 
     /// <summary>
     /// Defines the <see cref="SelectedIndex"/> property.
@@ -118,6 +116,13 @@ public sealed class PixieCombo : PixieControl
         o => o.Text, (o, v) => o.Text = v);
 
     /// <summary>
+    /// Defines the <see cref="PlaceholderText"/> property.
+    /// </summary>
+    public static readonly DirectProperty<PixieCombo, string?> PlaceholderTextProperty =
+        AvaloniaProperty.RegisterDirect<PixieCombo, string?>(nameof(PlaceholderText),
+        o => o.PlaceholderText, (o, v) => o.PlaceholderText = v);
+
+    /// <summary>
     /// Defines the <see cref="IsEditable"/> property.
     /// </summary>
     public static readonly DirectProperty<PixieCombo, bool> IsEditableProperty =
@@ -132,28 +137,35 @@ public sealed class PixieCombo : PixieControl
         o => o.MaxEditLength, (o, v) => o.MaxEditLength = v, DefaultMaxEditLength);
 
     /// <summary>
+    /// Defines the <see cref="IsTranslateFriendly"/> property.
+    /// </summary>
+    public static readonly DirectProperty<PixieCombo, bool> IsTranslateFriendlyProperty =
+        AvaloniaProperty.RegisterDirect<PixieCombo, bool>(nameof(IsTranslateFriendly),
+        o => o.IsTranslateFriendly, (o, v) => o.IsTranslateFriendly = v);
+
+    /// <summary>
     /// Defines the <see cref="MaxDropHeight"/> property.
     /// </summary>
     public static readonly StyledProperty<double> MaxDropHeightProperty =
         AvaloniaProperty.Register<PixieCombo, double>(nameof(MaxDropHeight), 300.0);
 
     /// <summary>
-    /// Defines the <see cref="MinControlWidth"/> property.
+    /// Defines the <see cref="MinSubjectWidth"/> property.
     /// </summary>
-    public static readonly StyledProperty<double> MinControlWidthProperty =
-        AvaloniaProperty.Register<PixieCombo, double>(nameof(MinControlWidth), DefaultMinContentWidth);
+    public static readonly StyledProperty<double> MinSubjectWidthProperty =
+        AvaloniaProperty.Register<PixieCombo, double>(nameof(MinSubjectWidth), DefaultMinContentWidth);
 
     /// <summary>
-    /// Defines the <see cref="MaxControlWidth"/> property.
+    /// Defines the <see cref="MaxSubjectWidth"/> property.
     /// </summary>
-    public static readonly StyledProperty<double> MaxControlWidthProperty =
-        AvaloniaProperty.Register<PixieCombo, double>(nameof(MaxControlWidth), DefaultMaxContentWidth);
+    public static readonly StyledProperty<double> MaxSubjectWidthProperty =
+        AvaloniaProperty.Register<PixieCombo, double>(nameof(MaxSubjectWidth), DefaultMaxContentWidth);
 
     /// <summary>
-    /// Defines the <see cref="ControlAlignment"/> property.
+    /// Defines the <see cref="SubjectAlignment"/> property.
     /// </summary>
-    public static readonly StyledProperty<HorizontalAlignment> ControlAlignmentProperty =
-        AvaloniaProperty.Register<PixieCombo, HorizontalAlignment>(nameof(ControlAlignment),
+    public static readonly StyledProperty<HorizontalAlignment> SubjectAlignmentProperty =
+        AvaloniaProperty.Register<PixieCombo, HorizontalAlignment>(nameof(SubjectAlignment),
         HorizontalAlignment.Right);
 
     /// <summary>
@@ -172,7 +184,7 @@ public sealed class PixieCombo : PixieControl
     /// The default is empty.
     /// </remarks>
     [Content]
-    public AvaloniaList<string> Items { get; private set; } = new();
+    public AvaloniaList<object> Items { get; private set; } = new();
 
     /// <summary>
     /// Gets or sets the selected index.
@@ -192,9 +204,10 @@ public sealed class PixieCombo : PixieControl
     /// </summary>
     /// <remarks>
     /// The value may change when <see cref="SelectedIndex"/> changes or when the user inputs text where <see
-    /// cref="IsEditable"/> is true. It may also be set where <see cref="IsEditable"/> is true. The <see
-    /// cref="PixieControl.ValueChanged"/> does not occur when <see cref="Text"/> changes, but may occur if the change
-    /// causes <see cref="SelectedIndex"/> to change. Setting does nothing where <see cref="IsEditable"/> is false.
+    /// cref="IsEditable"/> is true. It may also be set programmatically only where <see cref="IsEditable"/> is true.
+    /// The <see cref="PixieControl.ValueChanged"/> does not occur when <see cref="Text"/> changes, but may occur if the
+    /// change causes <see cref="SelectedIndex"/> to change. Setting does nothing where <see cref="IsEditable"/> is
+    /// false.
     /// </remarks>
     public string? Text
     {
@@ -207,6 +220,15 @@ public sealed class PixieCombo : PixieControl
                 SetAndRaise(TextProperty, ref _text, value);
             }
         }
+    }
+
+    /// <summary>
+    /// Gets or sets the placeholder text.
+    /// </summary>
+    public string? PlaceholderText
+    {
+        get { return _placeholderText; }
+        set { SetAndRaise(PlaceholderTextProperty, ref _placeholderText, value); }
     }
 
     /// <summary>
@@ -235,6 +257,19 @@ public sealed class PixieCombo : PixieControl
     }
 
     /// <summary>
+    /// Gets or sets whether to translate display content of <see cref="Items"/>.
+    /// </summary>
+    /// <remarks>
+    /// Where <see cref="IsTranslateFriendly"/> is true, the result of <see cref="Textual.GetFriendlyNameOf(string,
+    /// int)"/> is shown in place of item Tostring().
+    /// </remarks>
+    public bool IsTranslateFriendly
+    {
+        get { return _isTranslateFriendly; }
+        set { SetAndRaise(IsTranslateFriendlyProperty, ref _isTranslateFriendly, value); }
+    }
+
+    /// <summary>
     /// Gets or sets the maximum drop-down height.
     /// </summary>
     public double MaxDropHeight
@@ -244,71 +279,65 @@ public sealed class PixieCombo : PixieControl
     }
 
     /// <summary>
-    /// Gets or sets the minimum control width.
+    /// Gets or sets the minimum subject control width.
     /// </summary>
-    public double MinControlWidth
+    public double MinSubjectWidth
     {
-        get { return GetValue(MinControlWidthProperty); }
-        set { SetValue(MinControlWidthProperty, value); }
+        get { return GetValue(MinSubjectWidthProperty); }
+        set { SetValue(MinSubjectWidthProperty, value); }
     }
 
     /// <summary>
-    /// Gets or sets the maximum control width.
+    /// Gets or sets the maximum subject control width.
     /// </summary>
     /// <remarks>
     /// When inputting text into an editable control, its width may grow. This can be used to clamp it.
     /// </remarks>
-    public double MaxControlWidth
+    public double MaxSubjectWidth
     {
-        get { return GetValue(MaxControlWidthProperty); }
-        set { SetValue(MaxControlWidthProperty, value); }
+        get { return GetValue(MaxSubjectWidthProperty); }
+        set { SetValue(MaxSubjectWidthProperty, value); }
     }
 
     /// <summary>
-    /// Gets or sets the selectable drop-down alignment.
+    /// Gets or sets the subject control alignment.
     /// </summary>
     /// <remarks>
     /// The default is Right.
     /// </remarks>
-    public HorizontalAlignment ControlAlignment
+    public HorizontalAlignment SubjectAlignment
     {
-        get { return GetValue(ControlAlignmentProperty); }
-        set { SetValue(ControlAlignmentProperty, value); }
+        get { return GetValue(SubjectAlignmentProperty); }
+        set { SetValue(SubjectAlignmentProperty, value); }
     }
 
     /// <summary>
     /// Populates <see cref="Items"/> directly from values of enum type T.
     /// </summary>
     /// <remarks>
-    /// See also <see cref="GetSelectedIndexAs{T}(T)"/>.
+    /// Selected values may be excluded.
     /// </remarks>
-    public string[] SetItemsAs<T>() where T : struct, Enum
+    public void SetItemsAs<T>(params T[] exclusions) where T : struct, Enum
     {
-        var values = Enum.GetNames<T>();
-
-        for (int n = 0; n < values.Length; ++n)
-        {
-            values[n] = values[n].GetFriendlyNameOf();
-        }
-
         Items.Clear();
-        Items.AddRange(values);
-        return values;
+
+        foreach (var item in Enum.GetValues<T>())
+        {
+            if (!exclusions.Contains(item))
+            {
+                Items.Add(item);
+            }
+        }
     }
 
     /// <summary>
-    /// Converts <see cref="SelectedIndex"/> numeric value to an enum of T, or returns "def" if index is not valid.
+    /// Helper which casts <see cref="SelectedIndex"/> value to T.
     /// </summary>
-    public T GetSelectedIndexAs<T>(T def = default) where T : struct, Enum
+    /// <exception cref="InvalidCastException">Invalid cast</exception>
+    /// <exception cref="ArgumentOutOfRangeException">SelectedIndex</exception>
+    public T GetSelectedIndexAs<T>()
     {
-        var value = (T)(object)SelectedIndex;
-
-        if (Enum.IsDefined<T>(value))
-        {
-            return value;
-        }
-
-        return def;
+        return (T)Items[SelectedIndex];
     }
 
     /// <summary>
@@ -327,16 +356,24 @@ public sealed class PixieCombo : PixieControl
             return false;
         }
 
-        foreach (var item in Items)
+        return false;
+    }
+
+    /// <summary>
+    /// Given an element of <see cref="Items"/>, returns the instance to be displayed in the drop panel.
+    /// </summary>
+    /// <remarks>
+    /// Where <see cref="IsTranslateFriendly"/> is true, the base method returns <see cref="Textual.GetFriendlyNameOf(string,
+    /// int)"/> for the given "item". Otherwise, it simply returns "item" itself. May be overridden for translation.
+    /// </remarks>
+    protected virtual object GetDropItem(object item)
+    {
+        if (_isTranslateFriendly)
         {
-            if (item.Contains(keyword, StringComparison.OrdinalIgnoreCase))
-            {
-                findings?.Add(new(this));
-                return true;
-            }
+            return item.ToString()?.GetFriendlyNameOf() ?? "";
         }
 
-        return false;
+        return item;
     }
 
     /// <summary>
@@ -349,54 +386,74 @@ public sealed class PixieCombo : PixieControl
 
         if (p == SelectedIndexProperty)
         {
-            _comboBox.SelectedIndex = change.GetNewValue<int>();
+            _box.SelectedIndex = change.GetNewValue<int>();
             return;
         }
 
         if (p == TextProperty)
         {
             // Already linked up to fire event when changes
-            _comboBox.Text = change.GetNewValue<string?>();
+            _box.Text = change.GetNewValue<string?>();
+            return;
+        }
+
+        if (p == PlaceholderTextProperty)
+        {
+            _box.PlaceholderText = change.GetNewValue<string?>();
             return;
         }
 
         if (p == IsEditableProperty)
         {
             // See below as to why we combine with enabled
-            _comboBox.IsEditable = change.GetNewValue<bool>() && IsEffectivelyEnabled;
-            _comboBox.HorizontalContentAlignment = GetInternalAlignment(ControlAlignment);
+            _box.IsEditable = change.GetNewValue<bool>() && IsEffectivelyEnabled;
+            _box.HorizontalContentAlignment = GetInternalAlignment(SubjectAlignment);
             return;
         }
+
+        if (p == IsTranslateFriendlyProperty)
+        {
+            if (Items.Count != 0)
+            {
+                // Force rebuild
+                var hold = Items.ToArray();
+                Items.Clear();
+                Items.AddRange(hold);
+            }
+
+            return;
+        }
+
 
         if (p == MaxEditLengthProperty)
         {
-            // Nothing needed to be done?
+            _box.MaxLength = _maxEditLength;
             return;
         }
 
-        if (p == MinControlWidthProperty)
+        if (p == MinSubjectWidthProperty)
         {
-            _comboBox.MinWidth = change.GetNewValue<double>();
+            _box.MinWidth = change.GetNewValue<double>();
             return;
         }
 
-        if (p == MaxControlWidthProperty)
+        if (p == MaxSubjectWidthProperty)
         {
-            _comboBox.MaxWidth = change.GetNewValue<double>();
+            _box.MaxWidth = change.GetNewValue<double>();
             return;
         }
 
         if (p == MaxDropHeightProperty)
         {
-            _comboBox.MaxDropDownHeight = change.GetNewValue<double>();
+            _box.MaxDropDownHeight = change.GetNewValue<double>();
             return;
         }
 
-        if (p == ControlAlignmentProperty)
+        if (p == SubjectAlignmentProperty)
         {
             var value = change.GetNewValue<HorizontalAlignment>();
-            _comboBox.HorizontalAlignment = value;
-            _comboBox.HorizontalContentAlignment = GetInternalAlignment(value);
+            _box.HorizontalAlignment = value;
+            _box.HorizontalContentAlignment = GetInternalAlignment(value);
             return;
         }
 
@@ -405,7 +462,7 @@ public sealed class PixieCombo : PixieControl
             // Fighting fluent
             // Editable ComboBox shows jankeyness which disabled.
             // Therefore we temporarily turn editable off when disabled.
-            _comboBox.IsEditable = IsEditable && change.GetNewValue<bool>();
+            _box.IsEditable = IsEditable && change.GetNewValue<bool>();
             return;
         }
     }
@@ -418,38 +475,22 @@ public sealed class PixieCombo : PixieControl
         const string NSpace = $"{nameof(PixieCombo)}.{nameof(OnPointerPressed)}";
         base.OnPointerPressed(e);
 
-        var info = e.GetCurrentPoint(this);
-
-        if (info.Properties.IsLeftButtonPressed && !_comboBox.IsPointerOver && MaxEditLength <= 0)
+        if (_isEditable)
         {
-            ConditionalDebug.WriteLine(NSpace, "Left pressed");
-            e.Handled = true;
-            _comboBox.IsDropDownOpen = true;
             return;
         }
-    }
 
-    private static void UpdateDropPanelItem(Control? item)
-    {
-        if (item != null)
+        var info = e.GetCurrentPoint(this);
+        ConditionalDebug.WriteLine(NSpace, "Left pressed A");
+        ConditionalDebug.WriteLine(NSpace, "Pointer over Combo: " + _box.IsPointerOver);
+
+        if (info.Properties.IsLeftButtonPressed && !_isEditable && !_box.IsPointerOver)
         {
-            var marg = ChromeSizes.RegularPadding;
-            item.Margin = new(marg.Left, marg.Top / 2.0, marg.Right * 2.0, marg.Bottom / 2.0);
-
-            // Optional?
-            // item.HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Center;
-
-            if (item is TemplatedControl t)
-            {
-                t.CornerRadius = Styling.SmallCornerRadius;
-            }
+            ConditionalDebug.WriteLine(NSpace, "Left pressed B");
+            e.Handled = true;
+            _box.IsDropDownOpen = true;
+            return;
         }
-    }
-
-    private void SetComboBoxBorder(bool focused)
-    {
-        // Fighting Fluent here
-        _comboBox.BorderBrush = focused ? Styling.AccentBrush : Brushes.Transparent;
     }
 
     private HorizontalAlignment GetInternalAlignment(HorizontalAlignment dropAlign)
@@ -457,43 +498,40 @@ public sealed class PixieCombo : PixieControl
         return IsEditable ? HorizontalAlignment.Left : dropAlign;
     }
 
-    private StackPanel CreateItemsPanel()
-    {
-        _dropPanel = new StackPanel();
-        _dropPanel.Orientation = Orientation.Vertical;
-        _dropPanel.Children.CollectionChanged += InnerPanelChildrenChangedHandler;
-        return _dropPanel;
-    }
-
     private void ItemsChangedHandler(object? _, EventArgs __)
     {
-        var items = Items;
-        var comboItems = _comboBox.Items;
+        var src = Items;
+        var dest = _box.Items;
 
-        while (comboItems.Count > items.Count)
+        while (dest.Count > src.Count)
         {
-            comboItems.RemoveAt(comboItems.Count - 1);
+            dest.RemoveAt(dest.Count - 1);
         }
 
-        for (int n = 0; n < items.Count; ++n)
+        for (int n = 0; n < src.Count; ++n)
         {
-            if (n == comboItems.Count)
+            if (n == dest.Count)
             {
                 // New item
-                comboItems.Add(items[n]);
+                dest.Add(GetDropItem(src[n]));
                 continue;
             }
 
-            comboItems[n] = items[n];
+            dest[n] = GetDropItem(src[n]);
         }
     }
 
-    private void InnerTextInputHandler(object? _, TextInputEventArgs e)
+    private void BoxTextChangedHandler(object? _, EventArgs __)
+    {
+        // Occurs asynchronously after text changes and the new text is rendered.
+        const string NSpace = $"{nameof(PixieCombo)}.{nameof(BoxTextChangedHandler)}";
+        ConditionalDebug.WriteLine(NSpace, $"Text: {_box.Text}");
+        _text = _box.Text;
+    }
+
+    private void BoxTextInputHandler(object? _, TextInputEventArgs e)
     {
         // This only fires (synchronously) in response to user key press only (not setting).
-        const string NSpace = $"{nameof(PixieCombo)}.{nameof(InnerTextInputHandler)}";
-        ConditionalDebug.WriteLine(NSpace, $"Input: {e.Text}");
-
         int length = _text?.Length ?? 0;
 
         if (e.Text != null && length + e.Text.Length > MaxEditLength)
@@ -502,82 +540,193 @@ public sealed class PixieCombo : PixieControl
         }
     }
 
-    private void InnerTextChangedHandler(object? _, EventArgs __)
+    private void BoxSelectionIndexChangedHandler(object? _, EventArgs __)
     {
-        // Occurs asynchronously after text changes and the new text is rendered.
-        const string NSpace = $"{nameof(PixieCombo)}.{nameof(InnerTextChangedHandler)}";
-        ConditionalDebug.WriteLine(NSpace, $"Text: {_comboBox.Text}");
-        _text = _comboBox.Text;
-    }
-
-    private void InnerSelectionIndexChangedHandler(object? _, EventArgs __)
-    {
-        _selectedIndex = _comboBox.SelectedIndex;
+        _selectedIndex = _box.SelectedIndex;
 
         if (_selectedIndex > -1 && _selectedIndex < Items.Count)
         {
-            _text = Items[_selectedIndex];
+            _text = Items[_selectedIndex]?.ToString();
         }
 
         OnValueChanged();
     }
 
-    private void InnerKeyDownHandler(object? _, KeyEventArgs e)
+    private void BoxKeyDownHandler(object? _, KeyEventArgs e)
     {
-        const string NSpace = $"{nameof(PixieCombo)}.{nameof(InnerKeyDownHandler)}";
-        ConditionalDebug.WriteLine(NSpace, $"Key: {e.PhysicalKey}");
+        const string NSpace = $"{nameof(PixieCombo)}.{nameof(BoxKeyDownHandler)}";
+        ConditionalDebug.WriteLine(NSpace, $"Key: {e.Key}");
 
-        if (e.PhysicalKey == PhysicalKey.Enter && IsEditable && !_comboBox.IsDropDownOpen)
+        if (e.Key == Key.Enter && IsEditable && !_box.IsDropDownOpen)
         {
             e.Handled = true;
             RaiseEvent(new RoutedEventArgs(EditSubmittedEvent, this));
+            return;
         }
     }
 
-    private void InnerPanelChildrenChangedHandler(object? _, NotifyCollectionChangedEventArgs e)
+    private void DropClosedHandler(object? _, EventArgs __)
     {
-        if (e.NewItems != null)
+        SelectedIndex = _box.SelectedIndex;
+    }
+
+    /// <summary>
+    /// Attempts to curtail Fluent Combo jankiness
+    /// </summary>
+    private class SpecialBox : ComboBox
+    {
+        private TextBox? _edit;
+        private StackPanel? _dropPanel;
+        private int _maxLength = DefaultMaxEditLength;
+
+        public SpecialBox()
         {
-            foreach (var item in e.NewItems)
+            Classes.Add("corner-small");
+            SetSpecialBorder(false);
+            ItemsPanel = new FuncTemplate<Panel?>(CreateItemsPanel);
+
+            DropDownOpened += DropOpenedHandler;
+        }
+
+        public int MaxLength
+        {
+            get { return _maxLength; }
+
+            set
             {
-                if (item is Control c)
+                if (_maxLength != value)
                 {
-                    c.FocusAdorner = ChromeStyling.NewAdorner();
-                    UpdateDropPanelItem(c);
+                    _maxLength = value;
+                    _edit?.MaxLength = value;
                 }
+            }
+        }
+
+        protected override Type StyleKeyOverride { get; } = typeof(ComboBox);
+
+        protected override void OnPropertyChanged(AvaloniaPropertyChangedEventArgs change)
+        {
+            var p = change.Property;
+            base.OnPropertyChanged(change);
+
+            if (p == IsEditableProperty)
+            {
+                SetSpecialBorder(IsFocused);
+                return;
+            }
+        }
+
+        protected override void OnPointerPressed(PointerPressedEventArgs e)
+        {
+            var info = e.GetCurrentPoint(this);
+
+            if (info.Properties.IsLeftButtonPressed && _edit?.IsPointerOver == false)
+            {
+                e.Handled = true;
+                IsDropDownOpen = true;
+                _dropPanel?.Focus();
+                return;
+            }
+
+            base.OnPointerPressed(e);
+        }
+
+        protected override void OnApplyTemplate(TemplateAppliedEventArgs e)
+        {
+            base.OnApplyTemplate(e);
+
+            // Fighting fluent
+            // Locates the internal TextBox and disables its separate jankey FocusAdorner.
+            _edit = e.NameScope.Find<TextBox>("PART_EditableTextBox");
+            ConditionalDebug.ThrowIfNull(_edit);
+
+            if (_edit != null)
+            {
+                _edit.FocusAdorner = null;
+                _edit.Background = Brushes.Transparent;
+                _edit.MaxLines = 1;
+                _edit.MaxLength = _maxLength;
+            }
+        }
+
+        protected override void OnGotFocus(GotFocusEventArgs e)
+        {
+            base.OnGotFocus(e);
+            SetSpecialBorder(true);
+            ClearValue(BackgroundProperty);
+        }
+
+        protected override void OnLostFocus(RoutedEventArgs e)
+        {
+            base.OnLostFocus(e);
+            SetSpecialBorder(false);
+            Background = Brushes.Transparent;
+        }
+
+        private static void UpdateDropPanelItem(Control? item)
+        {
+            if (item != null)
+            {
+                var marg = ChromeSizes.StandardPadding;
+                item.Margin = new(marg.Left, marg.Top / 2.0, marg.Right * 2.0, marg.Bottom / 2.0);
+
+                if (item is TemplatedControl t)
+                {
+                    t.CornerRadius = Styling.SmallCornerRadius;
+                }
+            }
+        }
+
+        private StackPanel CreateItemsPanel()
+        {
+            _dropPanel = new StackPanel();
+            _dropPanel.Orientation = Orientation.Vertical;
+            _dropPanel.Children.CollectionChanged += DropChildrenChangedHandler;
+            return _dropPanel;
+        }
+
+        private void SetSpecialBorder(bool focused)
+        {
+            // Fighting Fluent here
+            if (focused)
+            {
+                BorderBrush = Styling.AccentBrush;
+                return;
+            }
+
+            if (IsEditable)
+            {
+                ClearValue(BorderBrushProperty);
+                return;
+            }
+
+            BorderBrush = Brushes.Transparent;
+        }
+
+        private void DropChildrenChangedHandler(object? _, NotifyCollectionChangedEventArgs e)
+        {
+            if (e.NewItems != null)
+            {
+                foreach (var item in e.NewItems)
+                {
+                    if (item is Control c)
+                    {
+                        c.FocusAdorner = ChromeStyling.NewAdorner();
+                        UpdateDropPanelItem(c);
+                    }
+                }
+            }
+        }
+
+        private void DropOpenedHandler(object? _, EventArgs __)
+        {
+            _dropPanel?.GetParentOf<Border>()?.Background = ChromeStyling.Global.TintBackground;
+
+            if (Items.Count == 0)
+            {
+                Dispatcher.UIThread.Post(() => IsDropDownOpen = false, DispatcherPriority.ContextIdle);
             }
         }
     }
 
-    private void InnerTemplateAppliedHandler(object? _, TemplateAppliedEventArgs e)
-    {
-        // Fighting fluent
-        // Locates the internal TextBox and disables its separate jankey FocusAdorner.
-        _innerBox = e.NameScope.Find<TextBox>("PART_EditableTextBox");
-        ConditionalDebug.ThrowIfNull(_innerBox);
-
-        _innerBox?.SetValue(FocusAdornerProperty, null);
-        _innerBox?.SetValue(BackgroundProperty, Brushes.Transparent);
-        _innerBox?.SetValue(TextBox.MaxLinesProperty, 1);
-
-        // Only need it once
-        _comboBox.TemplateApplied -= InnerTemplateAppliedHandler;
-    }
-
-    private void InnerGotFocusHandler(object? _, EventArgs __)
-    {
-        SetComboBoxBorder(true);
-        _comboBox.ClearValue(BackgroundProperty);
-    }
-
-    private void InnerLostFocusHandler(object? _, EventArgs __)
-    {
-        SetComboBoxBorder(false);
-        _comboBox.Background = Brushes.Transparent;
-    }
-
-    private void InnerClosedHandler(object? _, EventArgs __)
-    {
-        SelectedIndex = _comboBox.SelectedIndex;
-    }
 }

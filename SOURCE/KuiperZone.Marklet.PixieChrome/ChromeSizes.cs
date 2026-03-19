@@ -1,8 +1,10 @@
 // -----------------------------------------------------------------------------
-// PROJECT   : KuiperZone.Marklet
-// AUTHOR    : Andrew Thomas
-// COPYRIGHT : Andrew Thomas © 2025-2026 All rights reserved
-// LICENSE   : AGPL-3.0-only
+// SPDX-FileNotice: KuiperZone.Marklet - Local AI Client
+// SPDX-License-Identifier: AGPL-3.0-only
+// SPDX-FileCopyrightText: © 2025-2026 Andrew Thomas <kuiperzone@users.noreply.github.com>
+// SPDX-ProjectHomePage: https://kuiper.zone/marklet-ai/
+// SPDX-FileType: Source
+// SPDX-FileComment: This is NOT AI generated source code but was created with human thinking and effort.
 // -----------------------------------------------------------------------------
 
 // Marklet is free software: you can redistribute it and/or modify it under
@@ -28,6 +30,12 @@ namespace KuiperZone.Marklet.PixieChrome;
 /// </remarks>
 public static class ChromeSizes
 {
+    // Base margin/padding. Scales if we increase font size.
+    // Chosen as minimum to safely keep controls away
+    // from side with Large rounded corners
+    private const double StdX = ChromeFonts.DefaultFontSize * 0.6250;
+    private const double StdY = ChromeFonts.DefaultFontSize * 0.4286;
+
     /// <summary>
     /// Gets the <see cref="ChromeFonts.DefaultFontSize"/> multipled by 0.55 as a rough char width approximation.
     /// </summary>
@@ -44,92 +52,152 @@ public static class ChromeSizes
     public const double TabPx = OneCh * 4.0;
 
     /// <summary>
-    /// Gets a small pixels spacer (6px at font-size 14).
+    /// Gets a small pixel spacer (~3px at font-size 14).
     /// </summary>
-    public const double SmallSpacerPx = ChromeFonts.DefaultFontSize * 0.4285;
+    public const double SmallPx = StdY * 0.5;
 
     /// <summary>
-    /// Gets medium pixels spacer (12px at font-size 14).
+    /// Gets medium pixel spacer (~6px at font-size 14).
     /// </summary>
-    public const double MediumSpacerPx = SmallSpacerPx * 2.0;
+    public const double StandardPx = StdY;
 
     /// <summary>
-    /// Gets large pixels spacer (24px at font-size 14).
+    /// Gets large pixel spacer (~12px at font-size 14).
     /// </summary>
-    public const double LargeSpacerPx = SmallSpacerPx * 4.0;
+    public const double LargePx = StdY * 2.0;
 
     /// <summary>
-    /// Gets large pixels spacer (32px at font-size 14).
+    /// Gets large pixel spacer (~24px at font-size 14).
     /// </summary>
-    public const double HugeSpacerPx = SmallSpacerPx * 5.3333;
+    public const double HugePx = StdY * 4.0;
 
     /// <summary>
-    /// Gets the GridSplitter Height or Width (4px at font-size 14).
+    /// Gets large pixel spacer (~48px at font-size 14).
     /// </summary>
-    public const double SplitterSize = ChromeFonts.DefaultFontSize / 4.5;
+    public const double GiantPx = StdY * 8.0;
 
     /// <summary>
-    /// Gets minimum dialog button width.
+    /// Gets minimum dialog button width (~80px).
     /// </summary>
-    public const double MinDialogButtonWidth = ChromeFonts.DefaultFontSize * 5.7143; // <- ~80px
+    public const double MinDialogButtonWidth = ChromeFonts.DefaultFontSize * 5.7143;
 
     /// <summary>
-    /// Gets minimum dialog button height.
+    /// Gets minimum dialog button height (~32px).
     /// </summary>
-    public const double MinDialogButtonHeight = ChromeFonts.DefaultFontSize * 2.2857; // <- ~32px
+    public const double MinDialogButtonHeight = ChromeFonts.DefaultFontSize * 2.2857;
+
 
     /// <summary>
-    /// Gets a padding sufficient to ensure contents are clear of rounded corners.
+    /// Gets padding 0.25 x size of <see cref="StandardPadding"/>.
+    /// </summary>
+    /// <remarks>
+    /// Intended to be approx 2 pixels. The padding is not uniform.
+    /// </remarks>
+    public static readonly Thickness TinyPadding = new(0.25 * StdX, 0.25 * StdY);
+
+    /// <summary>
+    /// Gets left-right of <see cref="TinyPadding"/> only.
+    /// </summary>
+    public static readonly Thickness TinyLeftRight = new(0.25 * StdX, 0.0);
+
+    /// <summary>
+    /// Gets top-bottom of <see cref="TinyPadding"/> only.
+    /// </summary>
+    public static readonly Thickness TinyTopBottom = new(0.0, 0.25 * StdY);
+
+
+    /// <summary>
+    /// Gets padding 0.5 x size of <see cref="StandardPadding"/>.
+    /// </summary>
+    /// <remarks>
+    /// Intended to be approx 4 pixels. The padding is not uniform.
+    /// </remarks>
+    public static readonly Thickness SmallPadding = new(0.5 * StdX, 0.5 * StdY);
+
+    /// <summary>
+    /// Gets left-right of <see cref="SmallPadding"/> only.
+    /// </summary>
+    public static readonly Thickness SmallLeftRight = new(0.5 * StdX, 0.0);
+
+    /// <summary>
+    /// Gets top-bottom of <see cref="SmallPadding"/> only.
+    /// </summary>
+    public static readonly Thickness SmallTopBottom = new(0.0, 0.5 * StdY);
+
+
+    /// <summary>
+    /// Gets a padding sufficient to ensure contents are clear of rounded corners at <see cref="CornerSize.Large"/>.
     /// </summary>
     /// <remarks>
     /// The padding is not uniform.
     /// </remarks>
-    public static readonly Thickness RegularPadding = new(ChromeFonts.LargeFontSize / 2.0, ChromeFonts.LargeFontSize / 3.0);
+    public static readonly Thickness StandardPadding = new(StdX, StdY);
 
     /// <summary>
-    /// Gets left-right of <see cref="RegularPadding"/> only.
+    /// Gets left-right of <see cref="StandardPadding"/> only.
     /// </summary>
-    public static readonly Thickness RegularLeftRight = new(RegularPadding.Left, 0.0);
+    public static readonly Thickness StandardLeftRight = new(StdX, 0.0);
 
     /// <summary>
-    /// Gets top-bottom of <see cref="RegularPadding"/> only.
+    /// Gets top-bottom of <see cref="StandardPadding"/> only.
     /// </summary>
-    public static readonly Thickness RegularTopBottom = new(0.0, RegularPadding.Top);
+    public static readonly Thickness StandardTopBottom = new(0.0, StdY);
+
 
     /// <summary>
-    /// Gets padding twice the size of <see cref="RegularPadding"/>.
+    /// Gets padding 2 x size of <see cref="StandardPadding"/>.
     /// </summary>
     /// <remarks>
     /// The padding is not uniform.
     /// </remarks>
-    public static readonly Thickness LargePadding = new(ChromeFonts.LargeFontSize, 2.0 * ChromeFonts.LargeFontSize / 3.0);
+    public static readonly Thickness LargePadding = new(2.0 * StdX, 2.0 * StdY);
 
     /// <summary>
     /// Gets left-right of <see cref="LargePadding"/> only.
     /// </summary>
-    public static readonly Thickness LargeLeftRight = new(LargePadding.Left, 0.0);
+    public static readonly Thickness LargeLeftRight = new(2.0 * StdX, 0.0);
 
     /// <summary>
     /// Gets top-bottom of <see cref="LargePadding"/> only.
     /// </summary>
-    public static readonly Thickness LargeTopBottom = new(0.0, LargePadding.Top);
+    public static readonly Thickness LargeTopBottom = new(0.0, 2.0 * StdY);
+
 
     /// <summary>
-    /// Gets padding twice the size of <see cref="LargePadding"/>.
+    /// Gets padding 4 x size of <see cref="StandardPadding"/>.
     /// </summary>
     /// <remarks>
     /// The padding is not uniform.
     /// </remarks>
-    public static readonly Thickness HugePadding = new(2.0 * ChromeFonts.LargeFontSize, 4.0 * ChromeFonts.LargeFontSize / 3.0);
+    public static readonly Thickness HugePadding = new(4.0 * StdX, 4.0 * StdY);
 
     /// <summary>
     /// Gets left-right of <see cref="HugePadding"/> only.
     /// </summary>
-    public static readonly Thickness HugeLeftRight = new(HugePadding.Left, 0.0);
+    public static readonly Thickness HugeLeftRight = new(4.0 * StdX, 0.0);
 
     /// <summary>
     /// Gets top-bottom of <see cref="HugePadding"/> only.
     /// </summary>
-    public static readonly Thickness HugeTopBottom = new(0.0, HugePadding.Top);
+    public static readonly Thickness HugeTopBottom = new(0.0, 4.0 * StdY);
+
+
+    /// <summary>
+    /// Gets padding 8 x size of <see cref="StandardPadding"/>.
+    /// </summary>
+    /// <remarks>
+    /// The padding is not uniform.
+    /// </remarks>
+    public static readonly Thickness GiantPadding = new(8.0 * StdX, 8.0 * StdY);
+
+    /// <summary>
+    /// Gets left-right of <see cref="GiantPadding"/> only.
+    /// </summary>
+    public static readonly Thickness GiantLeftRight = new(8.0 * StdX, 0.0);
+
+    /// <summary>
+    /// Gets top-bottom of <see cref="GiantPadding"/> only.
+    /// </summary>
+    public static readonly Thickness GiantTopBottom = new(0.0, 8.0 * StdY);
 
 }

@@ -1,8 +1,10 @@
 // -----------------------------------------------------------------------------
-// PROJECT   : KuiperZone.Marklet
-// AUTHOR    : Andrew Thomas
-// COPYRIGHT : Andrew Thomas © 2025-2026 All rights reserved
-// LICENSE   : AGPL-3.0-only
+// SPDX-FileNotice: KuiperZone.Marklet - Local AI Client
+// SPDX-License-Identifier: AGPL-3.0-only
+// SPDX-FileCopyrightText: © 2025-2026 Andrew Thomas <kuiperzone@users.noreply.github.com>
+// SPDX-ProjectHomePage: https://kuiper.zone/marklet-ai/
+// SPDX-FileType: Source
+// SPDX-FileComment: This is NOT AI generated source code but was created with human thinking and effort.
 // -----------------------------------------------------------------------------
 
 // Marklet is free software: you can redistribute it and/or modify it under
@@ -18,9 +20,13 @@
 
 using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Input;
 using Avalonia.Media;
 using Avalonia.Media.Immutable;
+using Avalonia.Threading;
+using Avalonia.VisualTree;
 using KuiperZone.Marklet.PixieChrome.Shared;
+using KuiperZone.Marklet.Tooling;
 
 namespace KuiperZone.Marklet.PixieChrome.Controls;
 
@@ -30,28 +36,38 @@ namespace KuiperZone.Marklet.PixieChrome.Controls;
 /// <remarks>
 /// The class is not aware <see cref="ChromeStyling"/> and properties are "direct".
 /// </remarks>
-public class MarkControl : Border
+public abstract class MarkControl : Border
 {
-    // Internal (not private) for test
-    internal const double DefaultFontSize = 14.0;
-    internal const double LineHeightMultiple = 1.8;
-    internal const double LetterSpacing = 1.3;
-    internal const bool DefaultLinkHoverUnderline = true;
-    internal static readonly ImmutableSolidColorBrush DefaultSelectionBrush = CrossTextBlock.DefaultSelectionBrush;
-    internal static readonly FontFamily DefaultMonoFamily = "monospace";
-    internal static readonly ImmutableSolidColorBrush DefaultLinkForeground = CrossTextBlock.DefaultLinkBrush;
-    internal static readonly ImmutableSolidColorBrush DefaultLinkHover = CrossTextBlock.DefaultHoverLinkHoverBrush;
-    internal static readonly ImmutableSolidColorBrush DefaultQuoteDecor = new(0xFF5FAF5F);
-    internal static readonly ImmutableSolidColorBrush DefaultFencedBackground = new(0x40808080);
+    /// <summary>
+    /// Gets <see cref="ChromeStyling.Global"/> for convenience.
+    /// </summary>
+    protected static readonly ChromeStyling Styling = ChromeStyling.Global;
+
+    /// <summary>
+    /// Property coalescer which calls <see cref="ImmediateRefresh"/> asynchronous in respose to property to change.
+    /// </summary>
+    protected readonly DispatchCoalescer? PropertyCoalescer;
+
+    private const double DefaultFontSize = 14.0;
+    private const double LineHeightMultiple = 1.8;
+    private const double LetterSpacing = 1.3;
+    private const bool DefaultLinkHoverUnderline = true;
+    private static readonly ImmutableSolidColorBrush DefaultSelectionBrush = CrossTextBlock.DefaultSelectionBrush;
+    private static readonly FontFamily DefaultMonoFamily = ChromeFonts.MonospaceFamily;
+    private static readonly ImmutableSolidColorBrush DefaultLinkForeground = CrossTextBlock.DefaultLinkBrush;
+    private static readonly ImmutableSolidColorBrush DefaultLinkHover = CrossTextBlock.DefaultHoverLinkHoverBrush;
+    private static readonly ImmutableSolidColorBrush DefaultQuoteDecor = new(0xFF5FAF5F);
+    private static readonly ImmutableSolidColorBrush DefaultFencedBackground = new(0x40808080);
 
     private static readonly HashSet<AvaloniaProperty> ChangeSet = new();
 
     // Backing fields
+    private bool _isChromeStyled;
     private IBrush? _foreground;
     private FontFamily _fontFamily = FontFamily.Default;
     private double _fontSize = DefaultFontSize;
     private double _fontSizeCorrection = 1.0;
-    private IBrush? _selectionBrush = DefaultSelectionBrush;
+    private IBrush _selectionBrush = DefaultSelectionBrush;
     private IBrush? _linkForeground = DefaultLinkForeground;
     private IBrush? _linkHoverBrush = DefaultLinkHover;
     private bool _linkHoverUnderline = DefaultLinkHoverUnderline;
@@ -97,7 +113,7 @@ public class MarkControl : Border
         ChangeSet.Add(FencedCornerRadiusProperty);
         ChangeSet.Add(DefaultWrappingProperty);
 
-        IsTabStopProperty.OverrideDefaultValue(typeof(MarkControl), false);
+        IsTabStopProperty.OverrideDefaultValue<MarkControl>(false);
     }
 
     /// <summary>
@@ -105,17 +121,47 @@ public class MarkControl : Border
     /// </summary>
     public MarkControl()
     {
+        Tracker = new(this);
         Zoom = new();
+
+        Zoom.Changed += PropertyChangedHandler;
+
+        PropertyCoalescer = new(DispatcherPriority.Render);
+        PropertyCoalescer.Posted += PropertyChangedHandler;
     }
 
     /// <summary>
-    /// Protected constructor with shared zoom.
+    /// Protected constructor.
     /// </summary>
+    protected MarkControl(CrossTracker tracker)
+    {
+        Tracker = tracker;
+        Zoom = new();
+
+        Zoom.Changed += PropertyChangedHandler;
+
+        PropertyCoalescer = new(DispatcherPriority.Render);
+        PropertyCoalescer.Posted += PropertyChangedHandler;
+    }
+
+    /// <summary>
+    /// Protected constructor where this is a child instance of "owner".
+    /// </summary>
+    /// <remarks>
+    /// The <see cref="PropertyCoalescer"/> is null as owner is responsible for calling <see cref="ImmediateRefresh"/>.
+    /// </remarks>
     protected MarkControl(MarkControl owner)
     {
+        Tracker = owner.Tracker;
         Zoom = owner.Zoom;
         CopyProperties(owner);
     }
+
+    /// <summary>
+    /// Defines the <see cref="IsChromeStyled"/> property.
+    /// </summary>
+    public static readonly DirectProperty<MarkView, bool> IsChromeStyledProperty =
+        AvaloniaProperty.RegisterDirect<MarkView, bool>(nameof(IsChromeStyled), o => o.IsChromeStyled, (o, v) => o.IsChromeStyled = v);
 
     /// <summary>
     /// Defines the <see cref="Foreground"/> property.
@@ -148,8 +194,8 @@ public class MarkControl : Border
     /// <summary>
     /// Defines the <see cref="SelectionBrush"/> property.
     /// </summary>
-    public static readonly DirectProperty<MarkControl, IBrush?> SelectionBrushProperty =
-        AvaloniaProperty.RegisterDirect<MarkControl, IBrush?>(nameof(SelectionBrush),
+    public static readonly DirectProperty<MarkControl, IBrush> SelectionBrushProperty =
+        AvaloniaProperty.RegisterDirect<MarkControl, IBrush>(nameof(SelectionBrush),
         o => o.SelectionBrush, (o, v) => o.SelectionBrush = v, DefaultSelectionBrush);
 
     /// <summary>
@@ -281,17 +327,29 @@ public class MarkControl : Border
     /// <summary>
     /// Fixed brush. Solid gray.
     /// </summary>
-    internal static readonly ImmutableSolidColorBrush NeutralForegroundBrush = new(0xFF808080);
+    protected internal static readonly ImmutableSolidColorBrush NeutralForegroundBrush = new(0xFF808080);
 
     /// <summary>
     /// Fixed brush. Semi-gray.
     /// </summary>
-    internal static readonly ImmutableSolidColorBrush DefaultCodeBackground = new(0x80808080);
+    protected internal static readonly ImmutableSolidColorBrush DefaultCodeBackground = new(0x80808080);
 
     /// <summary>
     /// Fixed brush. Semi-opaque yellow.
     /// </summary>
-    internal static readonly ImmutableSolidColorBrush MarkBackgroundBrush = new(0x80C4A000);
+    protected internal static readonly ImmutableSolidColorBrush MarkBackgroundBrush = new(0x80C4A000);
+
+    /// <summary>
+    /// Gets or sets whether visual properties follow <see cref="ChromeStyling"/> values and respond to changes.
+    /// </summary>
+    /// <remarks>
+    /// The default is false.
+    /// </remarks>
+    public bool IsChromeStyled
+    {
+        get { return _isChromeStyled; }
+        set { SetAndRaise(IsChromeStyledProperty, ref _isChromeStyled, value); }
+    }
 
     /// <summary>
     /// Gets or sets the default foreground brush used for text.
@@ -343,9 +401,9 @@ public class MarkControl : Border
     /// </summary>
     /// <remarks>
     /// Note that there is no "SelectionForeground" property. Instead, the <see cref="SelectionBrush"/> should always be
-    /// set to a semi-opaque (approx 50%) brush. Setting to null disables selection of text.
+    /// set to a semi-opaque (approx 50%) brush.
     /// </remarks>
-    public IBrush? SelectionBrush
+    public IBrush SelectionBrush
     {
         get { return _selectionBrush; }
         set { SetAndRaise(SelectionBrushProperty, ref _selectionBrush, value); }
@@ -425,9 +483,6 @@ public class MarkControl : Border
     /// <summary>
     /// Gets or sets the font family used for monospaced code.
     /// </summary>
-    /// <remarks>
-    /// The default is "monospace".
-    /// </remarks>
     public FontFamily MonoFamily
     {
         get { return _monoFamily; }
@@ -566,6 +621,11 @@ public class MarkControl : Border
     }
 
     /// <summary>
+    /// Gets the shared <see cref="CrossTracker"/> instance.
+    /// </summary>
+    public CrossTracker Tracker { get; }
+
+    /// <summary>
     /// Gets the zooming instance.
     /// </summary>
     public Zoomer Zoom { get; }
@@ -627,12 +687,71 @@ public class MarkControl : Border
     }
 
     /// <summary>
+    /// Gets whether the base class has a child control.
+    /// </summary>
+    protected bool HasChild { get; private set; }
+
+    /// <summary>
+    /// Handles key input and returns true if handled.
+    /// </summary>
+    /// <remarks>
+    /// The class does not receive key inputs itself. It returns false and does nothing if the supplied
+    /// KeyEventArgs.Handled is true.
+    /// </remarks>
+    public virtual bool HandleKeyGesture(KeyEventArgs e)
+    {
+        const string NSpace = $"{nameof(MarkControl)}.{nameof(HandleKeyGesture)}";
+        ConditionalDebug.WriteLine(NSpace, $"KEY: {e.Key}, {e.KeyModifiers}");
+
+        if (e.Handled)
+        {
+            ConditionalDebug.WriteLine(NSpace, "Already handled");
+            return false;
+        }
+
+        if (e.Key == Key.C && e.KeyModifiers == KeyModifiers.Control && Tracker.SelectionCount != 0)
+        {
+            e.Handled = true;
+            ConditionalDebug.WriteLine(NSpace, $"CTRL-C accepted");
+
+            Tracker.CopyText(WhatText.SelectedOrNull);
+            return true;
+        }
+
+        // Only one instance to act on this key press
+        if (e.Key == Key.A && e.KeyModifiers == KeyModifiers.Control)
+        {
+            e.Handled = true;
+            ConditionalDebug.WriteLine(NSpace, $"CTRL-A accepted");
+
+            Tracker.SelectAll();
+            return true;
+        }
+
+        if (e.Key == Key.Escape && e.KeyModifiers == KeyModifiers.None && Tracker.SelectionCount != 0)
+        {
+            e.Handled = true;
+            ConditionalDebug.WriteLine(NSpace, $"ESCAPE accepted");
+
+            Tracker.SelectNone();
+            return true;
+        }
+
+        return Zoom.HandleKeyGesture(e);
+    }
+
+    /// <summary>
     /// Returns true if "property" belongs to this class, excluding base class properties.
     /// </summary>
     protected static bool IsMarkControlProperty(AvaloniaProperty property)
     {
         return ChangeSet.Contains(property);
     }
+
+    /// <summary>
+    /// Called when one or more of the properties of this base class have changed.
+    /// </summary>
+    protected abstract void ImmediateRefresh();
 
     /// <summary>
     /// Copies properties of "other" to this.
@@ -668,4 +787,111 @@ public class MarkControl : Border
         _defaultWrapping = other._defaultWrapping;
     }
 
+    /// <summary>
+    /// Called when <see cref="ChromeStyling.Global"/> properties change provided <see cref="IsChromeStyled"/> is true.
+    /// </summary>
+    protected virtual void OnStylingChanged()
+    {
+        // This will asynchronously invoke Refresh() provided has Refresher coalescer.
+        SelectionBrush = Styling.Accent50;
+        LinkForeground = Styling.LinkForeground;
+        LinkHoverBrush = Styling.LinkHover;
+
+        QuoteDecor = Styling.AccentBrush;
+        RuleLine = ChromeStyling.GrayForeground;
+
+        FencedBorder = ChromeStyling.GrayForeground;
+        FencedCornerRadius = Styling.SmallCornerRadius;
+        FencedBackground = Styling.BackgroundLow;
+    }
+
+    /// <summary>
+    /// Overrides.
+    /// </summary>
+    protected override void OnPropertyChanged(AvaloniaPropertyChangedEventArgs change)
+    {
+        var p = change.Property;
+        base.OnPropertyChanged(change);
+
+        if (p == ChildProperty)
+        {
+            if (p == ChildProperty && change.OldValue != null)
+            {
+                // Set once on construction only
+                throw new InvalidOperationException($"Cannot set {p.Name} on {GetType().Name}");
+            }
+
+            HasChild = change.NewValue != null;
+            return;
+        }
+
+        if (!HasChild)
+        {
+            return;
+        }
+
+        if (PropertyCoalescer != null && IsMarkControlProperty(p))
+        {
+            PropertyCoalescer.Post();
+            return;
+        }
+
+        if (p == IsChromeStyledProperty)
+        {
+            var value = change.GetNewValue<bool>();
+
+            if (value)
+            {
+                OnStylingChanged();
+
+                if (this.IsAttachedToVisualTree())
+                {
+                    Styling.StylingChanged += StylingChangedHandler;
+                }
+            }
+            else
+            if (!value)
+            {
+                Styling.StylingChanged -= StylingChangedHandler;
+            }
+
+            return;
+        }
+    }
+
+    /// <summary>
+    /// Overrides.
+    /// </summary>
+    protected override void OnAttachedToVisualTree(VisualTreeAttachmentEventArgs e)
+    {
+        base.OnAttachedToVisualTree(e);
+
+        if (PropertyCoalescer != null)
+        {
+            Styling.StylingChanged += StylingChangedHandler;
+        }
+    }
+
+    /// <summary>
+    /// Overrides.
+    /// </summary>
+    protected override void OnDetachedFromVisualTree(VisualTreeAttachmentEventArgs e)
+    {
+        base.OnDetachedFromVisualTree(e);
+
+        if (PropertyCoalescer != null)
+        {
+            Styling.StylingChanged -= StylingChangedHandler;
+        }
+    }
+
+    private void PropertyChangedHandler(object? _, EventArgs __)
+    {
+        ImmediateRefresh();
+    }
+
+    private void StylingChangedHandler(object? _, EventArgs __)
+    {
+        OnStylingChanged();
+    }
 }

@@ -1,8 +1,10 @@
 // -----------------------------------------------------------------------------
-// PROJECT   : KuiperZone.Marklet
-// AUTHOR    : Andrew Thomas
-// COPYRIGHT : Andrew Thomas © 2025-2026 All rights reserved
-// LICENSE   : AGPL-3.0-only
+// SPDX-FileNotice: KuiperZone.Marklet - Local AI Client
+// SPDX-License-Identifier: AGPL-3.0-only
+// SPDX-FileCopyrightText: © 2025-2026 Andrew Thomas <kuiperzone@users.noreply.github.com>
+// SPDX-ProjectHomePage: https://kuiper.zone/marklet-ai/
+// SPDX-FileType: Source
+// SPDX-FileComment: This is NOT AI generated source code but was created with human thinking and effort.
 // -----------------------------------------------------------------------------
 
 // Marklet is free software: you can redistribute it and/or modify it under
@@ -70,7 +72,7 @@ public class PixieColorPicker : PixieControl
     public PixieColorPicker()
     {
         IsTitleVisible = false;
-        SetChildControl(_grid);
+        SetSubject(_grid);
 
         _grid.VerticalAlignment = VerticalContentAlignment;
         _grid.HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Left;
@@ -80,7 +82,7 @@ public class PixieColorPicker : PixieControl
 
         _defaultHintBlock.Text = _defaultColorLabel;
         _defaultHintBlock.Margin = new(6.0, 0.0, 0.0, 0.0);
-        _defaultHintBlock.Foreground = ChromeStyling.ForegroundGray;
+        _defaultHintBlock.Foreground = ChromeStyling.GrayForeground;
         _defaultHintBlock.TextTrimming = TextTrimming.CharacterEllipsis;
         _defaultHintBlock.HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Left;
         _defaultHintBlock.VerticalAlignment = Avalonia.Layout.VerticalAlignment.Center;
@@ -161,7 +163,7 @@ public class PixieColorPicker : PixieControl
     /// <summary>
     /// Defines the <see cref="DefaultColorLabel"/> property.
     /// </summary>
-    public static readonly DirectProperty<PixieColorPicker, string?> DefaultHintProperty =
+    public static readonly DirectProperty<PixieColorPicker, string?> DefaultColorProperty =
         AvaloniaProperty.RegisterDirect<PixieColorPicker, string?>(nameof(DefaultColorLabel),
         o => o.DefaultColorLabel, (o, v) => o.DefaultColorLabel = v, DefaultHintString);
 
@@ -199,7 +201,7 @@ public class PixieColorPicker : PixieControl
     public string? DefaultColorLabel
     {
         get { return _defaultColorLabel; }
-        set { SetAndRaise(DefaultHintProperty, ref _defaultColorLabel, value); }
+        set { SetAndRaise(DefaultColorProperty, ref _defaultColorLabel, value); }
     }
 
     /// <summary>
@@ -264,7 +266,7 @@ public class PixieColorPicker : PixieControl
     protected override void OnAttachedToVisualTree(VisualTreeAttachmentEventArgs e)
     {
         base.OnAttachedToVisualTree(e);
-        _defaultHintBlock.Cursor ??= ChromeCursors.HandCursor;
+        _defaultHintBlock.Cursor ??= ChromeCursors.Hand;
 
         if (IsDefaultColor)
         {
@@ -308,7 +310,7 @@ public class PixieColorPicker : PixieControl
             return;
         }
 
-        if (p == DefaultHintProperty)
+        if (p == DefaultColorProperty)
         {
             _defaultHintBlock.Text = change.GetNewValue<string?>();
             return;
@@ -345,7 +347,7 @@ public class PixieColorPicker : PixieControl
 
             bool def = color == default;
             _defaultCircle.Choose(def);
-            _defaultHintBlock.Foreground = ChromeStyling.ForegroundGray;
+            _defaultHintBlock.Foreground = ChromeStyling.GrayForeground;
 
             foreach (var item in _circles)
             {
@@ -406,7 +408,7 @@ public class PixieColorPicker : PixieControl
     private void RebuildPalette(AvaloniaList<Color> palette)
     {
         int max = Math.Min(palette.Count, MaxPaletteColors);
-        Color disabled = IsEffectivelyEnabled ? default : ChromeStyling.ForegroundGray.Color;
+        Color disabled = IsEffectivelyEnabled ? default : ChromeStyling.GrayForeground.Color;
 
         for (int n = 0; n < max; ++n)
         {
@@ -499,11 +501,11 @@ public class PixieColorPicker : PixieControl
             Color = color.Blend(0.35, disabled);
             IsDefault = color == default;
 
-            _inner.Cursor = ChromeCursors.HandCursor;
+            _inner.Cursor = ChromeCursors.Hand;
             _inner.Fill = new ImmutableSolidColorBrush(Color);
             _inner.PointerPressed += PointerPressedHandler;
 
-            _outer.Cursor = ChromeCursors.HandCursor;
+            _outer.Cursor = ChromeCursors.Hand;
             _outer.PointerPressed += PointerPressedHandler;
 
             const double size0 = ChromeFonts.DefaultFontSize * 1.55;

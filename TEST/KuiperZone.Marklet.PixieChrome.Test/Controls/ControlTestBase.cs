@@ -1,8 +1,10 @@
 ﻿// -----------------------------------------------------------------------------
-// PROJECT   : KuiperZone.Marklet
-// AUTHOR    : Andrew Thomas
-// COPYRIGHT : Andrew Thomas © 2025-2026 All rights reserved
-// LICENSE   : AGPL-3.0-only
+// SPDX-FileNotice: KuiperZone.Marklet - Local AI Client
+// SPDX-License-Identifier: AGPL-3.0-only
+// SPDX-FileCopyrightText: © 2025-2026 Andrew Thomas <kuiperzone@users.noreply.github.com>
+// SPDX-ProjectHomePage: https://kuiper.zone/marklet-ai/
+// SPDX-FileType: Source
+// SPDX-FileComment: This is NOT AI generated source code but was created with human thinking and effort.
 // -----------------------------------------------------------------------------
 
 // Marklet is free software: you can redistribute it and/or modify it under
@@ -26,10 +28,9 @@ public class ControlTestBase
     /// <summary>
     /// Assert property value equals "expectDefault" and can be changed "change".
     /// </summary>
-    protected void AssertDirect<T>(Control obj, AvaloniaProperty prop, T expectDefault, T change)
+    protected static void AssertDirect<T>(Control obj, AvaloniaProperty prop, T expectDefault, T change)
     {
         Assert.True(prop.IsDirect);
-
         Assert.Equal(expectDefault, obj.GetValue(prop));
 
         obj.SetValue(prop, change);
@@ -40,10 +41,9 @@ public class ControlTestBase
     /// Assert property value equals "expectDefault" and can be changed "change", and can be cleared back to
     /// "expectDefault".
     /// </summary>
-    protected void AssertStyled<T>(Control obj, AvaloniaProperty prop, T expectDefault, T change)
+    protected static void AssertStyled<T>(Control obj, AvaloniaProperty prop, T expectDefault, T change)
     {
         Assert.False(prop.IsDirect);
-
         Assert.Equal(expectDefault, obj.GetValue(prop));
 
         obj.SetValue(prop, change);

@@ -1,8 +1,10 @@
 // -----------------------------------------------------------------------------
-// PROJECT   : KuiperZone.Marklet
-// AUTHOR    : Andrew Thomas
-// COPYRIGHT : Andrew Thomas © 2025-2026 All rights reserved
-// LICENSE   : AGPL-3.0-only
+// SPDX-FileNotice: KuiperZone.Marklet - Local AI Client
+// SPDX-License-Identifier: AGPL-3.0-only
+// SPDX-FileCopyrightText: © 2025-2026 Andrew Thomas <kuiperzone@users.noreply.github.com>
+// SPDX-ProjectHomePage: https://kuiper.zone/marklet-ai/
+// SPDX-FileType: Source
+// SPDX-FileComment: This is NOT AI generated source code but was created with human thinking and effort.
 // -----------------------------------------------------------------------------
 
 // Marklet is free software: you can redistribute it and/or modify it under
@@ -64,14 +66,24 @@ public static class Symbols
     public const string AddGroup = "\ue65b";
 
     /// <summary>
-    /// all_match (near-match)
+    /// add_link
     /// </summary>
-    public const string AllMatch = "\ue093";
+    public const string AddLink = "\ue178";
 
     /// <summary>
     /// ads_click (target cursor)
     /// </summary>
     public const string AdsClick = "\ue762";
+
+    /// <summary>
+    /// all_inclusive (infinity)
+    /// </summary>
+    public const string AllInclusive = "\ueb3d";
+
+    /// <summary>
+    /// all_match (near-match)
+    /// </summary>
+    public const string AllMatch = "\ue093";
 
     /// <summary>
     /// area_chart
@@ -124,6 +136,11 @@ public static class Symbols
     public const string ArrowForward = "\ue5c8";
 
     /// <summary>
+    /// arrow_warm_up
+    /// </summary>
+    public const string ArrowWarmUp = "\uf4b5";
+
+    /// <summary>
     /// article
     /// </summary>
     public const string Article = "\uef42";
@@ -132,6 +149,11 @@ public static class Symbols
     /// article_person
     /// </summary>
     public const string ArticlePerson = "\uf368";
+
+    /// <summary>
+    /// assignment (notes, project)
+    /// </summary>
+    public const string Assignment = "\ue85d";
 
     /// <summary>
     /// asterisk (wild-card)
@@ -174,6 +196,11 @@ public static class Symbols
     public const string Book = "\ue865";
 
     /// <summary>
+    /// book2
+    /// </summary>
+    public const string Book2 = "\uf53e";
+
+    /// <summary>
     /// bookmark
     /// </summary>
     public const string Bookmark = "\ue866";
@@ -182,6 +209,11 @@ public static class Symbols
     /// bookmark_add
     /// </summary>
     public const string BookmarkAdd = "\ue598";
+
+    /// <summary>
+    /// bookmark_star
+    /// </summary>
+    public const string BookmarkStar = "\uf454";
 
     /// <summary>
     /// border_style
@@ -209,6 +241,11 @@ public static class Symbols
     public const string CardMembership = "\ue8f7";
 
     /// <summary>
+    /// category_search
+    /// </summary>
+    public const string CategorySearch = "\uf437";
+
+    /// <summary>
     /// chat
     /// </summary>
     public const string Chat = "\ue0b7";
@@ -217,6 +254,11 @@ public static class Symbols
     /// chat_info
     /// </summary>
     public const string ChatInfo = "\uf52b";
+
+    /// <summary>
+    /// checkbook (notes)
+    /// </summary>
+    public const string Checkbook = "\ue70d";
 
     /// <summary>
     /// check_box_outline_blank (window maximize)
@@ -279,6 +321,21 @@ public static class Symbols
     public const string CodeOff = "\ue4f3";
 
     /// <summary>
+    /// collapse_all
+    /// </summary>
+    public const string CollapseAll = "\ue944";
+
+    /// <summary>
+    /// collapse_content
+    /// </summary>
+    public const string CollapseContent = "\uf507";
+
+    /// <summary>
+    /// collections_bookmark
+    /// </summary>
+    public const string CollectionsBookmark = "\ue431";
+
+    /// <summary>
     /// content_copy
     /// </summary>
     public const string ContentCopy = "\ue14d";
@@ -307,6 +364,11 @@ public static class Symbols
     /// compress (compact)
     /// </summary>
     public const string Compress = "\ue94d";
+
+    /// <summary>
+    /// create_new_folder (directory)
+    /// </summary>
+    public const string CreateNewFolder = "\ue2cc";
 
     /// <summary>
     /// custom_typography (monospace?)
@@ -349,6 +411,11 @@ public static class Symbols
     public const string DesktopWindows = "\ue30c";
 
     /// <summary>
+    /// developer_board (project)
+    /// </summary>
+    public const string DeveloperBoard = "\ue30d";
+
+    /// <summary>
     /// developer_guide
     /// </summary>
     public const string DeveloperGuide = "\ue99e";
@@ -357,6 +424,11 @@ public static class Symbols
     /// document_search
     /// </summary>
     public const string DocumentSearch = "\uf385";
+
+    /// <summary>
+    /// done_all (double tick)
+    /// </summary>
+    public const string DoneAll = "\ue877";
 
     /// <summary>
     /// download_for_offline (circle)
@@ -489,9 +561,34 @@ public static class Symbols
     public const string Folder = "\ue2c7";
 
     /// <summary>
+    /// folder_check
+    /// </summary>
+    public const string FolderCheck = "\uf3d7";
+
+    /// <summary>
+    /// folder_check_2
+    /// </summary>
+    public const string FolderCheck2 = "\uf3d6";
+
+    /// <summary>
     /// folder_code
     /// </summary>
     public const string FolderCode = "\uf3c8";
+
+    /// <summary>
+    /// folder_copy
+    /// </summary>
+    public const string FolderCopy = "\uebbd";
+
+    /// <summary>
+    /// folder_data
+    /// </summary>
+    public const string FolderData = "\uf586";
+
+    /// <summary>
+    /// folder_delete
+    /// </summary>
+    public const string FolderDelete = "\ueb34";
 
     /// <summary>
     /// folder_info
@@ -504,9 +601,19 @@ public static class Symbols
     public const string FolderOpen = "\ue2c8";
 
     /// <summary>
+    /// folder_managed
+    /// </summary>
+    public const string FolderManaged = "\uf775";
+
+    /// <summary>
     /// folder_info
     /// </summary>
     public const string FolderSpecial = "\ue617";
+
+    /// <summary>
+    /// folder_zip
+    /// </summary>
+    public const string FolderZip = "\ueb2c";
 
     /// <summary>
     /// font_download
@@ -619,6 +726,11 @@ public static class Symbols
     public const string Function = "\uf866";
 
     /// <summary>
+    /// handyman (tools settings)
+    /// </summary>
+    public const string Handyman = "\uf10b";
+
+    /// <summary>
     /// help (question mark in circle)
     /// </summary>
     public const string Help = "\ue887";
@@ -634,6 +746,11 @@ public static class Symbols
     public const string Home = "\ue88a";
 
     /// <summary>
+    /// hourglass
+    /// </summary>
+    public const string Hourglass = "\uebff";
+
+    /// <summary>
     /// hourglass_bottom
     /// </summary>
     public const string HourglassBottom = "\uea5c";
@@ -644,14 +761,29 @@ public static class Symbols
     public const string Html = "\ueb7e";
 
     /// <summary>
+    /// image
+    /// </summary>
+    public const string Image = "\ue3f4";
+
+    /// <summary>
     /// inbox_text
     /// </summary>
     public const string InboxText = "\uf399";
 
     /// <summary>
+    /// indeterminate_check_box
+    /// </summary>
+    public const string IndeterminateCheckBox = "\ue909";
+
+    /// <summary>
     /// Info
     /// </summary>
     public const string Info = "\ue88e";
+
+    /// <summary>
+    /// Ink_pen
+    /// </summary>
+    public const string InkPen = "\ue6d3";
 
     /// <summary>
     /// insert_chart
@@ -662,6 +794,11 @@ public static class Symbols
     /// keep (pin)
     /// </summary>
     public const string Keep = "\ue6aa";
+
+    /// <summary>
+    /// keep_off (pin)
+    /// </summary>
+    public const string KeepOff = "\ue6f9";
 
     /// <summary>
     /// keyboard_arrow_down
@@ -709,19 +846,9 @@ public static class Symbols
     public const string KeyboardReturn = "\ue31b";
 
     /// <summary>
-    /// handyman (tools settings)
+    /// label (right arrow)
     /// </summary>
-    public const string Handyman = "\uf10b";
-
-    /// <summary>
-    /// image
-    /// </summary>
-    public const string Image = "\ue3f4";
-
-    /// <summary>
-    /// indeterminate_check_box
-    /// </summary>
-    public const string IndeterminateCheckBox = "\ue909";
+    public const string Label = "\ue892";
 
     /// <summary>
     /// language (world symbol)
@@ -742,6 +869,16 @@ public static class Symbols
     /// license
     /// </summary>
     public const string License = "\ueb04";
+
+    /// <summary>
+    /// lightbulb
+    /// </summary>
+    public const string Lightbulb = "\ue0f0";
+
+    /// <summary>
+    /// lightbulb_circle
+    /// </summary>
+    public const string LightbulbCircle = "\uebfe";
 
     /// <summary>
     /// linear_scale
@@ -794,6 +931,11 @@ public static class Symbols
     public const string Minimize = "\ue931";
 
     /// <summary>
+    /// modelling (project)
+    /// </summary>
+    public const string Modelling = "\uf3aa";
+
+    /// <summary>
     /// monitoring (chart)
     /// </summary>
     public const string Monitoring = "\uf190";
@@ -812,6 +954,11 @@ public static class Symbols
     /// motion_mode (circle)
     /// </summary>
     public const string MotionMode = "\uf842";
+
+    /// <summary>
+    /// mouse
+    /// </summary>
+    public const string Mouse = "\ue323";
 
     /// <summary>
     /// move_group
@@ -839,6 +986,11 @@ public static class Symbols
     public const string NewWindow = "\uf710";
 
     /// <summary>
+    /// notes
+    /// </summary>
+    public const string Notes = "\ue26c";
+
+    /// <summary>
     /// notification_sound
     /// </summary>
     public const string NotificationSound = "\uf353";
@@ -847,6 +999,11 @@ public static class Symbols
     /// no_sound
     /// </summary>
     public const string NoSound = "\ue710";
+
+    /// <summary>
+    /// odt (file)
+    /// </summary>
+    public const string Odt = "\ue6e9";
 
     /// <summary>
     /// open_in_new (window)
@@ -869,9 +1026,19 @@ public static class Symbols
     public const string Palette = "\ue40a";
 
     /// <summary>
+    /// pan_tool (hand, stop)
+    /// </summary>
+    public const string PanTool = "\ue925";
+
+    /// <summary>
     /// pinboard
     /// </summary>
     public const string Pinboard = "\uf3ab";
+
+    /// <summary>
+    /// plumbing (project tools)
+    /// </summary>
+    public const string Plumbing = "\uf107";
 
     /// <summary>
     /// radio_button_checked
@@ -902,6 +1069,11 @@ public static class Symbols
     /// replay
     /// </summary>
     public const string Replay = "\ue042";
+
+    /// <summary>
+    /// restore_page
+    /// </summary>
+    public const string RestorePage = "\ue929";
 
     /// <summary>
     /// restore_from_trash
@@ -969,7 +1141,7 @@ public static class Symbols
     public const string Serif = "\uf4ac";
 
     /// <summary>
-    /// settings
+    /// settings (cog)
     /// </summary>
     public const string Settings = "\ue8b8";
 
@@ -982,6 +1154,11 @@ public static class Symbols
     /// settings_brightness
     /// </summary>
     public const string SettingsBrightness = "\ue8bd";
+
+    /// <summary>
+    /// settings_b_roll
+    /// </summary>
+    public const string SettingsBRoll = "\uf625";
 
     /// <summary>
     /// settings_input_component (generic settings)
@@ -999,9 +1176,19 @@ public static class Symbols
     public const string Sliders = "\ue9e3";
 
     /// <summary>
+    /// sort_by_alpha
+    /// </summary>
+    public const string SortByAlpha = "\ue053";
+
+    /// <summary>
     /// star
     /// </summary>
     public const string Star = "\ue838";
+
+    /// <summary>
+    /// stars (circle)
+    /// </summary>
+    public const string Stars = "\ue8d0";
 
     /// <summary>
     /// stat0 (restore)
@@ -1019,9 +1206,24 @@ public static class Symbols
     public const string StopCircle = "\uef71";
 
     /// <summary>
+    /// stylus_fountain_pen
+    /// </summary>
+    public const string StylusFountainPen = "\uf365";
+
+    /// <summary>
+    /// swipe_up
+    /// </summary>
+    public const string SwipeUp = "\ueb2e";
+
+    /// <summary>
     /// tab_group
     /// </summary>
     public const string TabGroup = "\uf743";
+
+    /// <summary>
+    /// tag (hash)
+    /// </summary>
+    public const string Tag = "\ue9ef";
 
     /// <summary>
     /// target
@@ -1062,6 +1264,11 @@ public static class Symbols
     /// timeline
     /// </summary>
     public const string Timeline = "\ue922";
+
+    /// <summary>
+    /// timer
+    /// </summary>
+    public const string Timer = "\ue425";
 
     /// <summary>
     /// toggle_off

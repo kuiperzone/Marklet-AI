@@ -1,8 +1,10 @@
 // -----------------------------------------------------------------------------
-// PROJECT   : KuiperZone.Marklet
-// AUTHOR    : Andrew Thomas
-// COPYRIGHT : Andrew Thomas © 2025-2026 All rights reserved
-// LICENSE   : AGPL-3.0-only
+// SPDX-FileNotice: KuiperZone.Marklet - Local AI Client
+// SPDX-License-Identifier: AGPL-3.0-only
+// SPDX-FileCopyrightText: © 2025-2026 Andrew Thomas <kuiperzone@users.noreply.github.com>
+// SPDX-ProjectHomePage: https://kuiper.zone/marklet-ai/
+// SPDX-FileType: Source
+// SPDX-FileComment: This is NOT AI generated source code but was created with human thinking and effort.
 // -----------------------------------------------------------------------------
 
 // Marklet is free software: you can redistribute it and/or modify it under
@@ -34,7 +36,7 @@ internal static class CrossContextMenu
     static CrossContextMenu()
     {
         Global = new ContextMenu();
-        Global.Cursor = ChromeCursors.ArrowCursor;
+        Global.Cursor = ChromeCursors.Arrow;
         Global.Opened += ContextOpenedHandler;
 
         var item = new MenuItem();
@@ -57,7 +59,7 @@ internal static class CrossContextMenu
         const string NSpace = $"{nameof(CrossContextMenu)}.{nameof(ContextOpenedHandler)}";
         ConditionalDebug.WriteLine(NSpace, "Opened menu");
 
-        var parent = Global.GetParent<ICrossTrackOwner>();
+        var parent = Global.GetParentOf<ICrossTrackOwner>();
 
         if (parent != null)
         {
@@ -69,7 +71,7 @@ internal static class CrossContextMenu
             if (tracker != null)
             {
                 ConditionalDebug.WriteLine(NSpace, "Has tracker");
-                copy.IsEnabled = tracker.HasValidSelection;
+                copy.IsEnabled = tracker.SelectionCount > 0;
                 return;
             }
 
@@ -90,7 +92,7 @@ internal static class CrossContextMenu
         ConditionalDebug.WriteLine(NSpace, "Copy text");
 
         e.Handled = true;
-        var parent = Global.GetParent<ICrossTrackOwner>();
+        var parent = Global.GetParentOf<ICrossTrackOwner>();
 
         if (parent != null)
         {
@@ -118,7 +120,7 @@ internal static class CrossContextMenu
         ConditionalDebug.WriteLine(NSpace, "Select all");
 
         e.Handled = true;
-        var parent = Global.GetParent<ICrossTrackOwner>();
+        var parent = Global.GetParentOf<ICrossTrackOwner>();
 
         if (parent != null)
         {

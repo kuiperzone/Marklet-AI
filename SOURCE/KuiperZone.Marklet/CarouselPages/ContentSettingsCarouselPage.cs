@@ -1,8 +1,10 @@
 // -----------------------------------------------------------------------------
-// PROJECT   : KuiperZone.Marklet
-// AUTHOR    : Andrew Thomas
-// COPYRIGHT : Andrew Thomas © 2025-2026 All rights reserved
-// LICENSE   : AGPL-3.0-only
+// SPDX-FileNotice: KuiperZone.Marklet - Local AI Client
+// SPDX-License-Identifier: AGPL-3.0-only
+// SPDX-FileCopyrightText: © 2025-2026 Andrew Thomas <kuiperzone@users.noreply.github.com>
+// SPDX-ProjectHomePage: https://kuiper.zone/marklet-ai/
+// SPDX-FileType: Source
+// SPDX-FileComment: This is NOT AI generated source code but was created with human thinking and effort.
 // -----------------------------------------------------------------------------
 
 // Marklet is free software: you can redistribute it and/or modify it under
@@ -76,6 +78,7 @@ public sealed class ContentSettingsCarouselPage : SettingsCarouselPage<ContentSe
         group.Children.Add(_scaleNumeric);
 
         _contentWidthCombo.Title = "Content Width";
+        _contentWidthCombo.IsTranslateFriendly = true;
         _contentWidthCombo.LeftSymbol = Symbols.FitPageWidth;
         _contentWidthCombo.Footer = "Content display width";
         _contentWidthCombo.SetItemsAs<ContentWidth>();
@@ -85,7 +88,7 @@ public sealed class ContentSettingsCarouselPage : SettingsCarouselPage<ContentSe
         // PREVIEW
         group = _previewGroup;
         group.TopTitle = "Preview";
-        group.IsCollapsable = true;
+        group.IsCollapsible = true;
         group.CollapseTitleWeight = FontWeight.Bold;
         group.IsOpen = s_isPreviewOpen;
         Children.Add(group);
@@ -99,6 +102,7 @@ public sealed class ContentSettingsCarouselPage : SettingsCarouselPage<ContentSe
         Children.Add(group);
 
         _bodyFontCombo.Title = "Default Font";
+        _bodyFontCombo.IsTranslateFriendly = true;
         _bodyFontCombo.LeftSymbol = Symbols.FontDownload;
         _bodyFontCombo.Footer = "Font style for default content text";
         _bodyFontCombo.SetItemsAs<FontCategory>();
@@ -111,6 +115,7 @@ public sealed class ContentSettingsCarouselPage : SettingsCarouselPage<ContentSe
         Children.Add(group);
 
         _headFontCombo.Title = "Heading Font";
+        _headFontCombo.IsTranslateFriendly = true;
         _headFontCombo.LeftSymbol = Symbols.FormatH1;
         _headFontCombo.Footer = "Font style for headings";
         _headFontCombo.SetItemsAs<FontCategory>();
@@ -177,7 +182,7 @@ public sealed class ContentSettingsCarouselPage : SettingsCarouselPage<ContentSe
 
         _userPicker.ChosenColor = settings.ToUserColor(default);
 
-        _previewer.ChildControl.Refresh(settings);
+        _previewer.Subject.Refresh(settings);
 
         UpdateControlEnabledStates();
     }
@@ -241,18 +246,18 @@ public sealed class ContentSettingsCarouselPage : SettingsCarouselPage<ContentSe
         public Preview()
         {
             var large = ChromeSizes.LargePadding;
-            var tracker = new CrossTracker();
+            var tracker = new CrossTracker(_stack);
 
             _stack.Margin = new(large.Left, large.Top * 2.0, large.Right, 0.0);
             ClipToBounds = true;
 
             _user = new(tracker);
             _user.Content = "Lorem ipsum dolor sit amet?";
-            _user.Padding = ChromeSizes.RegularPadding;
+            _user.Padding = ChromeSizes.StandardPadding;
             _user.HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Right;
             _stack.Children.Add(_user);
 
-            _block.Foreground = ChromeStyling.ForegroundGray;
+            _block.Foreground = ChromeStyling.GrayForeground;
             _block.Text = "Assistant";
             _stack.Children.Add(_block);
 
@@ -273,7 +278,7 @@ public sealed class ContentSettingsCarouselPage : SettingsCarouselPage<ContentSe
             double s = settings.DefaultScale / 100.0;
             _block.FontSize = ChromeFonts.DefaultFontSize * s;
             _block.Margin = new(0.0, ChromeSizes.LargePadding.Top * s, 0.0, 0.0);
-            _block.Foreground = ChromeStyling.ForegroundGray;
+            _block.Foreground = ChromeStyling.GrayForeground;
 
             RefreshMark(_user, settings, settings.ToUserBrush(Styling.AccentColor));
             RefreshMark(_assistant, settings);

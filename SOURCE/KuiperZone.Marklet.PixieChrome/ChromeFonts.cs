@@ -1,8 +1,10 @@
 // -----------------------------------------------------------------------------
-// PROJECT   : KuiperZone.Marklet
-// AUTHOR    : Andrew Thomas
-// COPYRIGHT : Andrew Thomas © 2025-2026 All rights reserved
-// LICENSE   : AGPL-3.0-only
+// SPDX-FileNotice: KuiperZone.Marklet - Local AI Client
+// SPDX-License-Identifier: AGPL-3.0-only
+// SPDX-FileCopyrightText: © 2025-2026 Andrew Thomas <kuiperzone@users.noreply.github.com>
+// SPDX-ProjectHomePage: https://kuiper.zone/marklet-ai/
+// SPDX-FileType: Source
+// SPDX-FileComment: This is NOT AI generated source code but was created with human thinking and effort.
 // -----------------------------------------------------------------------------
 
 // Marklet is free software: you can redistribute it and/or modify it under
@@ -17,7 +19,6 @@
 // with Marklet. If not, see <https://www.gnu.org/licenses/>.
 
 using System.Globalization;
-using System.Text;
 using Avalonia.Controls;
 using Avalonia.Controls.Documents;
 using Avalonia.Media;
@@ -60,8 +61,8 @@ public static class ChromeFonts
             // Unless we catch this, unit tests that don't need fonts will fail.
             ConditionalDebug.WriteLine(NSpace, "WARNING: Font load failed");
             ConditionalDebug.WriteLine(NSpace, e);
-            MonospaceFamily = FontFamily.Default;
-            SymbolFamily = FontFamily.Default;
+            MonospaceFamily = new("monospace");
+            SymbolFamily = MonospaceFamily;
         }
     }
 
@@ -143,73 +144,39 @@ public static class ChromeFonts
     public static readonly FontFamily SymbolFamily;
 
     /// <summary>
-    /// Examines first few characters of text and returns either <see cref="SymbolFamily"/> if the chars include Unicode
-    /// private use characters, or "def" then <see cref="DefaultFamily"/>.
-    /// </summary>
-    public static FontFamily GetSymbolOrDefaultFamily(string? text, FontFamily? def = null)
-    {
-        if (!string.IsNullOrEmpty(text))
-        {
-            int max = Math.Min(text.Length, 4);
-
-            for (int n = 0; n < max; ++n)
-            {
-                if (CharUnicodeInfo.GetUnicodeCategory(text[n]) == UnicodeCategory.PrivateUse)
-                {
-                    return SymbolFamily;
-                }
-            }
-        }
-
-        return def ?? DefaultFamily;
-    }
-
-    /// <summary>
     /// Returns a new Run sequence comprising symbols and text of font families <see cref="SymbolFamily"/> and <see
     /// cref="DefaultFamily"/> respectively.
     /// </summary>
-    public static InlineCollection? NewTextRun(string? text, double fontSize = double.NaN, double scale = 1.0)
+    public static InlineCollection? GetRun(string? text, double fontSize = double.NaN, double scale = 1.0)
     {
         if (string.IsNullOrEmpty(text))
         {
             return null;
         }
 
-        Run? trail = null;
+        int n0 = 0;
+        Run trail;
         bool lastSymbol = false;
-        StringBuilder buffer = new(16);
+        int length = text.Length;
         var inlines = new InlineCollection();
 
-        for(int n = 0; n < text.Length; ++n)
+        for (int n = 0; n < length; ++n)
         {
-            char c = text[n];
-            var cat = CharUnicodeInfo.GetUnicodeCategory(c);
-            bool symbol = cat == UnicodeCategory.PrivateUse;
+            bool symbol = CharUnicodeInfo.GetUnicodeCategory(text[n]) == UnicodeCategory.PrivateUse;
 
-            if (symbol != lastSymbol)
+            if (n != 0 && symbol != lastSymbol)
             {
-                if (lastSymbol && cat == UnicodeCategory.SpaceSeparator)
-                {
-                    // EN SPACE
-                    c = '\u2002';
-                }
-
-                if (trail != null)
-                {
-                    trail.Text = buffer.ToString();
-                    inlines.Add(trail);
-                    buffer.Clear();
-                }
-
-                lastSymbol = symbol;
-                trail = NewRun(symbol, fontSize, scale);
+                trail = NewRun(lastSymbol, fontSize, scale);
+                trail.Text = text.Substring(n0, n - n0);
+                inlines.Add(trail);
+                n0 = n;
             }
 
-            buffer.Append(c);
+            lastSymbol = symbol;
         }
 
-        trail ??= NewRun(lastSymbol, fontSize, scale);
-        trail.Text = buffer.ToString();
+        trail = NewRun(lastSymbol, fontSize, scale);
+        trail.Text = text.Substring(n0, length - n0);
         inlines.Add(trail);
         return inlines;
     }
@@ -217,10 +184,10 @@ public static class ChromeFonts
     /// <summary>
     /// Returns a new TextBlock containing mixed symbols and text.
     /// </summary>
-    public static TextBlock NewTextBlock(string text)
+    public static TextBlock NewRunBlock(string text)
     {
         var block = new TextBlock();
-        block.Inlines = NewTextRun(text);
+        block.Inlines = GetRun(text);
         return block;
     }
 

@@ -1,8 +1,10 @@
 // -----------------------------------------------------------------------------
-// PROJECT   : KuiperZone.Marklet
-// AUTHOR    : Andrew Thomas
-// COPYRIGHT : Andrew Thomas © 2025-2026 All rights reserved
-// LICENSE   : AGPL-3.0-only
+// SPDX-FileNotice: KuiperZone.Marklet - Local AI Client
+// SPDX-License-Identifier: AGPL-3.0-only
+// SPDX-FileCopyrightText: © 2025-2026 Andrew Thomas <kuiperzone@users.noreply.github.com>
+// SPDX-ProjectHomePage: https://kuiper.zone/marklet-ai/
+// SPDX-FileType: Source
+// SPDX-FileComment: This is NOT AI generated source code but was created with human thinking and effort.
 // -----------------------------------------------------------------------------
 
 // Marklet is free software: you can redistribute it and/or modify it under
@@ -19,9 +21,12 @@
 using System.Collections.Specialized;
 using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Input;
+using Avalonia.Interactivity;
 using Avalonia.Media;
 using Avalonia.Metadata;
 using Avalonia.Threading;
+using KuiperZone.Marklet.PixieChrome.Controls.Internal;
 using KuiperZone.Marklet.PixieChrome.Shared;
 using KuiperZone.Marklet.Tooling;
 
@@ -33,9 +38,10 @@ namespace KuiperZone.Marklet.PixieChrome.Controls;
 /// <remarks>
 /// This class will maintain the background, corners and <see cref="PixieControl.Group"/> properties of children derived
 /// from <see cref="PixieControl"/>. Other class types may be added, but these should ideally be present only at the
-/// start or end of the <see cref="Children"/>. The groups's own background should not usually be set. Instead, the <see
-/// cref="ChildBackground"/> and <see cref="ChildCorner"/> may be bound to styling. It also maintains exclusivity for
-/// <see cref="PixieRadio"/> and <see cref="PixieButton"/>. The default HorizontalAlignment is "Stretch".
+/// start or end of the <see cref="Children"/>. The groups's own background should not normally be set. Instead, the
+/// <see cref="ChildBackground"/> and <see cref="ChildCorner"/> may be bound to styling. <see cref="PixieGroup"/> also
+/// maintains exclusivity for <see cref="PixieRadio"/> and <see cref="PixieCard"/>. The initial values of the base class
+/// Spacing and HorizontalAlignment are set to 1.0 and "Stretch" respectively on construction.
 /// </remarks>
 public class PixieGroup : StackPanel
 {
@@ -47,24 +53,27 @@ public class PixieGroup : StackPanel
     private const bool DefaultIsOpen = true;
     private readonly TextBlock _titleBlock = new();
     private readonly TextBlock _taglineBlock = new();
-    private readonly DispatchCoalescer _rebuild = new(DispatcherPriority.Render);
     private readonly DispatchCoalescer _update = new(DispatcherPriority.Render);
-    private PixieButton? _collapseButton;
+    private readonly DispatchCoalescer _rebuild = new(DispatcherPriority.Render);
+    private PixieCard? _collapser;
 
     // Backing fields
     private string? _topTitle;
     private string? _topFooter;
     private bool _isOpen = DefaultIsOpen;
-    private bool _isCollapsable;
+    private bool _isCollapsible;
     private string? _collapseHeader;
     private string? _collapseFooter;
     private string? _collapseSymbol;
     private string? _collapseTitle;
+    private bool _isCollapseHoverButton;
+    private ContextMenu? _collapseDropMenu;
 
     static PixieGroup()
     {
         UseLayoutRoundingProperty.OverrideDefaultValue<PixieGroup>(false);
         OrientationProperty.OverrideDefaultValue<PixieGroup>(Avalonia.Layout.Orientation.Vertical);
+        SpacingProperty.OverrideDefaultValue<PixieGroup>(1.0);
     }
 
     /// <summary>
@@ -82,13 +91,25 @@ public class PixieGroup : StackPanel
 
         _taglineBlock.FontSize = ChromeFonts.SmallFontSize;
         _taglineBlock.TextWrapping = TextWrapping.Wrap;
-        _taglineBlock.Foreground = ChromeStyling.ForegroundGray;
+        _taglineBlock.Foreground = ChromeStyling.GrayForeground;
         _taglineBlock.IsVisible = false;
 
-        _rebuild.Posted += RebuildPostHandler;
-        _update.Posted += UpdatePostHandler;
+        _update.Posted += (_, __) => UpdateChildren();
+        _rebuild.Posted += (_, __) => RebuildChildren();
         Children.CollectionChanged += PixieChildrenChangedHandler;
     }
+
+    /// <summary>
+    /// Defines the <see cref="ChildRenaming"/> event.
+    /// </summary>
+    public static readonly RoutedEvent<GroupChildRenamingEventArgs> ChildRenamingEvent =
+        RoutedEvent.Register<PixieGroup, GroupChildRenamingEventArgs>(nameof(ChildRenaming), RoutingStrategies.Direct);
+
+    /// <summary>
+    /// Defines the <see cref="CollapseRenaming"/> event.
+    /// </summary>
+    public static readonly RoutedEvent<GroupChildRenamingEventArgs> CollapseRenamingEvent =
+        RoutedEvent.Register<PixieGroup, GroupChildRenamingEventArgs>(nameof(CollapseRenaming), RoutingStrategies.Direct);
 
     /// <summary>
     /// Defines the <see cref="TopTitle"/> property.
@@ -112,11 +133,11 @@ public class PixieGroup : StackPanel
         o => o.IsOpen, (o, v) => o.IsOpen = v, DefaultIsOpen);
 
     /// <summary>
-    /// Defines the <see cref="IsCollapsable"/> property.
+    /// Defines the <see cref="IsCollapsible"/> property.
     /// </summary>
-    public static readonly DirectProperty<PixieGroup, bool> IsCollapsableProperty =
-        AvaloniaProperty.RegisterDirect<PixieGroup, bool>(nameof(IsCollapsable),
-        o => o.IsCollapsable, (o, v) => o.IsCollapsable = v);
+    public static readonly DirectProperty<PixieGroup, bool> IsCollapsibleProperty =
+        AvaloniaProperty.RegisterDirect<PixieGroup, bool>(nameof(IsCollapsible),
+        o => o.IsCollapsible, (o, v) => o.IsCollapsible = v);
 
     /// <summary>
     /// Defines the <see cref="CollapseHeader"/> property.
@@ -140,6 +161,13 @@ public class PixieGroup : StackPanel
         o => o.CollapseSymbol, (o, v) => o.CollapseSymbol = v);
 
     /// <summary>
+    /// Defines the <see cref="IsCollapseHoverButton"/> property.
+    /// </summary>
+    public static readonly DirectProperty<PixieGroup, bool> IsCollapseHoverButtonProperty =
+        AvaloniaProperty.RegisterDirect<PixieGroup, bool>(nameof(IsCollapseHoverButton),
+        o => o.IsCollapseHoverButton, (o, v) => o.IsCollapseHoverButton = v);
+
+    /// <summary>
     /// Defines the <see cref="CollapseTitle"/> property.
     /// </summary>
     public static readonly DirectProperty<PixieGroup, string?> CollapseTitleProperty =
@@ -147,16 +175,23 @@ public class PixieGroup : StackPanel
         o => o.CollapseTitle, (o, v) => o.CollapseTitle = v);
 
     /// <summary>
-    /// Defines the <see cref="IsCornerGrouped"/> property.
+    /// Defines the <see cref="CollapseDropMenu"/> property.
     /// </summary>
-    public static readonly StyledProperty<bool> IsCornerGroupedProperty =
-        AvaloniaProperty.Register<PixieGroup, bool>(nameof(IsCornerGrouped));
+    public static readonly DirectProperty<PixieGroup, ContextMenu?> CollapseDropMenuProperty =
+        AvaloniaProperty.RegisterDirect<PixieGroup, ContextMenu?>(nameof(CollapseDropMenu),
+        o => o.CollapseDropMenu, (o, v) => o.CollapseDropMenu = v);
 
     /// <summary>
     /// Defines the <see cref="CollapseTitleWeight"/> property.
     /// </summary>
     public static readonly StyledProperty<FontWeight> CollapseTitleWeightProperty =
         AvaloniaProperty.Register<PixieGroup, FontWeight>(nameof(CollapseTitleWeight), FontWeight.Normal);
+
+    /// <summary>
+    /// Defines the <see cref="IsCapped"/> property.
+    /// </summary>
+    public static readonly StyledProperty<bool> IsCappedProperty =
+        AvaloniaProperty.Register<PixieGroup, bool>(nameof(IsCapped));
 
     /// <summary>
     /// Defines the <see cref="ChildBackground"/> property.
@@ -171,21 +206,42 @@ public class PixieGroup : StackPanel
         AvaloniaProperty.Register<PixieGroup, CornerRadius>(nameof(ChildCorner));
 
     /// <summary>
-    /// Defines the <see cref="ChildBorder"/> property.
-    /// </summary>
-    public static readonly StyledProperty<IBrush?> ChildBorderProperty =
-        AvaloniaProperty.Register<PixieGroup, IBrush?>(nameof(ChildBorder));
-
-    /// <summary>
     /// Defines the <see cref="ChildIndent"/> property.
     /// </summary>
     public static readonly StyledProperty<double> ChildIndentProperty =
         AvaloniaProperty.Register<PixieGroup, double>(nameof(ChildIndent));
 
+    /// <summary>
+    /// Occurs when the user attempts to rename the title of a <see cref="PixieCard"/> child instance.
+    /// </summary>
+    /// <remarks>
+    /// The <see cref="RoutedEventArgs.Source"/> provides the <see cref="PixieCard"/> instance. The handler has the
+    /// option to deny the change by setting <see cref="SubmittedEventArgs.IsRejected"/> to true
+    /// </remarks>
+    public event EventHandler<GroupChildRenamingEventArgs> ChildRenaming
+    {
+        add { AddHandler(ChildRenamingEvent, value); }
+        remove { RemoveHandler(ChildRenamingEvent, value); }
+    }
 
     /// <summary>
-    /// Gets or sets the top title text. This is a direct property.
+    /// Occurs when the user attempts to rename the <see cref="CollapseTitle"/> in the user interface.
     /// </summary>
+    /// <remarks>
+    /// The handler has the option to deny the change by setting <see cref="SubmittedEventArgs.IsRejected"/> to true.
+    /// </remarks>
+    public event EventHandler<GroupChildRenamingEventArgs> CollapseRenaming
+    {
+        add { AddHandler(CollapseRenamingEvent, value); }
+        remove { RemoveHandler(CollapseRenamingEvent, value); }
+    }
+
+    /// <summary>
+    /// Gets or sets the top title text.
+    /// </summary>
+    /// <remarks>
+    /// This text appears above the main control.
+    /// </remarks>
     public string? TopTitle
     {
         get { return _topTitle; }
@@ -193,9 +249,11 @@ public class PixieGroup : StackPanel
     }
 
     /// <summary>
-    /// Gets or sets the tagline text shown under <see cref="TopTitle"/>. There is no "top header". This is a direct
-    /// property.
+    /// Gets or sets the tagline text shown under <see cref="TopTitle"/>.
     /// </summary>
+    /// <remarks>
+    /// This text appears above the main control but below <see cref="TopTitle"/>.
+    /// </remarks>
     public string? TopFooter
     {
         get { return _topFooter; }
@@ -203,10 +261,10 @@ public class PixieGroup : StackPanel
     }
 
     /// <summary>
-    /// Gets or sets whether the group is open (true), or collapsed (false). This is a direct property.
+    /// Gets or sets whether the group is open (true), or collapsed (false).
     /// </summary>
     /// <remarks>
-    /// The group will effectively be hidden if both <see cref="IsOpen"/> is false and <see cref="IsCollapsable"/> are
+    /// The group will effectively be hidden if both <see cref="IsOpen"/> is false and <see cref="IsCollapsible"/> are
     /// false. The default is true.
     /// </remarks>
     public bool IsOpen
@@ -216,24 +274,24 @@ public class PixieGroup : StackPanel
     }
 
     /// <summary>
-    /// Gets or sets whether to show a header control allowing the user to toggle <see cref="IsOpen"/> and collapse or
-    /// show the group's contents. This is a direct property.
+    /// Gets or sets whether to show a control allowing the user to toggle <see cref="IsOpen"/> and collapse the group's
+    /// contents.
     /// </summary>
     /// <remarks>
-    /// The group will effectively be hidden if both <see cref="IsOpen"/> is false and <see cref="IsCollapsable"/> are
+    /// The group will effectively be hidden if both <see cref="IsOpen"/> is false and <see cref="IsCollapsible"/> are
     /// false. The default is false.
     /// </remarks>
-    public bool IsCollapsable
+    public bool IsCollapsible
     {
-        get { return _isCollapsable; }
-        set { SetAndRaise(IsCollapsableProperty, ref _isCollapsable, value); }
+        get { return _isCollapsible; }
+        set { SetAndRaise(IsCollapsibleProperty, ref _isCollapsible, value); }
     }
 
     /// <summary>
-    /// Gets or sets the text shown in the collapse control above <see cref="CollapseTitle"/>. This is a direct property.
+    /// Gets or sets the text shown in the collapse control above <see cref="CollapseTitle"/>.
     /// </summary>
     /// <remarks>
-    /// The <see cref="IsCollapsable"/> property must be true otherwise this text value is not shown. The default is null.
+    /// The <see cref="IsCollapsible"/> property must be true otherwise this text value is not shown. The default is null.
     /// </remarks>
     public string? CollapseHeader
     {
@@ -242,10 +300,10 @@ public class PixieGroup : StackPanel
     }
 
     /// <summary>
-    /// Gets or sets the text shown in the collapse header below <see cref="CollapseTitle"/>. This is a direct property.
+    /// Gets or sets the text shown in the collapse header below <see cref="CollapseTitle"/>.
     /// </summary>
     /// <remarks>
-    /// The <see cref="IsCollapsable"/> property must be true otherwise this text value is not shown. The default is null.
+    /// The <see cref="IsCollapsible"/> property must be true otherwise this text value is not shown. The default is null.
     /// </remarks>
     public string? CollapseFooter
     {
@@ -254,10 +312,10 @@ public class PixieGroup : StackPanel
     }
 
     /// <summary>
-    /// Gets or sets the symbol shown in the collapse control. This is a direct property.
+    /// Gets or sets the symbol shown in the collapse control.
     /// </summary>
     /// <remarks>
-    /// The <see cref="IsCollapsable"/> property must be true otherwise this text value is not shown. The default is null.
+    /// The <see cref="IsCollapsible"/> property must be true otherwise this text value is not shown. The default is null.
     /// </remarks>
     public string? CollapseSymbol
     {
@@ -266,15 +324,37 @@ public class PixieGroup : StackPanel
     }
 
     /// <summary>
-    /// Gets or sets the title shown in the collapse control. This is a direct property.
+    /// Gets or sets whether the button used for <see cref="CollapseDropMenu"/> has an opacity of 0 when the pointer is
+    /// not hovering over the control.
+    /// </summary>
+    public bool IsCollapseHoverButton
+    {
+        get { return _isCollapseHoverButton; }
+        set { SetAndRaise(IsCollapseHoverButtonProperty, ref _isCollapseHoverButton, value); }
+    }
+
+    /// <summary>
+    /// Gets or sets the title shown in the collapse control.
     /// </summary>
     /// <remarks>
-    /// The <see cref="IsCollapsable"/> property must be true otherwise the title is not shown. The default is null.
+    /// The <see cref="IsCollapsible"/> property must be true otherwise the title is not shown. The default is null.
     /// </remarks>
     public string? CollapseTitle
     {
         get { return _collapseTitle; }
         set { SetAndRaise(CollapseTitleProperty, ref _collapseTitle, value); }
+    }
+
+    /// <summary>
+    /// Gets or sets a ContextMenu associated with the collapse control.
+    /// </summary>
+    /// <remarks>
+    /// When not null, a button appears in the collapse control. The default is null.
+    /// </remarks>
+    public ContextMenu? CollapseDropMenu
+    {
+        get { return _collapseDropMenu; }
+        set { SetAndRaise(CollapseDropMenuProperty, ref _collapseDropMenu, value); }
     }
 
     /// <summary>
@@ -284,10 +364,10 @@ public class PixieGroup : StackPanel
     /// <remarks>
     /// The default is false.
     /// </remarks>
-    public bool IsCornerGrouped
+    public bool IsCapped
     {
-        get { return GetValue(IsCornerGroupedProperty); }
-        set { SetValue(IsCornerGroupedProperty, value); }
+        get { return GetValue(IsCappedProperty); }
+        set { SetValue(IsCappedProperty, value); }
     }
 
     /// <summary>
@@ -312,21 +392,12 @@ public class PixieGroup : StackPanel
     /// Gets or sets the <see cref="PixieControl"/> corner radius of children.
     /// </summary>
     /// <remarks>
-    /// The value is applied to top and bottom children only where <see cref="IsCornerGrouped"/> is true.
+    /// The value is applied to top and bottom children only where <see cref="IsCapped"/> is true.
     /// </remarks>
     public CornerRadius ChildCorner
     {
         get { return GetValue(ChildCornerProperty); }
         set { SetValue(ChildCornerProperty, value); }
-    }
-
-    /// <summary>
-    /// Gets or sets the <see cref="PixieControl"/> child background.
-    /// </summary>
-    public IBrush? ChildBorder
-    {
-        get { return GetValue(ChildBorderProperty); }
-        set { SetValue(ChildBorderProperty, value); }
     }
 
     /// <summary>
@@ -340,6 +411,11 @@ public class PixieGroup : StackPanel
         get { return GetValue(ChildIndentProperty); }
         set { SetValue(ChildIndentProperty, value); }
     }
+
+    /// <summary>
+    /// Gets the current member with <see cref="PixieCard.IsChecked"/> equal to true.
+    /// </summary>
+    public PixieCard? CheckedCard {get; private set;}
 
     /// <summary>
     /// Replaces children.
@@ -415,7 +491,7 @@ public class PixieGroup : StackPanel
                 findings.Add(new PixieFinding(this));
             }
 
-            if (IsCollapsable &&
+            if (IsCollapsible &&
                 (CollapseHeader?.Contains(keyword, Comp) == true ||
                 CollapseTitle?.Contains(keyword, Comp) == true ||
                 CollapseFooter?.Contains(keyword, Comp) == true))
@@ -430,9 +506,76 @@ public class PixieGroup : StackPanel
     }
 
     /// <summary>
+    /// Starts the rename editor for <see cref="CollapseTitle"/> and returns true on success.
+    /// </summary>
+    /// <remarks>
+    /// The <see cref="IsCollapsible"/> value must be true otherwise the result is false. The editor is closed if it
+    /// loses focus or <see cref="Children"/> changes. The <see cref="CollapseRenaming"/> occurs when the user makes the
+    /// change with "this" instance as the sender. The result only indicates the that editor started, not that the user
+    /// confirmed the rename.
+    /// </remarks>
+    public bool StartRename(int maxLength, int minLength = 1)
+    {
+        if (_isCollapsible && _collapser != null)
+        {
+            return StartRename(_collapser, maxLength, minLength);
+        }
+
+        return false;
+    }
+
+    /// <summary>
+    /// Starts the rename editor for the given "child" and returns true on success.
+    /// </summary>
+    /// <remarks>
+    /// The "child" must be a member of <see cref="Children"/> otherwise the result is false. The editor is closed if it
+    /// loses focus or <see cref="Children"/> changes. The <see cref="ChildRenaming"/> occurs when the user makes
+    /// the change with "child" as the "sender".
+    /// </remarks>
+    public bool StartRename(PixieCard child, int maxLength, int minLength = 1)
+    {
+        if (!child.IsEffectivelyVisible || !child.IsEffectivelyEnabled)
+        {
+            return false;
+        }
+
+        ConditionalDebug.ThrowIfNotSame(this, child.Group);
+        int index = base.Children.IndexOf(child);
+
+        if (index < 0)
+        {
+            return false;
+        }
+
+        // The renamer will take care of everything else
+        var obj = new GroupRenamer(child, maxLength, minLength);
+
+        if (child != _collapser)
+        {
+            obj.ContentPadding = new(ChildIndent, 0.0, 0.0, 0.0);
+        }
+
+        obj.Renaming += RenamedHandler;
+        base.Children.Insert(index + 1, obj);
+
+        return true;
+    }
+
+    /// <summary>
+    /// Brings into view and calls attention.
+    /// </summary>
+    /// <remarks>
+    /// The call does nothing unless <see cref="IsCollapsible"/> is true.
+    /// </remarks>
+    public virtual void Attention(IBrush? background = null)
+    {
+        _collapser?.Attention(background);
+    }
+
+    /// <summary>
     /// Called by <see cref="PixieRadio"/>.
     /// </summary>
-    internal void CheckedChanged(PixieRadio obj)
+    internal void SetRadioOnCheckedChanged(PixieRadio obj)
     {
         if (obj.IsChecked)
         {
@@ -447,19 +590,31 @@ public class PixieGroup : StackPanel
     }
 
     /// <summary>
-    /// Called by <see cref="PixieButton"/>.
+    /// Called by <see cref="PixieCard"/>.
     /// </summary>
-    internal void CheckedChanged(PixieButton obj)
+    internal void SetCardOnCheckedChanged(PixieCard? obj)
     {
-        if (obj.IsBackgroundChecked)
+        if (obj?.IsChecked == true)
         {
-            foreach (var item in Children)
+            if (CheckedCard != obj)
             {
-                if (item != obj && item is PixieButton other)
-                {
-                    other.IsBackgroundChecked = false;
-                }
+                CheckedCard?.IsChecked = false;
             }
+
+            CheckedCard = obj;
+        }
+        else
+        {
+            CheckedCard?.IsChecked = false;
+            CheckedCard = null;
+        }
+    }
+
+    internal void Remove(GroupRenamer obj)
+    {
+        if (obj.Source != null)
+        {
+            base.Children.Remove(obj);
         }
     }
 
@@ -469,17 +624,52 @@ public class PixieGroup : StackPanel
     protected override void OnAttachedToVisualTree(VisualTreeAttachmentEventArgs e)
     {
         base.OnAttachedToVisualTree(e);
-        Styling.StylingChanged += StylingChangedHandler;
         RebuildChildren();
     }
 
     /// <summary>
     /// Overrides.
     /// </summary>
-    protected override void OnDetachedFromVisualTree(VisualTreeAttachmentEventArgs e)
+    protected override void OnKeyDown(KeyEventArgs e)
     {
-        base.OnDetachedFromVisualTree(e);
-        Styling.StylingChanged -= StylingChangedHandler;
+        base.OnKeyDown(e);
+
+        if (e.Key == Key.Down || e.Key == Key.Up)
+        {
+            bool next = false;
+            PixieCard? last = null;
+
+            foreach (var item in Children)
+            {
+                if (item is PixieCard card)
+                {
+                    if (card.IsChecked)
+                    {
+                        if (e.Key == Key.Up && last != null)
+                        {
+                            e.Handled = true;
+                            last.OnClick();
+                            return;
+                        }
+
+                        if (e.Key == Key.Down && !next)
+                        {
+                            next = true;
+                            continue;
+                        }
+                    }
+
+                    if (next)
+                    {
+                        e.Handled = true;
+                        card.OnClick();
+                        return;
+                    }
+
+                    last = card;
+                }
+            }
+        }
     }
 
     /// <summary>
@@ -491,8 +681,7 @@ public class PixieGroup : StackPanel
         base.OnPropertyChanged(change);
 
         if (p == ChildBackgroundProperty || p == ChildCornerProperty ||
-            p == ChildIndentProperty || p == IsCornerGroupedProperty ||
-            p == ChildBorderProperty)
+            p == ChildIndentProperty || p == IsCappedProperty)
         {
             if (!_rebuild.IsPending)
             {
@@ -536,15 +725,15 @@ public class PixieGroup : StackPanel
 
         if (p == IsOpenProperty)
         {
-            SetButtonOpen(_collapseButton, change.GetNewValue<bool>());
+            SetGroupOpen(_collapser, change.GetNewValue<bool>());
             _rebuild.Post();
             _update.Cancel();
             return;
         }
 
-        if (p == IsCollapsableProperty)
+        if (p == IsCollapsibleProperty)
         {
-            _collapseButton = change.GetNewValue<bool>() ? NewCollapseButton() : null;
+            _collapser = change.GetNewValue<bool>() ? NewCollapser() : null;
             _rebuild.Post();
             _update.Cancel();
             return;
@@ -552,86 +741,96 @@ public class PixieGroup : StackPanel
 
         if (p == CollapseHeaderProperty)
         {
-            _collapseButton?.SetValue(PixieControl.HeaderProperty, change.GetNewValue<string?>());
+            _collapser?.Header = change.GetNewValue<string?>();
             return;
         }
 
         if (p == CollapseTitleProperty)
         {
-            _collapseButton?.SetValue(PixieControl.TitleProperty, change.GetNewValue<string?>());
+            _collapser?.Title = change.GetNewValue<string?>();
+            return;
+        }
+
+        if (p == CollapseDropMenuProperty)
+        {
+            var value = change.GetNewValue<ContextMenu?>();
+            _collapser?.RightButton.DropMenu = value;
+            _collapser?.RightButton.IsVisible = value != null;
             return;
         }
 
         if (p == CollapseTitleWeightProperty)
         {
-            _collapseButton?.SetValue(PixieControl.TitleWeightProperty, change.GetNewValue<FontWeight>());
+            _collapser?.TitleWeight = change.GetNewValue<FontWeight>();
             return;
         }
 
         if (p == CollapseFooterProperty)
         {
-            _collapseButton?.SetValue(PixieControl.FooterProperty, change.GetNewValue<string?>());
+            _collapser?.Footer = change.GetNewValue<string?>();
             return;
         }
 
         if (p == CollapseSymbolProperty)
         {
-            _collapseButton?.SetValue(PixieControl.LeftSymbolProperty, change.GetNewValue<string?>());
+            _collapser?.LeftSymbol = change.GetNewValue<string?>();
+            return;
+        }
+
+        if (p == IsCollapseHoverButtonProperty)
+        {
+            _collapser?.IsHoverButton = change.GetNewValue<bool>();
             return;
         }
     }
 
-    private static void SetButtonOpen(PixieButton? button, bool open)
+    private static void SetGroupOpen(PixieCard? control, bool open)
     {
-        if (button != null)
+        if (control != null)
         {
-            button.RightSymbol = open ? Symbols.KeyboardArrowDown : Symbols.KeyboardArrowRight;
+            control.RightSymbol = open ? Symbols.KeyboardArrowDown : Symbols.KeyboardArrowRight;
         }
     }
 
-    private PixieButton NewCollapseButton()
+    private PixieCard NewCollapser()
     {
-        var button = new PixieButton();
-        button.Header = CollapseHeader;
-        button.Title = CollapseTitle;
-        button.TitleWeight = CollapseTitleWeight;
-        button.Footer = CollapseFooter;
-        button.LeftSymbol = CollapseSymbol;
-        SetButtonOpen(button, IsOpen);
+        var obj = new PixieCard();
+        obj.Group = this;
+        obj.Header = _collapseHeader;
+        obj.Title = _collapseTitle;
+        obj.TitleWeight = CollapseTitleWeight;
+        obj.Footer = _collapseFooter;
+        obj.LeftSymbol = _collapseSymbol;
+        obj.IsHoverButton = _isCollapseHoverButton;
+        obj.RightButton.DropMenu = _collapseDropMenu;
+        obj.RightButton.IsVisible = _collapseDropMenu != null;
 
-        button.BackgroundClick += CollapseClickHandler;
+        SetGroupOpen(obj, IsOpen);
+        obj.Click += (_, __) => IsOpen = !IsOpen;
 
-        return button;
+        return obj;
     }
 
     private void UpdateChildren(List<Control>? rebuild = null)
     {
         var radius = ChildCorner;
         var background = ChildBackground;
-        var border = ChildBorder;
-        var borderPx = border != null ? 1.0 : 0.0;
         var indent = ChildIndent;
-        bool block = IsCornerGrouped;
+        bool block = IsCapped;
 
         PixieControl? firstPixie = null;
         PixieControl? lastPixie = null;
 
         CornerRadius topRadius = block ? new(radius.TopLeft, radius.TopRight, 0.0, 0.0) : radius;
-        CornerRadius bottomRadius = block ?  new(0.0, 0.0, radius.BottomLeft, radius.BottomRight) : radius;
+        CornerRadius bottomRadius = block ? new(0.0, 0.0, radius.BottomLeft, radius.BottomRight) : radius;
         CornerRadius sideRadius = block ? default : radius;
 
-        // Treat these as logically separate even tho currently same
-        Thickness topThickness = new (borderPx);
-        Thickness bottomThickness = new (borderPx);
-        Thickness sideThickness = new (borderPx);
-
-        if (_collapseButton != null && IsCollapsable) // <- must check both
+        if (_collapser != null && IsCollapsible) // <- must check both
         {
-            firstPixie = _collapseButton;
+            firstPixie = _collapser;
             lastPixie = firstPixie;
             rebuild?.Add(firstPixie);
 
-            firstPixie.BorderBrush = border;
             firstPixie.Background = background;
         }
 
@@ -649,12 +848,9 @@ public class PixieGroup : StackPanel
                         lastPixie = pixie;
                     }
 
-                    pixie.BorderBrush = border;
-                    pixie.Background = background;
-
                     pixie.LeftIndent = indent;
+                    pixie.Background = background;
                     pixie.CornerRadius = sideRadius;
-                    pixie.BorderThickness = sideThickness;
                 }
             }
         }
@@ -664,15 +860,11 @@ public class PixieGroup : StackPanel
             if (firstPixie == lastPixie)
             {
                 firstPixie.CornerRadius = radius;
-                firstPixie.BorderThickness = new (borderPx);
             }
             else
             {
                 firstPixie.CornerRadius = topRadius;
-                firstPixie.BorderThickness = topThickness;
-
                 lastPixie.CornerRadius = bottomRadius;
-                lastPixie.BorderThickness = bottomThickness;
             }
         }
 
@@ -712,32 +904,6 @@ public class PixieGroup : StackPanel
         base.Children.Replace(rebuild);
     }
 
-    private void RebuildPostHandler(object? _, EventArgs __)
-    {
-        RebuildChildren();
-    }
-
-    private void UpdatePostHandler(object? _, EventArgs __)
-    {
-        UpdateChildren();
-    }
-
-    private void StylingChangedHandler(object? _, EventArgs __)
-    {
-        UpdateChildren();
-    }
-
-    private void ChildEnteredHandler(object? sender, EventArgs __)
-    {
-        foreach (var item in Children)
-        {
-            if (item != sender && item is PixieControl pixie)
-            {
-                pixie.ClearFocusBackground();
-            }
-        }
-    }
-
     private void PixieChildrenChangedHandler(object? _, NotifyCollectionChangedEventArgs e)
     {
         var items = e.OldItems;
@@ -750,10 +916,14 @@ public class PixieGroup : StackPanel
                 {
                     pixie.Group = null;
                     pixie.LeftIndent = 0.0;
-                    pixie.PointerEntered -= ChildEnteredHandler;
 
                     // Must remove immediate to detach the parent
                     base.Children.Remove(pixie);
+
+                    if (CheckedCard == pixie)
+                    {
+                        SetCardOnCheckedChanged(null);
+                    }
                 }
             }
         }
@@ -769,7 +939,6 @@ public class PixieGroup : StackPanel
                     if (pixie.Group == null)
                     {
                         pixie.Group = this;
-                        pixie.PointerEntered += ChildEnteredHandler;
                     }
                     else
                     if (pixie.Group != this)
@@ -777,16 +946,15 @@ public class PixieGroup : StackPanel
                         throw new InvalidOperationException($"{pixie.GetType().Name} already belongs to different {nameof(PixieGroup)}");
                     }
 
-                    if (pixie is PixieRadio radio)
+                    if (pixie is PixieCard btn)
                     {
-                        CheckedChanged(radio);
+                        SetCardOnCheckedChanged(btn);
                     }
                     else
-                    if (pixie is PixieButton btn)
+                    if (pixie is PixieRadio radio)
                     {
-                        CheckedChanged(btn);
+                        SetRadioOnCheckedChanged(radio);
                     }
-
                 }
             }
         }
@@ -795,17 +963,21 @@ public class PixieGroup : StackPanel
         _update.Cancel();
     }
 
-    private void PixiePropertyChange(object? _, AvaloniaPropertyChangedEventArgs change)
+    private void RenamedHandler(object? sender, SubmittedEventArgs e)
     {
-        if (change.Property == IsVisibleProperty)
-        {
-            _rebuild.Post();
-            _update.Cancel();
-        }
-    }
+        GroupChildRenamingEventArgs es;
 
-    private void CollapseClickHandler(object? _, EventArgs __)
-    {
-        IsOpen = !IsOpen;
+        if (sender == _collapser)
+        {
+            es = new(CollapseRenamingEvent, null, e);
+        }
+        else
+        {
+            es = new(ChildRenamingEvent, (PixieCard)sender!, e);
+        }
+
+        RaiseEvent(es);
+        e.Handled = es.Handled;
+        e.IsRejected = es.IsRejected;
     }
 }

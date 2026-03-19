@@ -1,8 +1,10 @@
 ﻿// -----------------------------------------------------------------------------
-// PROJECT   : KuiperZone.Marklet
-// AUTHOR    : Andrew Thomas
-// COPYRIGHT : Andrew Thomas © 2025-2026 All rights reserved
-// LICENSE   : AGPL-3.0-only
+// SPDX-FileNotice: KuiperZone.Marklet - Local AI Client
+// SPDX-License-Identifier: AGPL-3.0-only
+// SPDX-FileCopyrightText: © 2025-2026 Andrew Thomas <kuiperzone@users.noreply.github.com>
+// SPDX-ProjectHomePage: https://kuiper.zone/marklet-ai/
+// SPDX-FileType: Source
+// SPDX-FileComment: This is NOT AI generated source code but was created with human thinking and effort.
 // -----------------------------------------------------------------------------
 
 // Marklet is free software: you can redistribute it and/or modify it under
@@ -24,10 +26,23 @@ namespace KuiperZone.Marklet.Stack.Garden;
 /// Garden storage provider.
 /// </summary>
 /// <remarks>
-/// Just a stupid name for a <see cref="DbConnection"/> factory. Factory? Gardens are nicer than factories anyway.
+/// Just a stupid name for a <see cref="DbConnection"/> factory. Factory? Gardens are nicer than factories.
 /// </remarks>
 public interface IMemoryGardener
 {
+    /// <summary>
+    /// Gets location string.
+    /// </summary>
+    /// <remarks>
+    /// Intended to be shown to the user. It is not necessarily the full connection string.
+    /// </remarks>
+    string? Location { get; }
+
+    /// <summary>
+    /// Gets whether the connection is readonly.
+    /// </summary>
+    bool IsReadOnly { get; }
+
     /// <summary>
     /// Returns a new (or pooled) connection.
     /// </summary>

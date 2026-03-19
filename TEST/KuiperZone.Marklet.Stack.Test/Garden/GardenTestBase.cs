@@ -1,8 +1,10 @@
 ﻿// -----------------------------------------------------------------------------
-// PROJECT   : KuiperZone.Marklet
-// AUTHOR    : Andrew Thomas
-// COPYRIGHT : Andrew Thomas © 2025-2026 All rights reserved
-// LICENSE   : AGPL-3.0-only
+// SPDX-FileNotice: KuiperZone.Marklet - Local AI Client
+// SPDX-License-Identifier: AGPL-3.0-only
+// SPDX-FileCopyrightText: © 2025-2026 Andrew Thomas <kuiperzone@users.noreply.github.com>
+// SPDX-ProjectHomePage: https://kuiper.zone/marklet-ai/
+// SPDX-FileType: Source
+// SPDX-FileComment: This is NOT AI generated source code but was created with human thinking and effort.
 // -----------------------------------------------------------------------------
 
 // Marklet is free software: you can redistribute it and/or modify it under
@@ -17,18 +19,32 @@
 // with Marklet. If not, see <https://www.gnu.org/licenses/>.
 
 using KuiperZone.Marklet.Stack.Garden;
+using KuiperZone.Marklet.Stack.Garden.Internal;
+using KuiperZone.Marklet.Tooling;
 
 namespace KuiperZone.Marklet.Stack.Test;
 
 public abstract class GardenTestBase
 {
-    protected static void Populate(MemoryGarden obj, BinKind kind, int count)
+    static GardenTestBase()
+    {
+        // If we need logging
+        ConditionalDebug.EnableNamespace(nameof(MemoryGarden));
+        ConditionalDebug.EnableNamespace(nameof(GardenDeck));
+        ConditionalDebug.EnableNamespace(nameof(GardenLeaf));
+        ConditionalDebug.EnableNamespace(nameof(MetaOps));
+        ConditionalDebug.EnableNamespace(nameof(DeckOps));
+        ConditionalDebug.EnableNamespace(nameof(LeafOps));
+    }
+
+    protected static void Populate(MemoryGarden obj, DeckKind kind, BasketKind origin, int count)
     {
         for (int n = 0; n < count; ++n)
         {
-            var child = new GardenSession(kind);
+            var child = new GardenDeck(kind, origin);
 
             // Assign title before insertion (test)
+            // We just assign a counter starting at 0
             child.Title = n.ToString();
 
             obj.Insert(child);
@@ -44,39 +60,44 @@ public abstract class GardenTestBase
         }
     }
 
-    protected static MemoryGarden OpenNew()
+    protected static MemoryGarden OpenNew(bool backing = true)
     {
-        var obj = new MemoryGarden(new SqliteGardener());
-        obj.Open();
+        var obj = new MemoryGarden();
+
+        if (backing)
+        {
+            obj.OpenDatabase(SqliteGardener.NewMemory());
+        }
+
         return obj;
     }
 
     protected class ChangeReceiver
     {
-        public int BinUpdatedCounter;
-        public SelectedChangedEventArgs? SelectedChangedEvent;
-        public SelectedUpdatedEventArgs? SelectedUpdatedEvent;
+        public int BasketUpdatedCounter;
+        public CurrentDeckChangedEventArgs? CurrentChangedEvent;
+        public CurrentDeckUpdatedEventArgs? CurrentUpdatedEvent;
 
         public void Reset()
         {
-            BinUpdatedCounter = 0;
-            SelectedChangedEvent = null;
-            SelectedUpdatedEvent = null;
+            BasketUpdatedCounter = 0;
+            CurrentChangedEvent = null;
+            CurrentUpdatedEvent = null;
         }
 
-        public void BinHandler(object? _, EventArgs __)
+        public void BasketHandler(object? _, EventArgs __)
         {
-            BinUpdatedCounter += 1;
+            BasketUpdatedCounter += 1;
         }
 
-        public void SelectedChangedHandler(object? _, SelectedChangedEventArgs e)
+        public void CurrentChangedHandler(object? _, CurrentDeckChangedEventArgs e)
         {
-            SelectedChangedEvent = e;
+            CurrentChangedEvent = e;
         }
 
-        public void SelectedUpdatedHandler(object? _, SelectedUpdatedEventArgs e)
+        public void CurrentUpdatedHandler(object? _, CurrentDeckUpdatedEventArgs e)
         {
-            SelectedUpdatedEvent = e;
+            CurrentUpdatedEvent = e;
         }
     }
 }

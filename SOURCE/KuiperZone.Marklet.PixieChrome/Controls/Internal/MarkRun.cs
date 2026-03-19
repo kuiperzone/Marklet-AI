@@ -1,8 +1,10 @@
 // -----------------------------------------------------------------------------
-// PROJECT   : KuiperZone.Marklet
-// AUTHOR    : Andrew Thomas
-// COPYRIGHT : Andrew Thomas © 2025-2026 All rights reserved
-// LICENSE   : AGPL-3.0-only
+// SPDX-FileNotice: KuiperZone.Marklet - Local AI Client
+// SPDX-License-Identifier: AGPL-3.0-only
+// SPDX-FileCopyrightText: © 2025-2026 Andrew Thomas <kuiperzone@users.noreply.github.com>
+// SPDX-ProjectHomePage: https://kuiper.zone/marklet-ai/
+// SPDX-FileType: Source
+// SPDX-FileComment: This is NOT AI generated source code but was created with human thinking and effort.
 // -----------------------------------------------------------------------------
 
 // Marklet is free software: you can redistribute it and/or modify it under
@@ -67,7 +69,6 @@ internal sealed class MarkRun : CrossRun
         this.SetBaseline(s, _owner.ScaledFontSize);
         TextDecorations = s.ToXamlTextDecorations();
 
-
         bool hasFamily = false;
         bool hasForeground = false;
         bool hasBackground = false;
@@ -124,19 +125,22 @@ internal sealed class MarkRun : CrossRun
             }
         }
 
-        if (!hasFamily)
+        if (element != null)
         {
-            ClearValue(FontFamilyProperty);
-        }
+            if (!hasFamily)
+            {
+                ClearValue(FontFamilyProperty);
+            }
 
-        if (!hasBackground)
-        {
-            ClearValue(BackgroundProperty);
-        }
+            if (!hasBackground)
+            {
+                ClearValue(BackgroundProperty);
+            }
 
-        if (!hasForeground)
-        {
-            ClearValue(ForegroundProperty);
+            if (!hasForeground)
+            {
+                ClearValue(ForegroundProperty);
+            }
         }
     }
 

@@ -1,8 +1,10 @@
 // -----------------------------------------------------------------------------
-// PROJECT   : KuiperZone.Marklet
-// AUTHOR    : Andrew Thomas
-// COPYRIGHT : Andrew Thomas © 2025-2026 All rights reserved
-// LICENSE   : AGPL-3.0-only
+// SPDX-FileNotice: KuiperZone.Marklet - Local AI Client
+// SPDX-License-Identifier: AGPL-3.0-only
+// SPDX-FileCopyrightText: © 2025-2026 Andrew Thomas <kuiperzone@users.noreply.github.com>
+// SPDX-ProjectHomePage: https://kuiper.zone/marklet-ai/
+// SPDX-FileType: Source
+// SPDX-FileComment: This is NOT AI generated source code but was created with human thinking and effort.
 // -----------------------------------------------------------------------------
 
 // Marklet is free software: you can redistribute it and/or modify it under
@@ -51,7 +53,7 @@ public class PixieControl : Border
 
     private const int LeftColumn = 0;
     private const int TitleColumn = 1;
-    private const int ItemControlColumn = 2;
+    private const int SubjectColumn = 2;
     private const int RightColumn = 3;
     private const int ColumnCount = 4;
 
@@ -62,17 +64,18 @@ public class PixieControl : Border
     // Intention is to keep row content appearing
     // vertically centered even if aligned to top.
     private const double TitleSpacer = 12.0;
-    private static readonly Thickness HeaderMargin = new(0.0, 0.0, 0.0, 4.0);
-    private static readonly Thickness FooterMargin = new(0.0, 4.0, 0.0, 0.0);
+    private const double BannerVertical = 4.0;
+    private static readonly TimeSpan ClearDelay = TimeSpan.FromMilliseconds(1000);
+    private static readonly Thickness HeaderMargin = new(0.0, 0.0, 0.0, BannerVertical);
+    private static readonly Thickness FooterMargin = new(0.0, BannerVertical, 0.0, 0.0);
 
     private readonly Border _adorner = new();
     private readonly Grid _grid = new();
 
     private readonly TextBlock _titleBlock = new();
     private FontWeight _titleWeight = FontWeight.Normal;
+    private TextWrapping _titleWrapping = TextWrapping.Wrap;
     private string? _title;
-
-    private Control? _childControl;
 
     private string? _header;
     private TextBlock? _headerBlock;
@@ -83,16 +86,18 @@ public class PixieControl : Border
 
     private string? _leftSymbol;
     private string? _rightSymbol;
-    private Accoutrement? _leftStack;
-    private Accoutrement? _rightStack;
+    private SideStack? _leftStack;
+    private SideStack? _rightStack;
+    private bool _isHoverButton;
 
+    private Control? _subject;
     private Control? _focusControl;
     private ITemplate<Control>? _origAdorner;
     private double _leftIndent;
-    private bool _isTitleVisible = true;
     private double _verticalContentOffset = DefaultVerticalOffset;
     private VerticalAlignment _verticalContentAlignment;
 
+    private bool _isTitleVisible = true;
     private bool _isSettingBase;
 
     /// <summary>
@@ -120,7 +125,7 @@ public class PixieControl : Border
 
         for (int n = 0; n < ColumnCount; ++n)
         {
-            _grid.ColumnDefinitions.Add(new(n == ItemControlColumn ? GridLength.Star : GridLength.Auto));
+            _grid.ColumnDefinitions.Add(new(n == SubjectColumn ? GridLength.Star : GridLength.Auto));
         }
 
         _grid.RowDefinitions.Add(new(GridLength.Auto));
@@ -131,9 +136,8 @@ public class PixieControl : Border
         _titleBlock.IsVisible = GetTitleVisibility();
         _titleBlock.HorizontalAlignment = HorizontalAlignment.Left;
         _titleBlock.VerticalAlignment = verticalAlignment;
-        _titleBlock.TextWrapping = TextWrapping.Wrap; // <- initial but overridden later
+        _titleBlock.TextWrapping = _titleWrapping;
         _titleBlock.TextTrimming = TextTrimming.CharacterEllipsis;
-        _titleBlock.PointerExited += PointerExitedHandler;
         SetTitlePadding(_titleBlock, _verticalContentOffset);
 
         Grid.SetColumn(_titleBlock, TitleColumn);
@@ -171,6 +175,13 @@ public class PixieControl : Border
         o => o.TitleWeight, (o, v) => o.TitleWeight = v, FontWeight.Normal);
 
     /// <summary>
+    /// Defines the <see cref="TitleWrapping"/> property.
+    /// </summary>
+    public static readonly DirectProperty<PixieControl, TextWrapping> TitleWrappingProperty =
+        AvaloniaProperty.RegisterDirect<PixieControl, TextWrapping>(nameof(TitleWrapping),
+        o => o.TitleWrapping, (o, v) => o.TitleWrapping = v, TextWrapping.Wrap);
+
+    /// <summary>
     /// Defines the <see cref="Footer"/> property.
     /// </summary>
     public static readonly DirectProperty<PixieControl, string?> FooterProperty =
@@ -199,11 +210,18 @@ public class PixieControl : Border
         o => o.RightSymbol, (o, v) => o.RightSymbol = v);
 
     /// <summary>
+    /// Defines the <see cref="IsHoverButton"/> property.
+    /// </summary>
+    public static readonly DirectProperty<PixieControl, bool> IsHoverButtonProperty =
+        AvaloniaProperty.RegisterDirect<PixieControl, bool>(nameof(IsHoverButton),
+        o => o.IsHoverButton, (o, v) => o.IsHoverButton = v);
+
+    /// <summary>
     /// Occurs when the subclass control value changes.
     /// </summary>
     /// <remarks>
     /// For example, it occurs when the slider on the <see cref="PixieSlider"/> is moved. It occurs when <see
-    /// cref="PixieButton.IsBackgroundCheckedProperty"/> changes etc. It does not occur when <see cref="PixieButton"/> is clicked. It
+    /// cref="PixieCard.IsCheckedProperty"/> changes etc. It does not occur when <see cref="PixieCard"/> is clicked. It
     /// does not occur for <see cref="PixieSelectable"/>.
     /// </remarks>
     public event EventHandler<RoutedEventArgs> ValueChanged
@@ -215,6 +233,10 @@ public class PixieControl : Border
     /// <summary>
     /// Gets or sets the header text shown above <see cref="Title"/> .
     /// </summary>
+    /// <remarks>
+    /// Both <see cref="Header"/> and <see cref="Footer"/> string may include Material Symbols private range code-points.
+    /// This does not apply to <see cref="Title"/>.
+    /// </remarks>
     public string? Header
     {
         get { return _header; }
@@ -240,8 +262,25 @@ public class PixieControl : Border
     }
 
     /// <summary>
+    /// Gets or sets the <see cref="Title"/> wrapping.
+    /// </summary>
+    /// <remarks>
+    /// The default is <see cref="TextWrapping.Wrap"/> for the base class but is typically <see
+    /// cref="TextWrapping.NoWrap"/> for subclasses with controls.
+    /// </remarks>
+    public TextWrapping TitleWrapping
+    {
+        get { return _titleWrapping; }
+        set { SetAndRaise(TitleWrappingProperty, ref _titleWrapping, value); }
+    }
+
+    /// <summary>
     /// Gets or sets the footer text shown below the control.
     /// </summary>
+    /// <remarks>
+    /// Both <see cref="Header"/> and <see cref="Footer"/> string may include Material Symbols private range code-points.
+    /// This does not apply to <see cref="Title"/>.
+    /// </remarks>
     public virtual string? Footer
     {
         get { return _footer; }
@@ -276,17 +315,29 @@ public class PixieControl : Border
     }
 
     /// <summary>
+    /// Gets or sets whether the <see cref="LeftButton"/> and <see cref="RightButton"/> have an opacity of 0 when the
+    /// pointer is not hovering over the control.
+    /// </summary>
+    public bool IsHoverButton
+    {
+        get { return _isHoverButton; }
+        set { SetAndRaise(IsHoverButtonProperty, ref _isHoverButton, value); }
+    }
+
+    /// <summary>
     /// Gets the left button.
     /// </summary>
     /// <remarks>
-    /// By default, the <see cref="LightButton"/>.IsVisible value is false and MUST be set true to be seen. The button is
-    /// initialized to show a default symbol. Button properties can only be set programmatically.
+    /// By default, the <see cref="LightButton"/>.IsVisible is false and MUST be set true to be seen. The button is
+    /// initialized to show a default symbol. Button properties can only be set programmatically. The <see
+    /// cref="HandleKeyGesture"/> method may use to handle key gestures, although <see cref="PixieControl"/> will not
+    /// handle them itself.
     /// </remarks>
     public LightButton LeftButton
     {
         get
         {
-            _leftStack ??= new(true, this);
+            _leftStack ??= new(this, true);
             return _leftStack.Button;
         }
     }
@@ -295,14 +346,16 @@ public class PixieControl : Border
     /// Gets the right button.
     /// </summary>
     /// <remarks>
-    /// By default, the <see cref="LightButton"/>.IsVisible value is false and MUST be set true to be seen. The button
-    /// is initialized to show a default symbol. Button properties can only be set programmatically.
+    /// By default, the <see cref="LightButton"/>.IsVisible is false and MUST be set true to be seen. The button is
+    /// initialized to show a default symbol. Button properties can only be set programmatically. The <see
+    /// cref="HandleKeyGesture"/> method may use to handle key gestures, although <see cref="PixieControl"/> will not
+    /// handle them itself.
     /// </remarks>
     public LightButton RightButton
     {
         get
         {
-            _rightStack ??= new(false, this);
+            _rightStack ??= new(this, false);
             return _rightStack.Button;
         }
     }
@@ -384,9 +437,6 @@ public class PixieControl : Border
             {
                 _isTitleVisible = value;
                 UpdateTitleMaxWidth(_grid.Bounds.Width);
-
-                // Not needed with Update() call above
-                // _titleBlock.IsVisible = value;
             }
         }
     }
@@ -445,9 +495,9 @@ public class PixieControl : Border
     }
 
     /// <summary>
-        /// Do not use.
-        /// </summary>
-        [Obsolete($"Do not use.", true)]
+    /// Do not use.
+    /// </summary>
+    [Obsolete($"Do not use.", true)]
     protected new Control? Child
     {
         get { return base.Child; }
@@ -482,7 +532,7 @@ public class PixieControl : Border
     /// </summary>
     public void Focus()
     {
-        _childControl?.Focus();
+        _subject?.Focus();
     }
 
     /// <summary>
@@ -490,7 +540,33 @@ public class PixieControl : Border
     /// </summary>
     public new void Focus(NavigationMethod _, KeyModifiers __ = KeyModifiers.None)
     {
-        _childControl?.Focus();
+        _subject?.Focus();
+    }
+
+    /// <summary>
+    /// Calls <see cref="LightButton.HandleKeyGesture(KeyEventArgs, bool)"/> on <see cref="LeftButton"/> and <see
+    /// cref="RightButton"/>, return true on success.
+    /// </summary>
+    /// <remarks>
+    /// No event occurs where <see cref="RoutedEventArgs.Handled"/> is already true, and the result is false. On
+    /// success, the <see cref="RoutedEventArgs.Handled"/> value is set to true on return.
+    /// </remarks>
+    public bool HandleKeyGesture(KeyEventArgs e)
+    {
+        const string NSpace = $"{nameof(PixieControl)}.{nameof(OnKeyDown)}";
+        ConditionalDebug.WriteLine(NSpace, $"Key: {e.Key}, {e.KeyModifiers}");
+
+        if (_leftStack?.Button.HandleKeyGesture(e) == true)
+        {
+            return true;
+        }
+
+        if (_rightStack?.Button.HandleKeyGesture(e) == true)
+        {
+            return true;
+        }
+
+        return false;
     }
 
     /// <summary>
@@ -523,18 +599,24 @@ public class PixieControl : Border
     /// <summary>
     /// Brings into view and calls attention.
     /// </summary>
-    public void Attention()
+    public virtual void Attention(IBrush? background = null)
     {
-        AdornerBackground = Styling.WeakAccent;
-        DispatcherTimer.RunOnce(() => ClearFocusBackground(), TimeSpan.FromMilliseconds(1000));
+        AdornerBackground = background ?? new ImmutableSolidColorBrush(Styling.AccentColor, 0.15);
+        ClearAdornerBackground(true);
         Dispatcher.UIThread.Post(() => this.BringIntoView(), DispatcherPriority.ContextIdle);
     }
 
     /// <summary>
     /// Clears pseudo focus background.
     /// </summary>
-    internal virtual void ClearFocusBackground()
+    internal virtual void ClearAdornerBackground(bool delayed)
     {
+        if (delayed)
+        {
+            DispatcherTimer.RunOnce(() => ClearAdornerBackground(false), ClearDelay);
+            return;
+        }
+
         AdornerBackground = null;
     }
 
@@ -543,26 +625,26 @@ public class PixieControl : Border
     /// </summary>
     /// <exception cref="InvalidOperationException">Can be called once only</exception>
     /// <exception cref="ArgumentException">Invalid fraction</exception>
-    protected void SetChildControl(Control child)
+    protected void SetSubject(Control child)
     {
-        ConditionalDebug.WriteLine($"{GetType().Name}.{nameof(SetChildControl)}", $"Control: {child.GetType().Name}");
+        ConditionalDebug.WriteLine($"{GetType().Name}.{nameof(SetSubject)}", $"Control: {child.GetType().Name}");
 
-        if (_childControl != null)
+        if (_subject != null)
         {
-            throw new InvalidOperationException($"{nameof(SetChildControl)} can be called once only");
+            throw new InvalidOperationException($"{nameof(SetSubject)} can be called once only");
         }
 
-        // Not wrapped with has a control
+        // Not wrapped for subclass with control
+        _titleWrapping = TextWrapping.NoWrap;
         _titleBlock.TextWrapping = TextWrapping.NoWrap;
 
-        _childControl = child;
+        _subject = child;
         child.VerticalAlignment = _verticalContentAlignment;
 
-        Grid.SetColumn(_childControl, ItemControlColumn);
-        Grid.SetRow(_childControl, ContentRow);
-        _grid.Children.Add(_childControl);
+        Grid.SetColumn(_subject, SubjectColumn);
+        Grid.SetRow(_subject, ContentRow);
+        _grid.Children.Add(_subject);
 
-        child.PointerExited += PointerExitedHandler;
         child.SizeChanged += SubControlSizeChangedHandler;
     }
 
@@ -621,7 +703,7 @@ public class PixieControl : Border
 
         if (info.Properties.IsLeftButtonPressed)
         {
-            _childControl?.Focus(NavigationMethod.Pointer);
+            _subject?.Focus(NavigationMethod.Pointer);
         }
     }
 
@@ -640,13 +722,13 @@ public class PixieControl : Border
 
         // Determine if there is something inside to
         // focus and, if so, show hover background.
-        if (_childControl != null)
+        if (_subject != null)
         {
-            bool focusable = _childControl.Focusable && _childControl.IsTabStop;
+            bool focusable = _subject.Focusable && _subject.IsTabStop;
 
             if (!focusable)
             {
-                var child = _childControl.FirstFocusableChild();
+                var child = _subject.FirstFocusableChild();
                 focusable = child?.Focusable == true && child.IsTabStop;
             }
 
@@ -663,7 +745,29 @@ public class PixieControl : Border
     protected override void OnPointerExited(PointerEventArgs e)
     {
         base.OnPointerExited(e);
-        PointerExitedHandler(this, e);
+
+        if (!IsInsideBounds(e.GetPosition(this)))
+        {
+            SetButtonHover(!_isHoverButton);
+            ClearAdornerBackground(false);
+            return;
+        }
+
+        ClearAdornerBackground(true);
+
+        if (_isHoverButton)
+        {
+            DispatcherTimer.RunOnce(() => SetButtonHover(false), ClearDelay);
+        }
+    }
+
+    /// <summary>
+    /// Overrides.
+    /// </summary>
+    protected override void OnPointerMoved(PointerEventArgs e)
+    {
+        base.OnPointerMoved(e);
+        SetButtonHover(true);
     }
 
     /// <summary>
@@ -723,6 +827,12 @@ public class PixieControl : Border
             return;
         }
 
+        if (p == TitleWrappingProperty)
+        {
+            _titleBlock.TextWrapping = change.GetNewValue<TextWrapping>();
+            return;
+        }
+
         if (p == LeftSymbolProperty)
         {
             var value = change.GetNewValue<string?>();
@@ -735,7 +845,7 @@ public class PixieControl : Border
 
             if (!string.IsNullOrEmpty(value))
             {
-                _leftStack ??= new(true, this);
+                _leftStack ??= new(this, true);
                 _leftStack.SetSymbol(value);
             }
 
@@ -754,10 +864,17 @@ public class PixieControl : Border
 
             if (!string.IsNullOrEmpty(value))
             {
-                _rightStack ??= new(false, this);
+                _rightStack ??= new(this, false);
                 _rightStack.SetSymbol(value);
             }
 
+            return;
+        }
+
+        if (p == IsHoverButtonProperty)
+        {
+            var value = change.GetNewValue<bool>();
+            SetButtonHover(!value);
             return;
         }
 
@@ -813,7 +930,7 @@ public class PixieControl : Border
             }
             else
             {
-                block.Foreground = ChromeStyling.ForegroundGray;
+                block.Foreground = ChromeStyling.GrayForeground;
             }
         }
     }
@@ -833,13 +950,19 @@ public class PixieControl : Border
             b.FontFamily = ChromeFonts.DefaultFamily;
             b.FontSize = ChromeFonts.DefaultFontSize;
             b.Measure(Size.Infinity);
-            return Math.Max(Accoutrement.DefaultMinHeight - b.DesiredSize.Height, 0.0) / 2.0;
+            return Math.Max(SideStack.DefaultMinHeight - b.DesiredSize.Height, 0.0) / 2.0;
         }
         catch
         {
             // Will throw in unit tests
             return 5.0;
         }
+    }
+
+    private void SetButtonHover(bool hovering)
+    {
+        _leftStack?.Button.Opacity = hovering ? 1.0 : 0.0;
+        _rightStack?.Button.Opacity = hovering ? 1.0 : 0.0;
     }
 
     private bool GetTitleVisibility()
@@ -853,14 +976,14 @@ public class PixieControl : Border
         {
             double sum = 0.0;
 
-            if (_childControl != null && _childControl.HorizontalAlignment != HorizontalAlignment.Stretch)
+            if (_subject != null && _subject.HorizontalAlignment != HorizontalAlignment.Stretch)
             {
-                sum = _childControl.Bounds.Width;
+                sum = _subject.Bounds.Width;
             }
 
             for (int n = 0; n < ColumnCount; ++n)
             {
-                if (n != TitleColumn && n != ItemControlColumn)
+                if (n != TitleColumn && n != SubjectColumn)
                 {
                     sum += _grid.ColumnDefinitions[n].ActualWidth;
                 }
@@ -900,12 +1023,11 @@ public class PixieControl : Border
         {
             current = new TextBlock();
             current.FontSize = ChromeFonts.SmallFontSize;
-            current.Foreground = ChromeStyling.ForegroundGray;
+            current.Foreground = ChromeStyling.GrayForeground;
             current.TextWrapping = top ? TextWrapping.NoWrap : TextWrapping.Wrap;
             current.Margin = top ? HeaderMargin : FooterMargin;
             current.VerticalAlignment = _verticalContentAlignment;
             current.TextTrimming = TextTrimming.CharacterEllipsis;
-            current.PointerExited += PointerExitedHandler;
 
             if (!top)
             {
@@ -921,13 +1043,15 @@ public class PixieControl : Border
         }
 
         // Changeable properties
-        current.Text = text;
+        const double Scale = ChromeFonts.SmallFontSize / ChromeFonts.DefaultFontSize;
+        current.Inlines = ChromeFonts.GetRun(text, double.NaN, Scale);
     }
 
     private void SetGridMargin(double indent)
     {
-        var m = ChromeSizes.RegularPadding;
+        var m = ChromeSizes.StandardPadding;
         _grid.Margin = new(m.Left + indent, m.Top, m.Right, m.Bottom);
+        UpdateTitleMaxWidth(_grid.Bounds.Width);
     }
 
     private void SetBaseProperty(AvaloniaProperty property, bool value)
@@ -943,24 +1067,18 @@ public class PixieControl : Border
         }
     }
 
-    private void PointerExitedHandler(object? _, PointerEventArgs e)
-    {
-        if (!IsInsideBounds(e.GetPosition(this)))
-        {
-            ClearFocusBackground();
-        }
-    }
-
     private void PseudoGotFocusHandler(object? _, GotFocusEventArgs e)
     {
         if (e.NavigationMethod == NavigationMethod.Tab || e.NavigationMethod == NavigationMethod.Directional)
         {
+            SetButtonHover(true);
             _adorner.BorderBrush = Styling.AccentBrush;
         }
     }
 
     private void PseudoLostFocusHandler(object? _, EventArgs __)
     {
+        SetButtonHover(!_isHoverButton);
         _adorner.BorderBrush = null;
     }
 
@@ -980,7 +1098,7 @@ public class PixieControl : Border
         }
     }
 
-    private sealed class Accoutrement : StackPanel
+    private sealed class SideStack : StackPanel
     {
         public const double SymbolSpacer = 8.0;
         public const double ButtonSpacer = 2.0;
@@ -988,16 +1106,23 @@ public class PixieControl : Border
         private TextBlock? _block;
         private LightButton? _button;
 
-        public Accoutrement(bool isLeft, PixieControl owner)
+        public SideStack(PixieControl owner, bool isLeft)
         {
             IsLeft = isLeft;
+
             Offset = owner._verticalContentOffset;
             Orientation = Orientation.Horizontal;
+            HorizontalAlignment = HorizontalAlignment.Left;
             VerticalAlignment = owner._verticalContentAlignment;
             MinHeight = DefaultMinHeight;
             Grid.SetRow(this, ContentRow);
             Grid.SetColumn(this, isLeft ? LeftColumn : RightColumn);
             owner._grid.Children.Add(this);
+
+            if (owner.IsHoverButton)
+            {
+                Button.Opacity = 0.0;
+            }
         }
 
         public readonly bool IsLeft;
@@ -1023,13 +1148,17 @@ public class PixieControl : Border
 
                 if (IsLeft)
                 {
-                    _button.Margin = new(0.0, 0.0, ButtonSpacer, 0.0);
                     Children.Add(_button);
-                    return _button;
+                    _button.Margin = new(0.0, 0.0, ButtonSpacer, 0.0);
+                    _button.HorizontalAlignment = HorizontalAlignment.Left;
+                }
+                else
+                {
+                    Children.Insert(0, _button);
+                    _button.Margin = new(ButtonSpacer, 0.0, 0.0, 0.0);
+                    _button.HorizontalAlignment = HorizontalAlignment.Right;
                 }
 
-                _button.Margin = new(ButtonSpacer, 0.0, 0.0, 0.0);
-                Children.Insert(0, _button);
                 return _button;
             }
         }
@@ -1057,17 +1186,19 @@ public class PixieControl : Border
 
                 if (IsLeft)
                 {
-                    _block.Margin = new(0.0, 0.0, SymbolSpacer, 0.0);
                     Children.Insert(0, _block);
+                    _block.Margin = new(0.0, 0.0, SymbolSpacer, 0.0);
+                    _block.HorizontalAlignment = HorizontalAlignment.Left;
                 }
                 else
                 {
                     _block.Margin = new(SymbolSpacer, 0.0, 0.0, 0.0);
+                    _block.HorizontalAlignment = HorizontalAlignment.Right;
                     Children.Add(_block);
                 }
             }
 
-            _block.Inlines = ChromeFonts.NewTextRun(symbol);
+            _block.Inlines = ChromeFonts.GetRun(symbol);
         }
 
         protected override void OnPropertyChanged(AvaloniaPropertyChangedEventArgs change)
@@ -1079,6 +1210,23 @@ public class PixieControl : Border
                 SetTextEnabled(_block, change.GetNewValue<bool>());
             }
         }
+
+        protected override void OnSizeChanged(SizeChangedEventArgs e)
+        {
+            base.OnSizeChanged(e);
+
+            if (e.NewSize.Width != e.PreviousSize.Width)
+            {
+                var parent = this.GetParentOf<PixieControl>();
+                var gw = parent?._grid.Bounds.Width ?? 0.0;
+
+                if (parent != null && gw > 0)
+                {
+                    parent.UpdateTitleMaxWidth(gw);
+                }
+            }
+        }
+
     }
 
 }

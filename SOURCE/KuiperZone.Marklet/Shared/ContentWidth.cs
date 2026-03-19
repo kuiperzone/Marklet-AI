@@ -1,8 +1,10 @@
 // -----------------------------------------------------------------------------
-// PROJECT   : KuiperZone.Marklet
-// AUTHOR    : Andrew Thomas
-// COPYRIGHT : Andrew Thomas © 2025-2026 All rights reserved
-// LICENSE   : AGPL-3.0-only
+// SPDX-FileNotice: KuiperZone.Marklet - Local AI Client
+// SPDX-License-Identifier: AGPL-3.0-only
+// SPDX-FileCopyrightText: © 2025-2026 Andrew Thomas <kuiperzone@users.noreply.github.com>
+// SPDX-ProjectHomePage: https://kuiper.zone/marklet-ai/
+// SPDX-FileType: Source
+// SPDX-FileComment: This is NOT AI generated source code but was created with human thinking and effort.
 // -----------------------------------------------------------------------------
 
 // Marklet is free software: you can redistribute it and/or modify it under
@@ -21,7 +23,7 @@ using KuiperZone.Marklet.Controls;
 namespace KuiperZone.Marklet.Shared;
 
 /// <summary>
-/// The internal <see cref="ContentViewer"/> width.
+/// The internal <see cref="DeckViewer"/> width.
 /// </summary>
 /// <remarks>
 /// Integer values may be written to disk and should not change.
@@ -47,11 +49,6 @@ public enum ContentWidth
     /// Wide width.
     /// </summary>
     Wide = 3,
-
-    /// <summary>
-    /// Full view width.
-    /// </summary>
-    FullWidth = 4,
 }
 
 /// <summary>
@@ -68,7 +65,6 @@ public static partial class HelperExt
         {
             case ContentWidth.Narrow: return 600.0;
             case ContentWidth.Wide: return 1200.0;
-            case ContentWidth.FullWidth: return double.PositiveInfinity;
             default: return 900.0; // medium
         }
     }

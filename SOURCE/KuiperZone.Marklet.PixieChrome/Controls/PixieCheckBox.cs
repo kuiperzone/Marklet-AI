@@ -1,8 +1,10 @@
 // -----------------------------------------------------------------------------
-// PROJECT   : KuiperZone.Marklet
-// AUTHOR    : Andrew Thomas
-// COPYRIGHT : Andrew Thomas © 2025-2026 All rights reserved
-// LICENSE   : AGPL-3.0-only
+// SPDX-FileNotice: KuiperZone.Marklet - Local AI Client
+// SPDX-License-Identifier: AGPL-3.0-only
+// SPDX-FileCopyrightText: © 2025-2026 Andrew Thomas <kuiperzone@users.noreply.github.com>
+// SPDX-ProjectHomePage: https://kuiper.zone/marklet-ai/
+// SPDX-FileType: Source
+// SPDX-FileComment: This is NOT AI generated source code but was created with human thinking and effort.
 // -----------------------------------------------------------------------------
 
 // Marklet is free software: you can redistribute it and/or modify it under
@@ -26,7 +28,7 @@ namespace KuiperZone.Marklet.PixieChrome.Controls;
 /// <summary>
 /// A subclass of <see cref="PixieControl"/> displaying an internal <see cref="CheckBox"/>.
 /// </summary>
-public sealed class PixieCheckBox : PixieControl
+public class PixieCheckBox : PixieControl
 {
     private readonly CheckBox _checkBox = new();
 
@@ -36,7 +38,7 @@ public sealed class PixieCheckBox : PixieControl
     public PixieCheckBox()
         : base(false, Avalonia.Layout.VerticalAlignment.Center)
     {
-        SetChildControl(_checkBox);
+        SetSubject(_checkBox);
         SetPseudoFocusControl(_checkBox);
 
         _checkBox.VerticalAlignment = VerticalContentAlignment;
