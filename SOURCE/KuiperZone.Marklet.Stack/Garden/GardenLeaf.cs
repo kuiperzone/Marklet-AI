@@ -34,6 +34,8 @@ namespace KuiperZone.Marklet.Stack.Garden;
 /// </remarks>
 public sealed class GardenLeaf : IComparable<GardenLeaf>
 {
+    private const SanFlags BasicSan = SanFlags.NormC | SanFlags.SubControl;
+
     // Approx memory used by data (inc public properties and ref itself)
     private const long FootprintOverhead = sizeof(long) + sizeof(long) * 5 + sizeof(byte) * 4;
     private string? _assistant;
@@ -138,7 +140,7 @@ public sealed class GardenLeaf : IComparable<GardenLeaf>
         set
         {
             IsStreaming = false;
-            value = MarkDocument.Sanitize(value.Trim(), MemoryGarden.MaxContentLength);
+            value = Sanitizer.Sanitize(value, BasicSan | SanFlags.Trim, MemoryGarden.MaxContentLength);
 
             if (_content != value)
             {
@@ -178,19 +180,20 @@ public sealed class GardenLeaf : IComparable<GardenLeaf>
     {
         get
         {
+            // No Sanitize (already done)
+            MarkOptions opts = MarkOptions.Blocks | MarkOptions.PlainLinks | MarkOptions.Coalesce;
+
+            if (Kind.InlineMarkup())
+            {
+                opts |= MarkOptions.Inlines;
+            }
+
             if (Kind == LeafKind.Assistant && IsStreaming)
             {
-                return MarkOptions.Presan | MarkOptions.Chunking;
+                return opts | MarkOptions.Chunking;
             }
 
-            if (Kind.HasInlineMarkup())
-            {
-                // Content is sanitized on setting.
-                // The markdown parser need not re-do this.
-                return MarkOptions.Presan;
-            }
-
-            return MarkOptions.Presan | MarkOptions.IgnoreInline;
+            return opts;
         }
     }
 
@@ -211,10 +214,11 @@ public sealed class GardenLeaf : IComparable<GardenLeaf>
 
         if (IsStreaming && !string.IsNullOrEmpty(chunk))
         {
-            chunk = MarkDocument.Sanitize(chunk, MemoryGarden.MaxContentLength);
-            _content = string.Concat(_content, chunk).Truncate(MemoryGarden.MaxContentLength);
-
             ConditionalDebug.ThrowIfTrue(IsPersistant);
+
+            // No Trim here
+            chunk = Sanitizer.Sanitize(chunk, BasicSan, MemoryGarden.MaxContentLength);
+            _content = string.Concat(_content, chunk).Truncate(MemoryGarden.MaxContentLength);
             OnModified(LeafMods.Content);
 
             return true;
@@ -237,8 +241,8 @@ public sealed class GardenLeaf : IComparable<GardenLeaf>
         if (IsStreaming)
         {
             ConditionalDebug.WriteLine(NSpace, "Stop streaming and commit");
-            _content = _content.Trim();
             IsStreaming = false;
+            _content = _content.Trim();
             OnModified(LeafMods.Content);
             return true;
         }

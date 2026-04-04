@@ -25,11 +25,11 @@ namespace KuiperZone.Marklet.Tooling.Test;
 public partial class MarkDocumentTest : BaseTest
 {
     [Fact]
-    public void Update_PlainLink_Detects()
+    public void Constructor_PlainLink_Detects()
     {
         var text = @"https://local.com.";
 
-        var obj = UpdateWriteOut(text);
+        var obj = NewObj(text);
         Assert.Equal(BlockKind.Para, obj[0].Kind);
         Assert.Equal(0, obj[0].QuoteLevel);
         Assert.Equal(0, obj[0].ListLevel);
@@ -47,11 +47,11 @@ public partial class MarkDocumentTest : BaseTest
     }
 
     [Fact]
-    public void Update_PlainLink_IgnoreInline_StillDetects()
+    public void Constructor_PlainLink_NoInlines_StillDetects()
     {
         var text = @"https://local.com.";
 
-        var obj = UpdateWriteOut(text, MarkOptions.IgnoreInline);
+        var obj = NewObj(text, MarkOptions.Markdown & ~MarkOptions.Inlines);
         Assert.Equal(BlockKind.Para, obj[0].Kind);
         Assert.Equal(0, obj[0].QuoteLevel);
         Assert.Equal(0, obj[0].ListLevel);
@@ -69,11 +69,11 @@ public partial class MarkDocumentTest : BaseTest
     }
 
     [Fact]
-    public void Update_PlainLink_IgnorePlainLinks_NoDetection()
+    public void Constructor_PlainLinks_NoPlainLinks_NoDetection()
     {
         var text = @"https://local.com.";
 
-        var obj = UpdateWriteOut(text, MarkOptions.IgnorePlainLinks);
+        var obj = NewObj(text, MarkOptions.Markdown & ~MarkOptions.PlainLinks);
 
         // https://local.com.
         Assert.Equal(BlockKind.Para, obj[0].Kind);
@@ -88,11 +88,11 @@ public partial class MarkDocumentTest : BaseTest
     }
 
     [Fact]
-    public void Update_AutoLink()
+    public void Constructor_AutoLink()
     {
         var text = @"<https://local.com>.";
 
-        var obj = UpdateWriteOut(text);
+        var obj = NewObj(text);
         // [https://local.com](https://local.com).
         Assert.Equal(BlockKind.Para, obj[0].Kind);
         Assert.Equal(0, obj[0].QuoteLevel);
@@ -111,9 +111,9 @@ public partial class MarkDocumentTest : BaseTest
     }
 
     [Fact]
-    public void Update_IdentifiesLink()
+    public void Constructor_IdentifiesLink()
     {
-        var obj = UpdateWriteOut("Start [Link](http://local.com) End");
+        var obj = NewObj("Start [Link](http://local.com) End");
 
         // Start [Link](http://local.com) End
         Assert.Equal(BlockKind.Para, obj[0].Kind);

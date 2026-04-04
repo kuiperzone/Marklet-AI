@@ -57,7 +57,7 @@ public sealed class GardenDeck : IReadOnlyList<GardenLeaf>, IComparable<GardenDe
     private long _footprint;
     private BasketKind _basket;
     private bool _isPinned;
-    private bool _isCurrent;
+    private bool _isFocused;
 
     /// <summary>
     /// Constructor.
@@ -156,28 +156,27 @@ public sealed class GardenDeck : IReadOnlyList<GardenLeaf>, IComparable<GardenDe
     }
 
     /// <summary>
-    /// Gets whether the instance is current (selected).
+    /// Gets whether the instance is the focus of user attention.
     /// </summary>
     /// <remarks>
-    /// The term "current" here refers to that which is the focus of attention in the user interface. Changing <see
-    /// cref="IsCurrent"/> from false to true also sets <see cref="IsLoaded"/> to true, and unselects any previously
-    /// current item.
+    /// The term "focus" is not to be confused with Control.Focus. . Changing <see cref="IsFocused"/> from false to true
+    /// also sets <see cref="IsLoaded"/> to true, and unfocused any previously focused item.
     /// </remarks>
-    public bool IsCurrent
+    public bool IsFocused
     {
-        get { return _isCurrent; }
+        get { return _isFocused; }
 
         set
         {
-            if (_isCurrent != value)
+            if (_isFocused != value)
             {
                 if (value)
                 {
                     Load();
                 }
 
-                _isCurrent = value;
-                Garden?.OnCurrentChanged(value ? this : null);
+                _isFocused = value;
+                Garden?.OnFocusChanged(value ? this : null);
             }
         }
     }
@@ -347,7 +346,7 @@ public sealed class GardenDeck : IReadOnlyList<GardenLeaf>, IComparable<GardenDe
 
     /// <summary>
     /// Gets the id of the <see cref="GardenLeaf"/> containing subtext as a result of the last call to <see
-    /// cref="SearchContent"/>.
+    /// cref="FindInContent"/>.
     /// </summary>
     /// <remarks>
     /// The value will be zero where <see cref="SearchSnippet"/> was found in the title.
@@ -355,7 +354,7 @@ public sealed class GardenDeck : IReadOnlyList<GardenLeaf>, IComparable<GardenDe
     public Zuid SearchLeaf { get; private set; }
 
     /// <summary>
-    /// Gets a subtext snippet as a result of the last call to <see cref="SearchContent"/>.
+    /// Gets a subtext snippet as a result of the last call to <see cref="FindInContent"/>.
     /// </summary>
     public string? SearchSnippet { get; private set; }
 
@@ -484,7 +483,7 @@ public sealed class GardenDeck : IReadOnlyList<GardenLeaf>, IComparable<GardenDe
         if (IsLoaded)
         {
             // Do first (order important)
-            IsCurrent = false;
+            IsFocused = false;
 
             if (IsPersistant)
             {
@@ -556,17 +555,17 @@ public sealed class GardenDeck : IReadOnlyList<GardenLeaf>, IComparable<GardenDe
     /// non-null, while if the match occurred in a leaf, <see cref="SearchLeaf"/> will identify the leaf. On no match,
     /// both these properties will be default values.
     /// </remarks>
-    public bool SearchContent(SearchOptions opts)
+    public bool FindInContent(FindOptions opts)
     {
         SearchLeaf = default;
         SearchSnippet = null;
 
-        if (opts.Subtext.Length == 0)
+        if (opts.Subtext == null)
         {
             return false;
         }
 
-        var snippet = _title?.PrettySearch(opts.Subtext, opts.MaxSnippet, opts.Flags, opts.ScanLimit);
+        var snippet = _title?.PrettyFind(opts.Subtext, opts.MaxSnippet, opts.Flags, opts.ScanLimit);
 
         if (snippet != null)
         {
@@ -583,7 +582,7 @@ public sealed class GardenDeck : IReadOnlyList<GardenLeaf>, IComparable<GardenDe
 
             foreach (var item in _children)
             {
-                snippet = item.Content.PrettySearch(opts.Subtext, opts.MaxSnippet, opts.Flags, opts.ScanLimit);
+                snippet = item.Content.PrettyFind(opts.Subtext, opts.MaxSnippet, opts.Flags, opts.ScanLimit);
 
                 if (snippet != null)
                 {
@@ -593,7 +592,7 @@ public sealed class GardenDeck : IReadOnlyList<GardenLeaf>, IComparable<GardenDe
                 }
             }
 
-            if (!_isCurrent && !loaded)
+            if (!_isFocused && !loaded)
             {
                 // Close it not found
                 TryUnload();
@@ -627,7 +626,7 @@ public sealed class GardenDeck : IReadOnlyList<GardenLeaf>, IComparable<GardenDe
 
             if (_children.Insert(leaf) > -1)
             {
-                SilentRotateIfFull();
+                SilentRotateOnFull();
 
                 // Setting the content will call
                 // this.OnModified() and perform INSERT
@@ -638,8 +637,6 @@ public sealed class GardenDeck : IReadOnlyList<GardenLeaf>, IComparable<GardenDe
 
         return null;
     }
-
-
 
     /// <summary>
     /// Appends a new item with <see cref="GardenLeaf.IsStreaming"/> initially set to true.
@@ -667,7 +664,7 @@ public sealed class GardenDeck : IReadOnlyList<GardenLeaf>, IComparable<GardenDe
 
         if (_children.Insert(leaf) > -1)
         {
-            SilentRotateIfFull();
+            SilentRotateOnFull();
 
             // Appending final chunk will perform INSERT
             leaf.AppendStream(chunk0);
@@ -876,12 +873,12 @@ public sealed class GardenDeck : IReadOnlyList<GardenLeaf>, IComparable<GardenDe
     }
 
     /// <summary>
-    /// Sets <see cref="IsCurrent"/> to false without rasing a selection change against the owner.
+    /// Sets <see cref="IsFocused"/> to false without rasing a selection change against the owner.
     /// </summary>
     internal void DeselectNoRaise()
     {
         // No callback on parent
-        _isCurrent = false;
+        _isFocused = false;
     }
 
     /// <summary>
@@ -942,7 +939,7 @@ public sealed class GardenDeck : IReadOnlyList<GardenLeaf>, IComparable<GardenDe
         if (Garden != null)
         {
             // Do this first
-            IsCurrent = false;
+            IsFocused = false;
 
             // Leave child loaded
             Garden = null;
@@ -967,14 +964,16 @@ public sealed class GardenDeck : IReadOnlyList<GardenLeaf>, IComparable<GardenDe
         OnModifiedInternal(mods, null, true);
     }
 
-    private void SilentRotateIfFull()
+    private void SilentRotateOnFull()
     {
-        const string NSpace = $"{nameof(GardenDeck)}.{nameof(SilentRotateIfFull)}";
+        const string NSpace = $"{nameof(GardenDeck)}.{nameof(SilentRotateOnFull)}";
 
         if (_children.Count > MaxLeafCount)
         {
             ConditionalDebug.WriteLine(NSpace, "DECK FULL");
-            DeleteLeafDb(_children[0], false);
+
+            // Delete 3rd, not first
+            DeleteLeafDb(_children[2], false);
         }
     }
 }

@@ -20,7 +20,6 @@
 
 using Avalonia;
 using KuiperZone.Marklet.Controls;
-using KuiperZone.Marklet.Controls.Internal;
 using KuiperZone.Marklet.Controls.Internal.Mission;
 using KuiperZone.Marklet.PixieChrome;
 using KuiperZone.Marklet.PixieChrome.Controls;
@@ -45,20 +44,20 @@ class Program
         ConditionalDebug.EnableNamespace(nameof(ChromeApplication));
         ConditionalDebug.EnableNamespace(nameof(MainWindow));
         ConditionalDebug.EnableNamespace(nameof(MainMission));
-        // ConditionalDebug.EnableNamespace(nameof(ChatSessionViewer));
+        ConditionalDebug.EnableNamespace(nameof(DeckViewer));
         ConditionalDebug.EnableNamespace(nameof(BasketView));
         ConditionalDebug.EnableNamespace(nameof(DeckCard));
         ConditionalDebug.EnableNamespace(nameof(FolderView));
-        ConditionalDebug.EnableNamespace(nameof(CardMenu));
-        ConditionalDebug.EnableNamespace(nameof(MemoryGarden));
-        ConditionalDebug.EnableNamespace(nameof(GardenDeck));
-        ConditionalDebug.EnableNamespace(nameof(GardenLeaf));
-        ConditionalDebug.EnableNamespace(nameof(GardenBasket));
+        // ConditionalDebug.EnableNamespace(nameof(CardMenu));
+        // ConditionalDebug.EnableNamespace(nameof(MemoryGarden));
+        // ConditionalDebug.EnableNamespace(nameof(GardenDeck));
+        // ConditionalDebug.EnableNamespace(nameof(GardenLeaf));
+        // ConditionalDebug.EnableNamespace(nameof(GardenBasket));
         // ConditionalDebug.EnableNamespace("GroupRenamer");
-        ConditionalDebug.EnableNamespace(nameof(PixieCombo));
-        ConditionalDebug.EnableNamespace(nameof(LightButton));
-        ConditionalDebug.EnableNamespace(nameof(CardMenu));
-        ConditionalDebug.EnableNamespace(nameof(PruneWindow));
+        // ConditionalDebug.EnableNamespace(nameof(PixieCombo));
+        // ConditionalDebug.EnableNamespace(nameof(LightButton));
+        // ConditionalDebug.EnableNamespace(nameof(CardMenu));
+        // ConditionalDebug.EnableNamespace(nameof(PruneWindow));
         // ConditionalDebug.EnableNamespace(nameof(SessionLeaf));
         // ConditionalDebug.EnableNamespace(nameof(ChromeWindow));
         // ConditionalDebug.EnableNamespace("CrossTracker");

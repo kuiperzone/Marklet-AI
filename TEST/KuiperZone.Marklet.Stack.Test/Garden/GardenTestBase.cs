@@ -75,14 +75,14 @@ public abstract class GardenTestBase
     protected class ChangeReceiver
     {
         public int BasketUpdatedCounter;
-        public CurrentDeckChangedEventArgs? CurrentChangedEvent;
-        public CurrentDeckUpdatedEventArgs? CurrentUpdatedEvent;
+        public FocusChangedEventArgs? FocusChangedEvent;
+        public FocusedUpdatedEventArgs? FocusedUpdatedEvent;
 
         public void Reset()
         {
             BasketUpdatedCounter = 0;
-            CurrentChangedEvent = null;
-            CurrentUpdatedEvent = null;
+            FocusChangedEvent = null;
+            FocusedUpdatedEvent = null;
         }
 
         public void BasketHandler(object? _, EventArgs __)
@@ -90,14 +90,14 @@ public abstract class GardenTestBase
             BasketUpdatedCounter += 1;
         }
 
-        public void CurrentChangedHandler(object? _, CurrentDeckChangedEventArgs e)
+        public void FocusChangedHandler(object? _, FocusChangedEventArgs e)
         {
-            CurrentChangedEvent = e;
+            FocusChangedEvent = e;
         }
 
-        public void CurrentUpdatedHandler(object? _, CurrentDeckUpdatedEventArgs e)
+        public void FocusedUpdatedHandler(object? _, FocusedUpdatedEventArgs e)
         {
-            CurrentUpdatedEvent = e;
+            FocusedUpdatedEvent = e;
         }
     }
 }

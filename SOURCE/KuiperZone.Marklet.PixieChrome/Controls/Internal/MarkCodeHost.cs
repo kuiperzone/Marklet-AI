@@ -28,6 +28,7 @@ using Avalonia.Interactivity;
 using Avalonia.Layout;
 using Avalonia.Media;
 using Avalonia.Threading;
+using KuiperZone.Marklet.PixieChrome.Shared;
 using KuiperZone.Marklet.Tooling;
 using KuiperZone.Marklet.Tooling.Markdown;
 
@@ -55,8 +56,8 @@ internal sealed class MarkCodeHost : MarkTextHost
     private double _scrollDelta;
     private double _scrollPosY;
 
-    public MarkCodeHost(MarkView owner, IReadOnlyMarkBlock source)
-        : base(owner, source)
+    public MarkCodeHost(MarkShim shim, IReadOnlyMarkBlock source)
+        : base(shim, source)
     {
         ConditionalDebug.ThrowIfFalse(Kind.IsCode());
 
@@ -120,7 +121,7 @@ internal sealed class MarkCodeHost : MarkTextHost
             _border = new();
             _border.Child = _panel;
             Control = _border;
-            SetScrollWrap(owner.DefaultWrapping);
+            SetScrollWrap(shim.Owner.DefaultWrapping);
             return;
         }
 
@@ -128,7 +129,7 @@ internal sealed class MarkCodeHost : MarkTextHost
         _scroller.Content = CrossText;
         _panel.Children.Add(_scroller);
         Control = _panel;
-        SetScrollWrap(owner.DefaultWrapping);
+        SetScrollWrap(shim.Owner.DefaultWrapping);
     }
 
     public override void Refresh(bool top, bool bottom)
@@ -188,38 +189,41 @@ internal sealed class MarkCodeHost : MarkTextHost
     {
         if (Kind == BlockKind.FencedCode)
         {
-            var pad = Owner.FontSize * 3.0;
+            var pad = Shim.FontSize * 3.0;
             Control.Margin = new(0, pad, 0, pad);
             return;
         }
 
-        double indent = Kind.IsIndented() ? Owner.TabPx : 0.0;
-        Control.Margin = new(indent, Owner.OneCh * 2.0, 0.0, 0.0);
+        double indent = Kind.IsIndented() ? Shim.TabPx : 0.0;
+        Control.Margin = new(indent, Shim.OneCh * 2.0, 0.0, 0.0);
     }
 
     private void RefreshInternal()
     {
-        var ch = Owner.OneCh;
+        var ch = Shim.OneCh;
         CrossText.Padding = new(0, ch, 0, ch * 3.0);
 
         if (Kind == BlockKind.FencedCode)
         {
             // FENCED CODE ONLY
+            var owner = Shim.Owner;
+            var foreground = Shim.ActualForeground;
+
             _panel.Spacing = ch * 1.5;
             _panel.Margin = new(ch * 3, ch * 1.5, ch * 3, ch);
-            CrossText.SetForeground(Owner.FencedForeground ?? Owner.Foreground);
+            CrossText.SetForeground(owner.FencedForeground ?? foreground);
 
             // Internal controls not expected to be null
-            _dock!.MinHeight = Owner.ScaledLineHeight;
+            _dock!.MinHeight = Shim.LineHeight;
 
             _border!.MinWidth = ch * 16.0;
-            _border.BorderBrush = Owner.FencedBorder;
-            _border.SetBackground(Owner.FencedBackground);
+            _border.BorderBrush = owner.FencedBorder;
+            _border.SetBackground(owner.FencedBackground);
 
-            if (Owner.FencedBorder != null)
+            if (owner.FencedBorder != null)
             {
-                _border.CornerRadius = Owner.FencedCornerRadius;
-                _border.BorderThickness = new(Owner.LinePixels);
+                _border.CornerRadius = owner.FencedCornerRadius;
+                _border.BorderThickness = new(Shim.LinePixels);
             }
             else
             {
@@ -227,21 +231,23 @@ internal sealed class MarkCodeHost : MarkTextHost
                 _border.BorderThickness = default;
             }
 
-            _langLabel!.FontFamily = Owner.HeadingFamily;
-            _langLabel.FontSize = Owner.ScaledFontSize * Owner.HeadingSizeCorrection;
-            _langLabel.SetForeground(Owner.Foreground);
+            var fontSize = Shim.FontSize;
+            _langLabel!.FontFamily = owner.HeadingFamily;
+            _langLabel.FontSize = fontSize * owner.HeadingSizeCorrection;
+            _langLabel.SetForeground(foreground);
 
-            _wrapButton!.Foreground = Owner.Foreground;
-            _wrapButton.FontSize = Owner.ScaledFontSize;
+            _wrapButton!.Foreground = foreground;
+            _wrapButton.FontSize = fontSize;
 
-            _copyButton!.Foreground = Owner.Foreground;
-            _copyButton.FontSize = Owner.ScaledFontSize;
+            _copyButton!.Foreground = foreground;
+            _copyButton.FontSize = fontSize;
 
-            SetRuleBrush(Owner.FencedBorder);
+            SetRuleBrush(owner.FencedBorder);
             return;
         }
 
-        CrossText.SetForeground(Owner.Foreground);
+        // TBD should not be needed
+        // CrossText.SetForeground(foreground);
     }
 
     private void SetScrollWrap(bool codeWrap)
@@ -296,7 +302,7 @@ internal sealed class MarkCodeHost : MarkTextHost
         if (brush != null)
         {
             _rule?.Fill = brush;
-            _rule?.Height = Owner.LinePixels;
+            _rule?.Height = Shim.LinePixels;
             return;
         }
 
@@ -319,12 +325,12 @@ internal sealed class MarkCodeHost : MarkTextHost
 
                 if (point.X < 0)
                 {
-                    _scrollDelta = -Owner.FontSize;
+                    _scrollDelta = -Shim.FontSize;
                 }
                 else
                 if (point.X >= _panel.Bounds.Width)
                 {
-                    _scrollDelta = Owner.FontSize;
+                    _scrollDelta = Shim.FontSize;
                 }
 
                 if (_scrollDelta != 0)

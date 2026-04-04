@@ -30,7 +30,7 @@ namespace KuiperZone.Marklet.PixieChrome.Controls;
 /// <summary>
 /// A subclass of <see cref="PixieControl"/> displaying an up-down numeric control.
 /// </summary>
-public partial class PixieNumeric : PixieControl
+public class PixieNumeric : PixieControl
 {
     /// <summary>
     /// Maximum text input length.

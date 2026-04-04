@@ -64,15 +64,14 @@ public sealed class Zoomer
             if (_scale != value)
             {
                 _scale = value;
-                Fraction = _scale / 100.0;
+                Fraction = value / 100.0;
                 Changed?.Invoke(this, EventArgs.Empty);
             }
         }
     }
 
     /// <summary>
-    /// Gets or sets the default level as a percentage in the range [<see cref="MinScale"/>, <see
-    /// cref="MaxScale"/>].
+    /// Gets or sets the default level as a percentage in the range [<see cref="MinScale"/>, <see cref="MaxScale"/>].
     /// </summary>
     /// <remarks>
     /// The default is 100.

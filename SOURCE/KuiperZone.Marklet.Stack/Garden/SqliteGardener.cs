@@ -133,34 +133,11 @@ public sealed class SqliteGardener : IMemoryGardener
 
         // Foreign keys important
         using var pragma = con.CreateCommand();
-        pragma.CommandText = "PRAGMA foreign_keys = ON;";
+        pragma.CommandText = IsReadOnly ? "PRAGMA foreign_keys = ON;" : "PRAGMA foreign_keys = ON;PRAGMA journal_mode=WAL;";
 
         ConditionalDebug.WriteLine(NSpace, "Executing: " + pragma.CommandText);
         pragma.ExecuteNonQuery();
         return con;
     }
 
-    private static bool IsPathReadOnly(string path, out string connection)
-    {
-        try
-        {
-            // For SQLite variant (not Sqlite), include: Version=3;
-            connection = $"Data Source={path};Pooling=true;Mode=ReadWriteCreate;";
-            using var con = new SqliteConnection(connection);
-            con.Open();
-
-            using var cmd = con.CreateCommand();
-            cmd.CommandText = "CREATE TABLE IF NOT EXISTS __rwtest(id INTEGER);";
-            cmd.ExecuteNonQuery();
-
-            return false;
-        }
-        catch (SqliteException)
-        {
-            connection = $"Data Source={path};Pooling=true;Mode=ReadOnly;";
-            using var con = new SqliteConnection(connection);
-            con.Open();
-            return true;
-        }
-    }
 }

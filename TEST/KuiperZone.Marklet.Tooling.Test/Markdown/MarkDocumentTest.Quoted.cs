@@ -282,11 +282,11 @@ Final line QL0";
     }
 
     [Fact]
-    public void Update_Quoted_DefaultOpts()
+    public void Constructor_Quoted_DefaultOpts()
     {
         // MARKDIG IS INCORRECT 0.41.3
         // This test can only act as regression
-        var obj = UpdateWriteOut(QuotedSource);
+        var obj = NewObj(QuotedSource);
         //
         // > > # Heading `Code` 1 QL2\\
         Assert.Equal(BlockKind.H1, obj[0].Kind);

@@ -25,12 +25,12 @@ namespace KuiperZone.Marklet.Stack.Garden;
 /// <summary>
 /// Search options.
 /// </summary>
-public sealed class SearchOptions
+public sealed class FindOptions : IEquatable<FindOptions>
 {
     /// <summary>
     /// Maximum length of <see cref="Subtext"/>.
     /// </summary>
-    public const int MaxSubLength = MemoryGarden.MaxMetaLength;
+    public const int MaxLength = 256;
 
     /// <summary>
     /// Constructor.
@@ -38,19 +38,25 @@ public sealed class SearchOptions
     /// <remarks>
     /// A null or empty string will assign empty to <see cref="Subtext"/>. This will match no results.
     /// </remarks>
-    public SearchOptions(string? subtext)
+    public FindOptions(string? subtext, FindFlags flags = FindFlags.None)
     {
-        Subtext = MemoryGarden.Sanitize(subtext, MaxSubLength) ?? "";
+        Subtext = Sanitize(subtext);
+        Flags = flags;
     }
 
     /// <summary>
     /// Gets the text substring for which to search.
     /// </summary>
     /// <remarks>
-    /// The value is NORM-C sanitized and trimmed on construction. It cannot exceed <see cref="MaxSubLength"/> in
+    /// The value is NORM-C sanitized and trimmed on construction. It cannot exceed <see cref="MaxLength"/> in
     /// length.
     /// </remarks>
-    public string Subtext { get; }
+    public string? Subtext { get; }
+
+    /// <summary>
+    /// Gets or sets search option flags.
+    /// </summary>
+    public FindFlags Flags { get; set; }
 
     /// <summary>
     /// Gets or sets the maximum "snippet" length.
@@ -74,7 +80,45 @@ public sealed class SearchOptions
     public int MaxResults { get; set; } = 100;
 
     /// <summary>
-    /// Gets or sets search option flags.
+    /// Normalizes and truncates "text", returning null if "text" is empty or whitespace.
     /// </summary>
-    public SearchFlags Flags { get; set; }
+    public static string? Sanitize(string? text)
+    {
+        text = Sanitizer.Sanitize(text, SanFlags.SubControl | SanFlags.NormC, MaxLength);
+
+        if (string.IsNullOrWhiteSpace(text))
+        {
+            // Allow space on sides, but not search for
+            // spaces or tabs only (would get large results).
+            return null;
+        }
+
+        return text;
+    }
+
+    /// <summary>
+    /// Implements.
+    /// </summary>
+    public bool Equals(FindOptions? other)
+    {
+        return other != null && Subtext == other.Subtext &&
+            Flags == other.Flags && MaxSnippet == other.MaxSnippet &&
+            ScanLimit == other.ScanLimit && MaxResults == other.MaxResults;
+    }
+
+    /// <summary>
+    /// Overrides.
+    /// </summary>
+    public override bool Equals(object? obj)
+    {
+        return Equals(obj as FindOptions);
+    }
+
+    /// <summary>
+    /// Overrides.
+    /// </summary>
+    public override int GetHashCode()
+    {
+        return HashCode.Combine(Subtext, Flags, MaxSnippet, ScanLimit, MaxResults);
+    }
 }

@@ -19,7 +19,6 @@
 // with Marklet. If not, see <https://www.gnu.org/licenses/>.
 
 using System.Collections;
-using System.Diagnostics.CodeAnalysis;
 using KuiperZone.Marklet.Tooling.Markdown.Internal;
 using Markdig;
 using Markdig.Extensions.Mathematics;
@@ -44,12 +43,10 @@ public sealed class MarkDocument : IReadOnlyList<IReadOnlyMarkBlock>, IEquatable
 {
     private const int DefaultCap = 8;
     private static readonly MarkdownPipeline DefaultPipeline;
-    private static readonly MarkdownPipeline IgnoreInlinePipeline;
+    private static readonly MarkdownPipeline NoInlinePipeline;
     private static readonly MarkElement NewPara = new("\n\n");
 
     private readonly List<IReadOnlyMarkBlock> _blocks;
-    private string? _markdown;
-    private int _asyncVersion;
 
     static MarkDocument()
     {
@@ -70,7 +67,7 @@ public sealed class MarkDocument : IReadOnlyList<IReadOnlyMarkBlock>, IEquatable
 
         builder.InlineParsers.Add(new AutolinkInlineParser());
 
-        IgnoreInlinePipeline = builder.UseMathematics().UseAutoLinks().Build();
+        NoInlinePipeline = builder.UseMathematics().UseAutoLinks().Build();
     }
 
     /// <summary>
@@ -84,10 +81,39 @@ public sealed class MarkDocument : IReadOnlyList<IReadOnlyMarkBlock>, IEquatable
     /// <summary>
     /// Parsing constructor.
     /// </summary>
-    public MarkDocument(string content, MarkOptions opts = default)
-        : this()
+    public MarkDocument(string? markdown, MarkOptions opts = MarkOptions.Markdown | MarkOptions.Sanitize)
     {
-        Update(content, opts);
+        _blocks = new(DefaultCap);
+
+        if (opts.HasFlag(MarkOptions.Sanitize))
+        {
+            const SanFlags Flags = SanFlags.SubControl | SanFlags.NormC | SanFlags.Trim;
+            markdown = Sanitizer.Sanitize(markdown, Flags);
+        }
+
+        if (!string.IsNullOrEmpty(markdown))
+        {
+            if (!opts.HasFlag(MarkOptions.Blocks))
+            {
+                // Plain text
+                var e = new MarkElement(markdown);
+                var list = new List<MarkElement>();
+                list.Add(e);
+                _blocks.Add(new MarkBlock(list));
+                return;
+            }
+
+            // Select pipeline
+            var pipeline = opts.HasFlag(MarkOptions.Inlines) ? DefaultPipeline : NoInlinePipeline;
+
+            // Offset store point we can reliably update from when chunking (hopefully)
+            AppendMarkdig(Markdig.Markdown.Parse(markdown, pipeline), opts, 0, 0, '\0');
+
+            if (opts.HasFlag(MarkOptions.Coalesce))
+            {
+                Coalesce();
+            }
+        }
     }
 
     /// <summary>
@@ -101,7 +127,6 @@ public sealed class MarkDocument : IReadOnlyList<IReadOnlyMarkBlock>, IEquatable
         if (other != null)
         {
             _blocks = new(other);
-            CopyState(other);
             return;
         }
 
@@ -137,39 +162,96 @@ public sealed class MarkDocument : IReadOnlyList<IReadOnlyMarkBlock>, IEquatable
     }
 
     /// <summary>
-    /// Gets whether this instance was created by <see cref="Coalesce"/>.
+    /// Overload of <see cref="Find(string?, FindFlags, out int)"/>.
     /// </summary>
-    /// <remarks>
-    /// The value is set false when the document is modified.
-    /// </remarks>
-    public bool IsCoalesced { get; private set; }
-
-    /// <summary>
-    /// Sanitizes (NORM-C) the string according the given options.
-    /// </summary>
-    /// <remarks>
-    /// It does nothing except return "str" unchanged if <see cref="MarkOptions.Presan"/> is given.
-    /// </remarks>
-    [return: NotNullIfNotNull(nameof(str))]
-    public static string? Sanitize(string? str, MarkOptions opts, int maxLength = int.MaxValue)
+    public MarkDocument? Find(string? subtext, FindFlags flags)
     {
-        const SanFlags Flags = SanFlags.SubControl | SanFlags.NormC;
-
-        if (!opts.HasFlag(MarkOptions.Presan))
-        {
-            return Sanitizer.Sanitize(str, Flags, maxLength);
-        }
-
-        return str;
+        return Find(subtext, flags, out _);
     }
 
     /// <summary>
-    /// Overload with default options.
+    /// Searches the content for "subtext" and returns a new <see cref="MarkDocument"/> instance if found.
     /// </summary>
-    [return: NotNullIfNotNull(nameof(str))]
-    public static string? Sanitize(string? str, int maxLength = int.MaxValue)
+    /// <remarks>
+    /// If any occurrences of "subtext" are found, the call returns a new <see cref="MarkDocument"/> instance with
+    /// occurrences highlighted using <see cref="InlineStyling.Keyword"/>. If no occurrences are found, the result is
+    /// null. The source <see cref="MarkDocument"/> instance is not modified.
+    /// </remarks>
+    public MarkDocument? Find(string? subtext, FindFlags flags, out int counter)
     {
-        return Sanitize(str, default, maxLength);
+        counter = 0;
+        int sublen = subtext?.Length ?? 0;
+
+        if (sublen == 0)
+        {
+            return null;
+        }
+
+        // Block count does not change, although blocks may.
+        int blockCount = _blocks.Count;
+        List<IReadOnlyMarkBlock>? clone = null;
+
+        for (int bN = 0; bN < blockCount; ++bN)
+        {
+            var block0 = _blocks[bN];
+            var elems0 = block0.Elements;
+
+            MarkBlock? block1 = null;
+
+            for (int eN = 0; eN < elems0.Count; ++eN)
+            {
+                MarkElement? elem = elems0[eN];
+                int index = elem.Text.Find(subtext, flags);
+
+                if (index < 0)
+                {
+                    continue;
+                }
+
+                clone ??= new(_blocks);
+
+                if (block1 == null)
+                {
+                    block1 = new MarkBlock(block0, false);
+                    clone[bN] = block1;
+                }
+
+                elems0 = block1.Elements;
+                var elems1 = block1.Elements;
+
+                while (index > -1)
+                {
+                    counter += 1;
+                    var split = elem.Split(index, sublen, InlineStyling.Keyword);
+                    ConditionalDebug.ThrowIfZero(split.Length);
+
+                    elems1[eN] = split[0];
+
+                    for (int n = 1; n < split.Length; ++n)
+                    {
+                        elems1.Insert(++eN, split[n]);
+                    }
+
+                    elem = split[^1];
+
+                    if (elem.Styling != InlineStyling.Keyword)
+                    {
+
+                        index = elem.Text.Find(subtext, flags);
+                        continue;
+                    }
+
+                    break;
+                }
+            }
+        }
+
+        if (clone != null)
+        {
+            return new(clone);
+        }
+
+        return null;
     }
 
     /// <summary>
@@ -185,151 +267,17 @@ public sealed class MarkDocument : IReadOnlyList<IReadOnlyMarkBlock>, IEquatable
         return _blocks.GetEnumerator();
     }
 
-    /// <summary>
-    /// Clears the document and returns true if the contents are modified.
-    /// </summary>
-    public bool Clear()
+    private void Coalesce()
     {
-        if (_blocks.Count != 0)
+        var local = _blocks;
+
+        for (int n = 0; n < local.Count; ++n)
         {
-            _blocks.Clear();
-            _blocks.TrimCapacity();
-            ResetState();
-            return true;
-        }
-
-        return false;
-    }
-
-    /// <summary>
-    /// Appends the "document" contents and returns true if modified.
-    /// </summary>
-    public bool Append(MarkDocument document)
-    {
-        if (document._blocks.Count != 0)
-        {
-            ResetState();
-
-            // Shallow copy
-            _blocks.AddRange(document);
-            return true;
-        }
-
-        return false;
-    }
-
-    /// <summary>
-    /// Appends a deep copy of "blocks" to the document and returns true if modified.
-    /// </summary>
-    /// <remarks>
-    /// Blocks are deep cloned so that post changes to "blocks" will not affect this instance. It is assumed "blocks"
-    /// are well formed.
-    /// </remarks>
-    public bool Append(IEnumerable<IReadOnlyMarkBlock> blocks)
-    {
-        int count = _blocks.Count;
-
-        foreach (var item in blocks)
-        {
-            _blocks.Add(new MarkBlock(item, true));
-        }
-
-        if (_blocks.Count != count)
-        {
-            ResetState();
-            return true;
-        }
-
-        return false;
-    }
-
-    /// <summary>
-    /// Parses "markdown" and updates (replaces) the contents and returns true if the contents are modified.
-    /// </summary>
-    /// <remarks>
-    /// The "markdown" input is normalized for C-form. If "markdown" is null or empty, the document will be empty when
-    /// this method returns. This method employs an algorithm to optimize performance where "markdown" is a string which
-    /// is continuously appended to.
-    /// </remarks>
-    [return: NotNullIfNotNull(nameof(markdown))]
-    public bool Update(string? markdown, MarkOptions opts = default)
-    {
-        if (string.IsNullOrWhiteSpace(markdown))
-        {
-            return Clear();
-        }
-
-        // This should hopefully be fast where we are not normalizing for C-form
-        markdown = Sanitize(markdown, opts);
-
-        if (_markdown != markdown)
-        {
-            Clear();
-
-            // Select pipeline
-            var pipeline = opts.HasFlag(MarkOptions.IgnoreInline) ? IgnoreInlinePipeline : DefaultPipeline;
-
-            // Offset store point we can reliably update from when chunking (hopefully)
-            AppendMarkdig(Markdig.Markdown.Parse(markdown, pipeline), opts, 0, 0, '\0');
-            _markdown = markdown;
-            return true;
-        }
-
-        return false;
-    }
-
-    /// <summary>
-    /// Asynchronous variant of <see cref="Update"/>.
-    /// </summary>
-    public async Task<bool> UpdateAsync(string? markdown, MarkOptions opts = default)
-    {
-        var version = Interlocked.Increment(ref _asyncVersion);
-
-        if (markdown == null || markdown.Length < 256)
-        {
-            // Immediate
-            return Update(markdown, opts);
-        }
-
-        var clone = new MarkDocument(this);
-        var task = await Task.Run(() => clone.Update(markdown, opts));
-
-        // Only apply if this is still the latest request.
-        if (task && version == Volatile.Read(ref _asyncVersion))
-        {
-            _blocks.Clear();
-            _blocks.AddRange(clone);
-            CopyState(clone);
-        }
-
-        return task;
-    }
-
-    /// <summary>
-    /// Combines blocks and elements of matching kinds and styles, returning a new document instance.
-    /// </summary>
-    /// <remarks>
-    /// This method always leaves the source instance unchanged and returns a clone. If <see cref="IsCoalesced"/> is
-    /// true on the called instance, however, the result is simply "this" instance. Otherwise, if "accoutrements" is
-    /// false, additional content, such as <see cref="MarkBlock.Table"/>, are not copied to the clone. The use case is
-    /// to minimise visual controls needed in user interface generation.
-    /// </remarks>
-    public MarkDocument Coalesce()
-    {
-        var clone = new List<IReadOnlyMarkBlock>(_blocks);
-
-        if (IsCoalesced)
-        {
-            return new(clone) { IsCoalesced = true };
-        }
-
-        for (int n = 0; n < clone.Count; ++n)
-        {
-            var coal = clone[n].Coalesce();
+            var coal = local[n].Coalesce();
 
             if (coal != null)
             {
-                clone[n] = coal;
+                local[n] = coal;
             }
         }
 
@@ -337,11 +285,11 @@ public sealed class MarkDocument : IReadOnlyList<IReadOnlyMarkBlock>, IEquatable
         MarkBlock? work = null;
         IReadOnlyMarkBlock? para = null;
 
-        for (int n = 0; n <= clone.Count; ++n)
+        for (int n = 0; n <= local.Count; ++n)
         {
-            if (n < clone.Count)
+            if (n < local.Count)
             {
-                var current = clone[n];
+                var current = local[n];
 
                 if (current.Kind == BlockKind.Para && current.GetListKind() == ListKind.None)
                 {
@@ -362,7 +310,7 @@ public sealed class MarkDocument : IReadOnlyList<IReadOnlyMarkBlock>, IEquatable
                             {
                                 work = new(para, false);
                                 para = work;
-                                clone[index] = work;
+                                local[index] = work;
                             }
 
                             if (!work.IsEmpty())
@@ -388,7 +336,7 @@ public sealed class MarkDocument : IReadOnlyList<IReadOnlyMarkBlock>, IEquatable
                 if (c > 0)
                 {
                     n = index - 1;
-                    clone.RemoveRange(index, c);
+                    local.RemoveRange(index, c);
                 }
 
                 index = -1;
@@ -396,10 +344,6 @@ public sealed class MarkDocument : IReadOnlyList<IReadOnlyMarkBlock>, IEquatable
                 work = null;
             }
         }
-
-        var doc = new MarkDocument(clone);
-        doc.IsCoalesced = true;
-        return doc;
     }
 
     /// <summary>
@@ -475,21 +419,6 @@ public sealed class MarkDocument : IReadOnlyList<IReadOnlyMarkBlock>, IEquatable
         }
 
         return hash.ToHashCode();
-    }
-
-    private void CopyState(MarkDocument? other)
-    {
-        if (other != null)
-        {
-            _markdown = other._markdown;
-            IsCoalesced = other.IsCoalesced;
-        }
-    }
-
-    private void ResetState()
-    {
-        _markdown = null;
-        IsCoalesced = false;
     }
 
     private void AppendMarkdig(ContainerBlock container, MarkOptions opts, int quoteLevel, int listLevel, char listBullet)

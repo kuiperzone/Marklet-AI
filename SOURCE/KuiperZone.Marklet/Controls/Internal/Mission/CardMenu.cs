@@ -25,6 +25,7 @@ using KuiperZone.Marklet.PixieChrome;
 using KuiperZone.Marklet.Tooling;
 using KuiperZone.Marklet.Shared;
 using Avalonia.Input;
+using Avalonia.LogicalTree;
 
 namespace KuiperZone.Marklet.Controls.Internal.Mission;
 
@@ -225,7 +226,7 @@ internal abstract class CardMenu : ContextMenu
 
     private void OpenedHandler(object? _, EventArgs __)
     {
-        Init(this.GetParentOf<DeckCard>());
+        Init(this.FindLogicalAncestorOfType<DeckCard>());
         ConditionalDebug.ThrowIfNull(Caller);
         Focus();
     }

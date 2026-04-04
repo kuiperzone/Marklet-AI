@@ -31,6 +31,7 @@ using Avalonia.Controls.Primitives;
 using KuiperZone.Marklet.Tooling;
 using Avalonia.Layout;
 using Avalonia.Threading;
+using Avalonia.LogicalTree;
 
 namespace KuiperZone.Marklet.PixieChrome.Controls;
 
@@ -720,7 +721,7 @@ public class PixieCombo : PixieControl
 
         private void DropOpenedHandler(object? _, EventArgs __)
         {
-            _dropPanel?.GetParentOf<Border>()?.Background = ChromeStyling.Global.TintBackground;
+            _dropPanel?.FindLogicalAncestorOfType<Border>()?.Background = ChromeStyling.Global.TintBackground;
 
             if (Items.Count == 0)
             {

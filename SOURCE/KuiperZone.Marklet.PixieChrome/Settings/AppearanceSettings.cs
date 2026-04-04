@@ -20,7 +20,6 @@
 
 using System.Text.Json;
 using Avalonia.Media;
-using Avalonia.Media.Immutable;
 
 namespace KuiperZone.Marklet.PixieChrome.Settings;
 

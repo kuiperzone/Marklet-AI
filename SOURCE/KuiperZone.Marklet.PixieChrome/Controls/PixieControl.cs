@@ -23,6 +23,7 @@ using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Layout;
+using Avalonia.LogicalTree;
 using Avalonia.Media;
 using Avalonia.Media.Immutable;
 using Avalonia.Threading;
@@ -74,7 +75,6 @@ public class PixieControl : Border
 
     private readonly TextBlock _titleBlock = new();
     private FontWeight _titleWeight = FontWeight.Normal;
-    private TextWrapping _titleWrapping = TextWrapping.Wrap;
     private string? _title;
 
     private string? _header;
@@ -136,7 +136,6 @@ public class PixieControl : Border
         _titleBlock.IsVisible = GetTitleVisibility();
         _titleBlock.HorizontalAlignment = HorizontalAlignment.Left;
         _titleBlock.VerticalAlignment = verticalAlignment;
-        _titleBlock.TextWrapping = _titleWrapping;
         _titleBlock.TextTrimming = TextTrimming.CharacterEllipsis;
         SetTitlePadding(_titleBlock, _verticalContentOffset);
 
@@ -173,13 +172,6 @@ public class PixieControl : Border
     public static readonly DirectProperty<PixieControl, FontWeight> TitleWeightProperty =
         AvaloniaProperty.RegisterDirect<PixieControl, FontWeight>(nameof(TitleWeight),
         o => o.TitleWeight, (o, v) => o.TitleWeight = v, FontWeight.Normal);
-
-    /// <summary>
-    /// Defines the <see cref="TitleWrapping"/> property.
-    /// </summary>
-    public static readonly DirectProperty<PixieControl, TextWrapping> TitleWrappingProperty =
-        AvaloniaProperty.RegisterDirect<PixieControl, TextWrapping>(nameof(TitleWrapping),
-        o => o.TitleWrapping, (o, v) => o.TitleWrapping = v, TextWrapping.Wrap);
 
     /// <summary>
     /// Defines the <see cref="Footer"/> property.
@@ -222,7 +214,7 @@ public class PixieControl : Border
     /// <remarks>
     /// For example, it occurs when the slider on the <see cref="PixieSlider"/> is moved. It occurs when <see
     /// cref="PixieCard.IsCheckedProperty"/> changes etc. It does not occur when <see cref="PixieCard"/> is clicked. It
-    /// does not occur for <see cref="PixieSelectable"/>.
+    /// does not occur for <see cref="PixieSelectableText"/>.
     /// </remarks>
     public event EventHandler<RoutedEventArgs> ValueChanged
     {
@@ -259,19 +251,6 @@ public class PixieControl : Border
     {
         get { return _titleWeight; }
         set { SetAndRaise(TitleWeightProperty, ref _titleWeight, value); }
-    }
-
-    /// <summary>
-    /// Gets or sets the <see cref="Title"/> wrapping.
-    /// </summary>
-    /// <remarks>
-    /// The default is <see cref="TextWrapping.Wrap"/> for the base class but is typically <see
-    /// cref="TextWrapping.NoWrap"/> for subclasses with controls.
-    /// </remarks>
-    public TextWrapping TitleWrapping
-    {
-        get { return _titleWrapping; }
-        set { SetAndRaise(TitleWrappingProperty, ref _titleWrapping, value); }
     }
 
     /// <summary>
@@ -634,10 +613,6 @@ public class PixieControl : Border
             throw new InvalidOperationException($"{nameof(SetSubject)} can be called once only");
         }
 
-        // Not wrapped for subclass with control
-        _titleWrapping = TextWrapping.NoWrap;
-        _titleBlock.TextWrapping = TextWrapping.NoWrap;
-
         _subject = child;
         child.VerticalAlignment = _verticalContentAlignment;
 
@@ -824,12 +799,6 @@ public class PixieControl : Border
         if (p == TitleWeightProperty)
         {
             _titleBlock.FontWeight = change.GetNewValue<FontWeight>();
-            return;
-        }
-
-        if (p == TitleWrappingProperty)
-        {
-            _titleBlock.TextWrapping = change.GetNewValue<TextWrapping>();
             return;
         }
 
@@ -1217,7 +1186,7 @@ public class PixieControl : Border
 
             if (e.NewSize.Width != e.PreviousSize.Width)
             {
-                var parent = this.GetParentOf<PixieControl>();
+                var parent = this.FindLogicalAncestorOfType<PixieControl>();
                 var gw = parent?._grid.Bounds.Width ?? 0.0;
 
                 if (parent != null && gw > 0)

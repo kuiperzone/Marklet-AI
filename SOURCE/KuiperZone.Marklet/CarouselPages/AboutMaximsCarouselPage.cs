@@ -21,7 +21,6 @@
 using KuiperZone.Marklet.PixieChrome.Controls;
 using KuiperZone.Marklet.PixieChrome;
 using KuiperZone.Marklet.PixieChrome.CarouselPages;
-using KuiperZone.Marklet.Shared;
 
 namespace KuiperZone.Marklet.CarouselPages;
 

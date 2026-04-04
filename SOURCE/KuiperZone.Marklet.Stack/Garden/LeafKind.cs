@@ -44,14 +44,14 @@ public enum LeafKind : byte
     Assistant = 2,
 
     /// <summary>
-    /// Display information only. Not persistant or to be interpreted by the model.
+    /// Display information only. Persistant. Not to be interpreted by the model.
     /// </summary>
-    DisplayMessage = 200,
+    PersistantMessage = 200,
 
     /// <summary>
-    /// Display error only. Not persistant or to be interpreted by the model.
+    /// Display information only. Not persistant or to be interpreted by the model.
     /// </summary>
-    DisplayError = 201,
+    EphemeralMessage = 201,
 }
 
 /// <summary>
@@ -64,7 +64,7 @@ public static partial class HelperExt
     /// </summary>
     public static bool IsPersistant(this LeafKind src)
     {
-        return src == LeafKind.User || src == LeafKind.Assistant;
+        return src == LeafKind.User || src == LeafKind.Assistant || src == LeafKind.PersistantMessage;
     }
 
     /// <summary>
@@ -86,6 +86,9 @@ public static partial class HelperExt
                 return "User";
             case LeafKind.Assistant:
                 return "Assistant";
+            case LeafKind.PersistantMessage:
+            case LeafKind.EphemeralMessage:
+                return "Message";
             default:
                 return null;
         }
@@ -102,9 +105,9 @@ public static partial class HelperExt
     /// <summary>
     /// Returns whether display fully parses inline markup.
     /// </summary>
-    public static bool HasInlineMarkup(this LeafKind src)
+    public static bool InlineMarkup(this LeafKind src)
     {
-        return src == LeafKind.Assistant || src == LeafKind.DisplayMessage;
+        return src == LeafKind.Assistant || src == LeafKind.EphemeralMessage || src == LeafKind.PersistantMessage;
     }
 
     /// <summary>
@@ -116,8 +119,8 @@ public static partial class HelperExt
         {
             case LeafKind.User:
             case LeafKind.Assistant:
-            case LeafKind.DisplayMessage:
-            case LeafKind.DisplayError:
+            case LeafKind.PersistantMessage:
+            case LeafKind.EphemeralMessage:
                 return true;
             default:
                 return false;

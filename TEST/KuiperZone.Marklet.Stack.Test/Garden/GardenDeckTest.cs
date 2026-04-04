@@ -140,34 +140,34 @@ public class GardenDeckTest : GardenTestBase
         Assert.Equal(2, child.Count);
 
         // Select this instance outside of the garden
-        child.IsCurrent = true;
-        Assert.True(child.IsCurrent);
+        child.IsFocused = true;
+        Assert.True(child.IsFocused);
 
         var receiver = new ChangeReceiver();
-        obj.CurrentChanged += receiver.CurrentChangedHandler;
+        obj.FocusChanged += receiver.FocusChangedHandler;
         obj.GetBasket(child.Basket).Changed += receiver.BasketHandler;
 
         obj.Insert(child);
-        Assert.True(child.IsCurrent);
-        Assert.Same(child, obj.Current);
+        Assert.True(child.IsFocused);
+        Assert.Same(child, obj.Focused);
         Assert.Same(child, obj.FindTitleExact("child0"));
 
         // Evented
         Assert.Equal(1, receiver.BasketUpdatedCounter);
-        Assert.NotNull(receiver.CurrentChangedEvent);
-        Assert.Same(child, receiver.CurrentChangedEvent.Current);
+        Assert.NotNull(receiver.FocusChangedEvent);
+        Assert.Same(child, receiver.FocusChangedEvent.Current);
 
         if (backing)
         {
             // RELOAD
             var gardener = obj.Gardener;
             obj.CloseDatabase();
-            Assert.Null(obj.Current);
+            Assert.Null(obj.Focused);
             Assert.Equal(2, receiver.BasketUpdatedCounter);
-            Assert.Null(receiver.CurrentChangedEvent.Current);
+            Assert.Null(receiver.FocusChangedEvent.Current);
 
             obj.OpenDatabase(gardener!);
-            Assert.Null(obj.Current);
+            Assert.Null(obj.Focused);
             Assert.Equal(3, receiver.BasketUpdatedCounter);
 
             child = obj.FindTitleExact("child0");
@@ -206,7 +206,7 @@ public class GardenDeckTest : GardenTestBase
 
 
         var child = new GardenDeck(DeckKind.Chat, BasketKind.Recent);
-        child.IsCurrent = true;
+        child.IsFocused = true;
         child.Append(LeafKind.User, "User message");
 
         obj.Insert(child);
@@ -216,7 +216,7 @@ public class GardenDeckTest : GardenTestBase
         Assert.Equal(0, archiveReceiver.BasketUpdatedCounter);
 
         // Sets selected
-        Assert.Same(child, obj.Current);
+        Assert.Same(child, obj.Focused);
 
         // Move to Archive
         child.Basket = BasketKind.Archive;
@@ -237,8 +237,8 @@ public class GardenDeckTest : GardenTestBase
 
         // Null when moving to waste
         // This might be brittle
-        // We now Unload() which deselects Current
-        Assert.Null(obj.Current);
+        // We now Unload() which deselects focus
+        Assert.Null(obj.Focused);
 
         // Restore
         child.Basket = BasketKind.Recent;
@@ -261,22 +261,22 @@ public class GardenDeckTest : GardenTestBase
         var child = obj.FindTitleExact("1");
         Assert.NotNull(child);
 
-        child.IsCurrent = true;
-        Assert.Same(child, obj.Current);
+        child.IsFocused = true;
+        Assert.Same(child, obj.Focused);
 
         // Set selected and ensure event
         var receiver = new ChangeReceiver();
-        obj.CurrentChanged += receiver.CurrentChangedHandler;
+        obj.FocusChanged += receiver.FocusChangedHandler;
         obj.GetBasket(child.Basket).Changed += receiver.BasketHandler;
 
         Assert.True(obj.Delete(child));
         Assert.Null(child.Garden);
-        Assert.Null(obj.Current);
+        Assert.Null(obj.Focused);
 
         Assert.Equal(1, receiver.BasketUpdatedCounter);
-        Assert.NotNull(receiver.CurrentChangedEvent);
-        Assert.Null(receiver.CurrentChangedEvent.Current);
-        Assert.Same(child, receiver.CurrentChangedEvent.Previous);
+        Assert.NotNull(receiver.FocusChangedEvent);
+        Assert.Null(receiver.FocusChangedEvent.Current);
+        Assert.Same(child, receiver.FocusChangedEvent.Previous);
 
         if (backing)
         {

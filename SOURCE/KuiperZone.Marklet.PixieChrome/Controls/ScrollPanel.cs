@@ -22,6 +22,7 @@ using Avalonia;
 using Avalonia.Collections;
 using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
+using Avalonia.Input;
 using Avalonia.Metadata;
 using Avalonia.Threading;
 using KuiperZone.Marklet.PixieChrome.Shared;
@@ -30,7 +31,7 @@ using KuiperZone.Marklet.Tooling;
 namespace KuiperZone.Marklet.PixieChrome.Controls;
 
 /// <summary>
-/// <see cref="ScrollViewer"/> with an inner vertical <see cref="StackPanel"/>.
+/// A vertical <see cref="ScrollViewer"/> with an inner vertical <see cref="StackPanel"/>.
 /// </summary>
 /// <remarks>
 /// The inner panel is aligned Top and horizontally centered. The <see cref="ScrollViewer.VerticalScrollBarVisibility"/>
@@ -38,14 +39,19 @@ namespace KuiperZone.Marklet.PixieChrome.Controls;
 /// </remarks>
 public class ScrollPanel : ScrollViewer
 {
+    private const double ScrollEdge = ChromeFonts.DefaultLineHeight / 2.0;
     private readonly StackPanel _contentPanel = new();
-    private readonly DispatchCoalescer _dispatcher = new(DispatcherPriority.ContextIdle);
+    private readonly DispatcherTimer _scrollTimer = new();
+    private readonly DispatchCoalescer _coalescer = new(DispatcherPriority.ContextIdle);
     private double _pendingY;
+    private bool _isScrollingUpward;
 
+    // Backing
     private Thickness _contentMargin;
     private double _contentMinWidth;
     private double _contentMaxWidth = double.PositiveInfinity;
     private double _verticalSpacing;
+    private bool _isAutoScrollWhenPressed;
 
     static ScrollPanel()
     {
@@ -67,7 +73,9 @@ public class ScrollPanel : ScrollViewer
         ConditionalDebug.ThrowIfNotEqual(ScrollBarVisibility.Auto, VerticalScrollBarVisibility);
         ConditionalDebug.ThrowIfNotEqual(Avalonia.Layout.HorizontalAlignment.Stretch, _contentPanel.HorizontalAlignment);
 
-        _dispatcher.Posted += NormYHandler;
+        _coalescer.Posted += NormYPostedHandler;
+        _scrollTimer.Tick += ScrollTimerTickHandler;
+        _scrollTimer.Interval = TimeSpan.FromMilliseconds(50);
     }
 
     /// <summary>
@@ -97,6 +105,13 @@ public class ScrollPanel : ScrollViewer
     public static readonly DirectProperty<ScrollPanel, double> VerticalSpacingProperty =
         AvaloniaProperty.RegisterDirect<ScrollPanel, double>(nameof(VerticalSpacing),
         o => o.VerticalSpacing, (o, v) => o.VerticalSpacing = v);
+
+    /// <summary>
+    /// Defines the <see cref="IsAutoScrollWhenPressed"/> property.
+    /// </summary>
+    public static readonly DirectProperty<ScrollPanel, bool> IsAutoScrollWhenPressedProperty =
+        AvaloniaProperty.RegisterDirect<ScrollPanel, bool>(nameof(IsAutoScrollWhenPressed),
+        o => o.IsAutoScrollWhenPressed, (o, v) => o.IsAutoScrollWhenPressed = v);
 
     /// <summary>
     /// Gets the children of the panel.
@@ -141,6 +156,18 @@ public class ScrollPanel : ScrollViewer
     }
 
     /// <summary>
+    /// Gets or sets whether the vertical top-bottom edges auto-scroll when dragging.
+    /// </summary>
+    /// <remarks>
+    /// Default is false.
+    /// </remarks>
+    public bool IsAutoScrollWhenPressed
+    {
+        get { return _isAutoScrollWhenPressed; }
+        set { SetAndRaise(IsAutoScrollWhenPressedProperty, ref _isAutoScrollWhenPressed, value); }
+    }
+
+    /// <summary>
     /// Gets or sets a normalized vertical position of range [0, 1].
     /// </summary>
     /// <remarks>
@@ -159,7 +186,7 @@ public class ScrollPanel : ScrollViewer
             if (!double.IsNaN(value))
             {
                 _pendingY = value;
-                _dispatcher.Post();
+                _coalescer.Post();
             }
         }
     }
@@ -248,6 +275,54 @@ public class ScrollPanel : ScrollViewer
         _contentPanel.Width = Math.Max(e.NewSize.Width - ContentMargin.Width(), ContentMinWidth);
     }
 
+    /// <summary>
+    /// Overrides.
+    /// </summary>
+    protected override void OnPointerMoved(PointerEventArgs e)
+    {
+        if (_isAutoScrollWhenPressed && Extent.Height > Viewport.Height &&
+            Children.Count != 0 && Bounds.Height > ScrollEdge)
+        {
+            var info = e.GetCurrentPoint(this);
+            var props = info.Properties;
+
+            if (props.IsLeftButtonPressed)
+            {
+                var point = info.Position;
+
+                if (point.Y < ScrollEdge || point.Y >= Bounds.Height - ScrollEdge)
+                {
+                    _isScrollingUpward = point.Y < ScrollEdge;
+
+                    _scrollTimer.Restart();
+                    ScrollTimerTickHandler(null, EventArgs.Empty);
+                    return;
+                }
+            }
+        }
+
+        _scrollTimer.Stop();
+    }
+
+    /// <summary>
+    /// Overrides.
+    /// </summary>
+    protected override void OnPointerReleased(PointerReleasedEventArgs e)
+    {
+        if (e.InitialPressMouseButton == MouseButton.Left)
+        {
+            _scrollTimer.Stop();
+        }
+    }
+
+    /// <summary>
+    /// Overrides.
+    /// </summary>
+    protected override void OnPointerExited(PointerEventArgs e)
+    {
+        _scrollTimer.Stop();
+    }
+
     private bool SetNormalizedY(double normY)
     {
         if (double.IsNaN(normY))
@@ -266,10 +341,36 @@ public class ScrollPanel : ScrollViewer
         return false;
     }
 
-    private void NormYHandler(object? _, EventArgs __)
+    private void NormYPostedHandler(object? _, EventArgs __)
     {
         SetNormalizedY(_pendingY);
         _pendingY = 0.0;
+    }
+
+    private void ScrollTimerTickHandler(object? _, EventArgs __)
+    {
+        if (!_isAutoScrollWhenPressed)
+        {
+            _scrollTimer.Stop();
+            return;
+        }
+
+        var offY = Offset.Y;
+
+        if (_isScrollingUpward)
+        {
+            LineUp();
+        }
+        else
+        {
+            LineDown();
+        }
+
+        if (offY == Offset.Y || Bounds.Height < ScrollEdge)
+        {
+            _scrollTimer.Stop();
+            return;
+        }
     }
 
 }

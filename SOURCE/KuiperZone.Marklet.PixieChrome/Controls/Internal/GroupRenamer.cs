@@ -140,7 +140,7 @@ internal sealed class GroupRenamer : PixieEditor
 
             if (!e.IsRejected)
             {
-                t.Title = e.NewText;
+                t.Title = e.CurrentText;
                 Discard();
             }
         }

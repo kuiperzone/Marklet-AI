@@ -23,8 +23,9 @@ using KuiperZone.Marklet.Stack.Garden;
 using KuiperZone.Marklet.PixieChrome;
 using KuiperZone.Marklet.PixieChrome.Shared;
 using Avalonia.Threading;
-using KuiperZone.Marklet.Controls.Internal;
 using KuiperZone.Marklet.Controls.Internal.Mission;
+using KuiperZone.Marklet.Shared;
+using Avalonia.Input;
 
 namespace KuiperZone.Marklet.Controls;
 
@@ -33,6 +34,7 @@ namespace KuiperZone.Marklet.Controls;
 /// </summary>
 public sealed class MainMission : Border
 {
+    private static readonly MemoryGarden Garden = GardenGrounds.Global;
     private static readonly TimeSpan RefreshInterval = TimeSpan.FromSeconds(60);
     private readonly Panel _panel = new();
     private readonly List<BasketView> _views = new(4);
@@ -74,7 +76,7 @@ public sealed class MainMission : Border
         _refreshTimer.Tick += (_, __) => _currentView?.RefreshVisual();
         _refreshTimer.Start();
 
-        Garden.CurrentChanged += (_, __) => _changeCoalescer?.Post();
+        Garden.FocusChanged += (_, __) => _changeCoalescer?.Post();
         _changeCoalescer.Posted += PostedHandler;
     }
 
@@ -98,14 +100,6 @@ public sealed class MainMission : Border
     /// Always occurs after <see cref="ViewChanged"/> event.
     /// </remarks>
     public event EventHandler<EventArgs>? NewClicked;
-
-    /// <summary>
-    /// Gets the <see cref="MemoryGarden"/> instance.
-    /// </summary>
-    /// <remarks>
-    /// The <see cref="MainMission"/> shall be responsible for creating this.
-    /// </remarks>
-    public MemoryGarden Garden { get; } = new();
 
     /// <summary>
     /// Gets or sets the currently selected basket.
@@ -150,7 +144,7 @@ public sealed class MainMission : Border
     /// </summary>
     public bool CanReply
     {
-        get { return _basket.CanReply() && (GetNew(false) != null || Garden.GetBasket(_basket).Contains(Garden.Current)); }
+        get { return _basket.CanReply() && (GetNew(false) != null || Garden.GetBasket(_basket).Contains(Garden.Focused)); }
     }
 
     /// <summary>
@@ -158,7 +152,7 @@ public sealed class MainMission : Border
     /// </summary>
     public GardenDeck? GetNew(bool accept)
     {
-        if (_basket.CanInstigateNew() && Garden.Current == null && _currentView != null && !_currentView.IsSearching)
+        if (_basket.CanInstigateNew() && Garden.Focused == null && _currentView != null && !_currentView.IsSearching)
         {
             var p = _pending;
 
@@ -172,6 +166,14 @@ public sealed class MainMission : Border
 
         _pending = null;
         return null;
+    }
+
+    /// <summary>
+    /// Handles button key gestures.
+    /// </summary>
+    public bool HandleKeyGesture(KeyEventArgs e)
+    {
+        return _currentView?.HandleKeyGesture(e) ?? false;
     }
 
     /// <summary>
@@ -192,10 +194,10 @@ public sealed class MainMission : Border
         if (_basket.CanInstigateNew() && _currentView != null)
         {
             _pending = new(_basket.DefaultDeck(), _basket, ephemeral);
-            _pending.IsCurrent = true;
+            _pending.IsFocused = true;
 
             _currentView.IsSearching = false;
-            Garden.Current?.IsCurrent = false;
+            Garden.Focused?.IsFocused = false;
 
             _newClicked = true;
             _changeCoalescer.Post();
@@ -207,6 +209,8 @@ public sealed class MainMission : Border
 
     private void PostedHandler(object? _, EventArgs __)
     {
+        GardenGrounds.IsMissionSearch = _currentView?.IsSearching == true;
+
         ViewChanged?.Invoke(this, EventArgs.Empty);
 
         if (_newClicked)

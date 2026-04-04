@@ -22,6 +22,7 @@ using System.Text;
 using Avalonia.Controls;
 using Avalonia.Controls.Shapes;
 using Avalonia.Layout;
+using KuiperZone.Marklet.PixieChrome.Shared;
 using KuiperZone.Marklet.Tooling;
 using KuiperZone.Marklet.Tooling.Markdown;
 
@@ -43,8 +44,8 @@ internal sealed class MarkLevelHost : MarkVisualHost
     /// <summary>
     /// Constructor with first compatible "source" block.
     /// </summary>
-    public MarkLevelHost(MarkView owner, IReadOnlyMarkBlock source0)
-        : base(owner)
+    public MarkLevelHost(MarkShim shim, IReadOnlyMarkBlock source0)
+        : base(shim)
     {
         Control = _grid;
         ChildHosts = _childHosts;
@@ -135,7 +136,7 @@ internal sealed class MarkLevelHost : MarkVisualHost
                     break;
                 }
 
-                AddHost(MarkBlockHost.New(Owner, sequence, ref index));
+                AddHost(MarkBlockHost.New(Shim, sequence, ref index));
             }
 
             if (_childHosts.Count == 0)
@@ -240,7 +241,7 @@ internal sealed class MarkLevelHost : MarkVisualHost
 
     private double GetQuoteBarWidth()
     {
-        return Math.Max(Owner.ScaledFontSize * 0.3, 1.0);
+        return Math.Max(Shim.FontSize * 0.3, 1.0);
     }
 
     private void AddHost(MarkBlockHost host)
@@ -277,10 +278,11 @@ internal sealed class MarkLevelHost : MarkVisualHost
 
             // PREFIX COLUMN
             var prefix = new CrossTextBlock();
-            prefix.Tracker = host.Owner.Tracker;
+            prefix.Tracker = host.Shim.Owner.Tracker;
             prefix.TrackPrefix = new('\t', ListLevel);
             prefix.VerticalAlignment = VerticalAlignment.Top;
             prefix.TextAlignment = Avalonia.Media.TextAlignment.Right;
+            prefix.Foreground = host.Shim.ActualForeground;
             prefix.Background = ChromeBrushes.Transparent;
 
             // IMPORTANT
@@ -320,7 +322,7 @@ internal sealed class MarkLevelHost : MarkVisualHost
                 RefreshQuoteColumn(_grid.ColumnDefinitions[n]);
             }
 
-            var fill = Owner.QuoteDecor;
+            var fill = Shim.Owner.QuoteDecor;
             double width = GetQuoteBarWidth();
 
             foreach (var bar in _quoteBars)
@@ -354,15 +356,15 @@ internal sealed class MarkLevelHost : MarkVisualHost
         var host = (MarkBlockHost)prefix.Tag!;
         var c = host.Control;
 
-        prefix.Margin = new(0, c.Margin.Top, Owner.OneCh, 0);
-        prefix.MinWidth = Owner.TabPx * ListLevel;
+        prefix.Margin = new(0, c.Margin.Top, Shim.OneCh, 0);
+        prefix.MinWidth = Shim.TabPx * ListLevel;
 
         // This is where we update the content
         prefix.Text = host.Source.GetListPrefix();
 
         // Do not set Foreground or Family
-        prefix.FontSize = Owner.ScaledFontSize;
-        prefix.LineHeight = Owner.ScaledLineHeight;
+        prefix.FontSize = Shim.FontSize;
+        prefix.LineHeight = Shim.LineHeight;
     }
 
 }

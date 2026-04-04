@@ -19,7 +19,6 @@
 // with Marklet. If not, see <https://www.gnu.org/licenses/>.
 
 using System.Collections;
-using System.Diagnostics.CodeAnalysis;
 using KuiperZone.Marklet.Stack.Garden.Internal;
 using KuiperZone.Marklet.Tooling;
 
@@ -129,18 +128,18 @@ public sealed class MemoryGarden : IReadOnlyCollection<GardenDeck>
     public static readonly long SystemMemory = GC.GetGCMemoryInfo().TotalAvailableMemoryBytes;
 
     /// <summary>
-    /// Occurs when the <see cref="Current"/> reference changes, including being set to null.
+    /// Occurs when the <see cref="Focused"/> reference changes, including being set to null.
     /// </summary>
-    public event EventHandler<CurrentDeckChangedEventArgs>? CurrentChanged;
+    public event EventHandler<FocusChangedEventArgs>? FocusChanged;
 
     /// <summary>
-    /// Occurs when the properties of <see cref="Current"/> are modified.
+    /// Occurs when the properties of <see cref="Focused"/> are modified.
     /// </summary>
     /// <remarks>
-    /// The event is invoked only for the instance given by <see cref="Current"/>. It is not invoked when items are
-    /// added or removed. It does occur when <see cref="Current"/> is null
+    /// The event is invoked only for the instance given by <see cref="Focused"/>. It is not invoked when items are
+    /// added or removed. It does occur when <see cref="Focused"/> is null
     /// </remarks>
-    public event EventHandler<CurrentDeckUpdatedEventArgs>? CurrentUpdated;
+    public event EventHandler<FocusedUpdatedEventArgs>? FocusedUpdated;
 
     /// <summary>
     /// Gets a sequence of baskets belonging to this <see cref="MemoryGarden"/> instance.
@@ -213,9 +212,9 @@ public sealed class MemoryGarden : IReadOnlyCollection<GardenDeck>
     {
         get
         {
-            foreach (var item in _baskets)
+            for (int n = 0; n < _baskets.Count; ++n)
             {
-                if (!item.IsEmpty)
+                if (!_baskets[n].IsEmpty)
                 {
                     return false;
                 }
@@ -250,9 +249,9 @@ public sealed class MemoryGarden : IReadOnlyCollection<GardenDeck>
     /// Gets the currently selected <see cref="GardenDeck"/> child.
     /// </summary>
     /// <remarks>
-    /// The term "current" means that the item is selected for display. Initial value is null (none).
+    /// The term "focused" means that the item is focus of attention. Initial value is null (none).
     /// </remarks>
-    public GardenDeck? Current { get; private set; }
+    public GardenDeck? Focused { get; private set; }
 
     /// <summary>
     /// Common sanitization method.
@@ -283,8 +282,10 @@ public sealed class MemoryGarden : IReadOnlyCollection<GardenDeck>
     /// <exception cref="ArgumentException">Invalid BasketKind</exception>
     public GardenBasket GetBasket(BasketKind kind)
     {
-        foreach (var item in _baskets)
+        for(int n = 0; n < _baskets.Count; ++n)
         {
+            var item = _baskets[n];
+
             if (item.Kind == kind)
             {
                 return item;
@@ -374,7 +375,7 @@ public sealed class MemoryGarden : IReadOnlyCollection<GardenDeck>
         }
 
         // Discard should clear this
-        ConditionalDebug.ThrowIfNotNull(Current);
+        ConditionalDebug.ThrowIfNotNull(Focused);
     }
 
     /// <summary>
@@ -481,9 +482,9 @@ public sealed class MemoryGarden : IReadOnlyCollection<GardenDeck>
 
         ConditionalDebug.ThrowIfNull(obj.Garden);
 
-        if (obj.IsCurrent)
+        if (obj.IsFocused)
         {
-            OnCurrentChanged(obj);
+            OnFocusChanged(obj);
         }
 
         ConditionalDebug.WriteLine(NSpace, $"Success OK");
@@ -524,7 +525,7 @@ public sealed class MemoryGarden : IReadOnlyCollection<GardenDeck>
 
         var g = Gardener;
         CloseDatabase();
-        ConditionalDebug.ThrowIfNotNull(Current);
+        ConditionalDebug.ThrowIfNotNull(Focused);
 
         if (g != null)
         {
@@ -592,23 +593,24 @@ public sealed class MemoryGarden : IReadOnlyCollection<GardenDeck>
     }
 
     /// <summary>
-    /// Sets <see cref="Current"/> on the given child and returns true if selection changed.
+    /// Sets <see cref="Focused"/> on the given child and returns true if selection changed.
     /// </summary>
     /// <remarks>
     /// Does nothing if <see cref="Gardener"/> is null.
     /// </remarks>
-    internal void OnCurrentChanged(GardenDeck? obj)
+    internal void OnFocusChanged(GardenDeck? obj)
     {
-        if (Current != obj)
+        if (Focused != obj)
         {
-            ConditionalDebug.ThrowIfTrue(obj?.IsCurrent == false);
+            ConditionalDebug.ThrowIfTrue(obj?.IsFocused == false);
 
             // Silent
-            var old = Current;
+            var old = Focused;
             old?.DeselectNoRaise();
 
-            Current = obj;
-            CurrentChanged?.Invoke(this, new(obj, old));
+            Focused = obj;
+            obj?.GetBasket()?.SetRecentInternal(obj);
+            FocusChanged?.Invoke(this, new(obj, old));
         }
     }
 
@@ -646,9 +648,9 @@ public sealed class MemoryGarden : IReadOnlyCollection<GardenDeck>
             }
             finally
             {
-                if (Current == obj)
+                if (Focused == obj)
                 {
-                    CurrentUpdated?.Invoke(this, new(obj));
+                    FocusedUpdated?.Invoke(this, new(obj));
                 }
             }
         }

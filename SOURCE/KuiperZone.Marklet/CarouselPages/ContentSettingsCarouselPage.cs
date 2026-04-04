@@ -303,7 +303,7 @@ public sealed class ContentSettingsCarouselPage : SettingsCarouselPage<ContentSe
         private static void RefreshMark(MarkControl mark, ContentSettings settings, IBrush? background = null)
         {
             mark.Background = background;
-            mark.CornerRadius = Styling.SmallCornerRadius;
+            mark.CornerRadius = Styling.SmallCornerBottom;
             mark.FencedBackground = Styling.BackgroundLow;
             mark.FencedCornerRadius = Styling.SmallCornerRadius;
 

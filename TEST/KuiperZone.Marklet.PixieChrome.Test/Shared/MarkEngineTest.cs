@@ -19,49 +19,58 @@
 // with Marklet. If not, see <https://www.gnu.org/licenses/>.
 
 using System.Text;
+using Avalonia.Collections;
+using Avalonia.Controls;
 using KuiperZone.Marklet.PixieChrome.Controls;
+using KuiperZone.Marklet.PixieChrome.Shared;
 using KuiperZone.Marklet.Tooling.Markdown;
 using Xunit.Abstractions;
 
 namespace KuiperZone.Marklet.PixieChrome.Test;
 
-public class MarkViewTest : ControlTestBase
+public class MarkEngineTest : ControlTestBase
 {
     private readonly ITestOutputHelper _out;
 
-    public MarkViewTest(ITestOutputHelper helper)
+    public MarkEngineTest(ITestOutputHelper helper)
     {
         _out = helper;
     }
 
     [Fact]
-    public void ContextMenu_InitialNull()
+    public void Rebuild_CorrectChildCount()
     {
-        var obj = new MarkView();
+        const MarkOptions Opts = MarkOptions.Markdown | MarkOptions.Sanitize;
+        var obj = new MarkEngine(new MarkControl(), new AvaloniaList<Control>());
 
-        // Has no initial context
-        Assert.NotNull(obj.ContextMenu);
-    }
+        obj.Rebuild(new MarkDocument(GetMessage("value0"), Opts));
 
-    [Fact]
-    public void Content_CorrectChildCount()
-    {
-        var obj = new MarkView();
-        obj.Content = GetMessage("value0");
-
-        var exp = "H1,Para,FencedCode,H3,IndentedCode,TableCode,Para,Para,Para,Rule,Para,Para,Rule,Para,Para,Para";
+        var exp = "H1,Para,Para,FencedCode,H3,IndentedCode,TableCode,Para,Para,Para,Rule,Para,Para,Rule,Para,Para,Para";
         var act = ToString(obj.GetBlockKinds());
         _out.WriteLine(act);
-
         Assert.Equal(exp, act);
 
-        // Force change
-        obj.Content = GetMessage("value1");
+        // Tweak but no structural change
+        // Worth repeating as caches visual controls
+        obj.Rebuild(new MarkDocument(GetMessage("value1"), Opts));
 
         act = ToString(obj.GetBlockKinds());
         _out.WriteLine(act);
-
         Assert.Equal(exp, act);
+
+
+        // Simple
+        exp = "Para";
+        obj.Rebuild(new MarkDocument("Message", Opts));
+        act = ToString(obj.GetBlockKinds());
+        _out.WriteLine(act);
+        Assert.Equal("Para", act);
+
+
+        // COALESCED
+        exp = "H1,Para,FencedCode,H3,IndentedCode,TableCode,Para,Para,Para,Rule,Para,Para,Rule,Para,Para,Para";
+        obj.Rebuild(new MarkDocument(GetMessage("value1"), Opts | MarkOptions.Coalesce));
+
     }
 
     private static string ToString(BlockKind[] kinds)
@@ -124,5 +133,4 @@ Para {value}
 Para link: [link text](http://example.com) which points to http://example.com.
 ";
     }
-
 }

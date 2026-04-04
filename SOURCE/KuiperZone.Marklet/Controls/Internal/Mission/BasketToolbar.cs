@@ -25,6 +25,8 @@ using KuiperZone.Marklet.PixieChrome;
 using KuiperZone.Marklet.Tooling;
 using KuiperZone.Marklet.Shared;
 using Avalonia.Input;
+using KuiperZone.Marklet.Windows;
+using KuiperZone.Marklet.PixieChrome.Windows;
 
 namespace KuiperZone.Marklet.Controls.Internal.Mission;
 
@@ -33,32 +35,28 @@ namespace KuiperZone.Marklet.Controls.Internal.Mission;
 /// </summary>
 internal sealed class BasketToolbar : DockPanel
 {
+    private readonly LightButton _leftButton = new();
     private readonly LightButton? _rightButton;
-    private readonly BasketCase _bcase;
+    private readonly LightBar _buttons = new();
 
-    public BasketToolbar(BasketCase bcase)
+    public BasketToolbar(BasketView view)
     {
-        Kind = bcase.Kind;
-        _bcase = bcase;
-
-        var owner = bcase.View;
-        Garden = owner.Garden;
-        Basket = owner.Basket;
-        ConditionalDebug.ThrowIfNotEqual(Kind, owner.Kind);
-        ConditionalDebug.ThrowIfNotEqual(Kind, Basket.Kind);
-
-        owner.ViewChanged += ViewChangedHandler;
+        Kind = view.Kind;
+        Basket = view.Basket;
+        View = view;
+        ConditionalDebug.ThrowIfNotEqual(view.Kind, Basket.Kind);
 
         HorizontalSpacing = 4.0;
         VerticalAlignment = Avalonia.Layout.VerticalAlignment.Top;
 
-        var leftButton = new LightButton();
-        leftButton.Content = Symbols.Menu;
-        leftButton.DropMenu = bcase.Menu;
-        leftButton.VerticalAlignment = Avalonia.Layout.VerticalAlignment.Center;
-        leftButton.HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Left;
-        SetDock(leftButton, Dock.Left);
-        Children.Add(leftButton);
+        Menu = new(this);
+
+        _leftButton.Content = Symbols.Menu;
+        _leftButton.DropMenu = Menu;
+        _leftButton.VerticalAlignment = Avalonia.Layout.VerticalAlignment.Center;
+        _leftButton.HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Left;
+        SetDock(_leftButton, Dock.Left);
+        Children.Add(_leftButton);
 
         var head = new TextBlock();
         head.Text = Kind.DisplayName().ToUpperInvariant();
@@ -68,18 +66,23 @@ internal sealed class BasketToolbar : DockPanel
         SetDock(head, Dock.Left);
         Children.Add(head);
 
-        var bar = new LightBar();
-        bar.HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Right;
-        SetDock(bar, Dock.Right);
-        Children.Add(bar);
+        _buttons.HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Right;
+        SetDock(_buttons, Dock.Right);
+        Children.Add(_buttons);
 
-        SearchButton = bar.AddButton(Symbols.Search, "Search");
+        Menu.SearchItem.Click += (_, __) => view.ToggleSearch();
+        Menu.NewFolderItem.Click += (_, __) => view.ShowNewFolderAsync();
+        Menu.PruneItem.Click += (_, __) => ShowPruningWindow();
+        Menu.EmptyItem.Click += (_, __) => ShowPurgeWindow();
+
+        SearchButton = _buttons.AddButton(Symbols.Search, "Search");
         SearchButton.Gesture = new(Key.F, KeyModifiers.Shift | KeyModifiers.Control);
         SearchButton.Classes.Add("accent-checked");
+        SearchButton.Click += (_, __) => view.ToggleSearch();
 
         if (Kind.CanInstigateNew())
         {
-            _rightButton = bar.AddButton("New " + Symbols.EditSquare);
+            _rightButton = _buttons.AddButton("New " + Symbols.EditSquare);
             _rightButton.Classes.Add("accent-background");
             _rightButton.Tip = "Start new " + Kind.DefaultDeck().DisplayName(DisplayKind.Lower);
             _rightButton.Click += NewClickHandler;
@@ -87,11 +90,13 @@ internal sealed class BasketToolbar : DockPanel
         else
         if (Kind == BasketKind.Waste)
         {
-            _rightButton = bar.AddButton("Empty " + Symbols.DeleteForever, "Empty " + Kind.DisplayName());
+            _rightButton = _buttons.AddButton("Empty " + Symbols.DeleteForever, "Empty " + Kind.DisplayName());
             _rightButton.Classes.Add("critical-background");
             _rightButton.Tip = "Empty " + Kind.DisplayName();
-            _rightButton.Click += (_, __) => _bcase.ShowPurgeWindow();
+            _rightButton.Click += (_, __) => ShowPurgeWindow();
         }
+
+        view.ViewChanged += ViewChangedHandler;
     }
 
     /// <summary>
@@ -100,19 +105,37 @@ internal sealed class BasketToolbar : DockPanel
     public BasketKind Kind { get; }
 
     /// <summary>
-    /// Gets the <see cref="MemoryGarden"/> source data.
-    /// </summary>
-    public MemoryGarden Garden { get; }
-
-    /// <summary>
     /// Gets the <see cref="GardenBasket"/> source data.
     /// </summary>
     public GardenBasket Basket { get; }
 
     /// <summary>
+    /// Gets the view.
+    /// </summary>
+    public BasketView View { get; }
+
+    /// <summary>
+    /// Gets the drop menu.
+    /// </summary>
+    public readonly BasketMenu Menu;
+
+    /// <summary>
     /// Gets the search button.
     /// </summary>
     public LightButton SearchButton { get; }
+
+    /// <summary>
+    /// Handles button key gestures.
+    /// </summary>
+    public bool HandleKeyGesture(KeyEventArgs e)
+    {
+        if (_leftButton.HandleKeyGesture(e))
+        {
+            return true;
+        }
+
+        return _buttons.HandleKeyGesture(e);
+    }
 
     private void NewClickHandler(object? _, EventArgs __)
     {
@@ -122,7 +145,45 @@ internal sealed class BasketToolbar : DockPanel
 
         if (Kind.CanInstigateNew())
         {
-            _bcase.Mission.OnNewClicked(false);
+            View.Mission.OnNewClicked(false);
+        }
+    }
+
+    /// <summary>
+    /// Shows pruning dialog window.
+    /// </summary>
+    public async void ShowPruningWindow()
+    {
+        const string NSpace = $"{nameof(BasketToolbar)}.{nameof(ShowPruningWindow)}";
+        ConditionalDebug.WriteLine(NSpace, "Clicked: " + Kind);
+
+        var basket = View.Basket;
+        var window = new PruneWindow(basket);
+        await window.ShowDialog(this);
+
+        if (window.IsPositiveResult)
+        {
+            basket.Prune(window.Options);
+        }
+    }
+
+    /// <summary>
+    /// Shows empty basket dialog window.
+    /// </summary>
+    public async void ShowPurgeWindow()
+    {
+        const string NSpace = $"{nameof(BasketToolbar)}.{nameof(ShowPurgeWindow)}";
+        ConditionalDebug.WriteLine(NSpace, "Clicked: " + Kind);
+
+        var basket = View.Basket;
+        var confirm = new ChromeDialog();
+        confirm.Message = $"Empty {Kind} now?";
+        confirm.Details = "All items will be permanently deleted.";
+        confirm.Buttons = DialogButtons.Delete | DialogButtons.Cancel;
+
+        if (await confirm.ShowDialog(this) == DialogButtons.Delete)
+        {
+            basket.DeleteAll();
         }
     }
 
@@ -134,24 +195,15 @@ internal sealed class BasketToolbar : DockPanel
 
         if (Kind.CanInstigateNew())
         {
-            _bcase.Mission.OnNewClicked(true);
+            View.Mission.OnNewClicked(true);
         }
     }
 
     private void ViewChangedHandler(object? _, EventArgs __)
     {
-        var enabled = Garden.Gardener != null;
-        SearchButton.IsEnabled = enabled;
-        _rightButton?.IsEnabled = enabled;
-
-        if (!enabled)
-        {
-            _bcase.IsSearching = false;
-        }
-
         var empty = Basket.IsEmpty;
-        _bcase.Menu.PruneItem.IsEnabled = !empty;
-        _bcase.Menu.EmptyItem.IsEnabled = !empty;
+        Menu.PruneItem.IsEnabled = !empty;
+        Menu.EmptyItem.IsEnabled = !empty;
 
         if (Kind == BasketKind.Waste)
         {

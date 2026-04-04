@@ -48,7 +48,6 @@ public class PixieCard : PixieControl
     public PixieCard()
     {
         SetPseudoFocusControl(this);
-        TitleWrapping = TextWrapping.NoWrap;
     }
 
     /// <summary>
@@ -251,18 +250,16 @@ public class PixieCard : PixieControl
     /// <summary>
     /// Overrides.
     /// </summary>
-    protected override void OnPointerPressed(PointerPressedEventArgs e)
+    protected override void OnPointerReleased(PointerReleasedEventArgs e)
     {
-        var info = e.GetCurrentPoint(this);
-
-        if (info.Properties.IsLeftButtonPressed)
+        if (e.InitialPressMouseButton == MouseButton.Left)
         {
             e.Handled = true;
             OnClick();
             return;
         }
 
-        base.OnPointerPressed(e);
+        base.OnPointerReleased(e);
     }
 
     /// <summary>

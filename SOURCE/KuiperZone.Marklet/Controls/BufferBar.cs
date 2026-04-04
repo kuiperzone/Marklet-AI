@@ -20,14 +20,11 @@
 
 using Avalonia.Controls;
 using KuiperZone.Marklet.Stack.Garden;
-using Avalonia;
 using KuiperZone.Marklet.PixieChrome;
-using KuiperZone.Marklet.PixieChrome.Controls;
 using Avalonia.Interactivity;
-using Avalonia.Layout;
 using KuiperZone.Marklet.PixieChrome.Windows;
-using KuiperZone.Marklet.Shared;
 using KuiperZone.Marklet.Windows;
+using KuiperZone.Marklet.Controls.Internal;
 
 namespace KuiperZone.Marklet.Controls;
 

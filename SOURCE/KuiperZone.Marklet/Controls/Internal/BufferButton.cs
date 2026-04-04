@@ -18,19 +18,16 @@
 // You should have received a copy of the GNU Affero General Public License along
 // with Marklet. If not, see <https://www.gnu.org/licenses/>.
 
-using Avalonia.Controls;
 using KuiperZone.Marklet.Stack.Garden;
 using Avalonia;
 using KuiperZone.Marklet.PixieChrome;
 using KuiperZone.Marklet.PixieChrome.Controls;
 using Avalonia.Interactivity;
 using Avalonia.Layout;
-using KuiperZone.Marklet.PixieChrome.Windows;
 using KuiperZone.Marklet.Shared;
-using KuiperZone.Marklet.Windows;
 using KuiperZone.Marklet.Controls.Internal.Mission;
 
-namespace KuiperZone.Marklet.Controls;
+namespace KuiperZone.Marklet.Controls.Internal;
 
 /// <summary>
 /// Subclass of <see cref="LightButton"/> used by <see cref="BufferBar"/>.
@@ -40,6 +37,7 @@ internal sealed class BufferButton : LightButton, IDeckDrop
     private const double CheckedWidth = 4.0;
     private const double ButtonFontSize = ChromeFonts.HugeSymbolFontSize;
     private static readonly ChromeStyling Styling = ChromeStyling.Global;
+    private static readonly MemoryGarden Garden = GardenGrounds.Global;
 
     public const double ButtonSize = CheckedWidth + MinBoxSize * ButtonFontSize / ChromeFonts.SymbolFontSize;
 
@@ -97,6 +95,7 @@ internal sealed class BufferButton : LightButton, IDeckDrop
     public void CancelDrop()
     {
         Background = null;
+        Foreground = ChromeStyling.GrayForeground;
     }
 
     /// <inheritdoc cref="IDeckDrop.StartDrop"/>
@@ -104,7 +103,15 @@ internal sealed class BufferButton : LightButton, IDeckDrop
     {
         if (CanToggle)
         {
-            Background = CanDrop(obj) ? ChromeBrushes.ReadyHover : ChromeBrushes.CriticalHover;
+            if (CanDrop(obj))
+            {
+                Background = null;
+                Foreground = Styling.Foreground;
+                return;
+            }
+
+            Background = ChromeBrushes.CriticalHover;
+            Foreground = ChromeStyling.GrayForeground;
         }
     }
 
@@ -127,8 +134,7 @@ internal sealed class BufferButton : LightButton, IDeckDrop
         if (folder != null)
         {
             // Move to this
-            var owner = folder.Owner;
-            owner.Garden.GetBasket(owner.Kind).MoveBasket(folder.FolderName, Basket);
+            Garden.GetBasket(folder.Owner.Kind).MoveBasket(folder.FolderName, Basket);
             return true;
         }
 

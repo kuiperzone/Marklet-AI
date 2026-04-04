@@ -27,6 +27,8 @@ using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.VisualTree;
 using Avalonia.Media;
+using KuiperZone.Marklet.Shared;
+using Avalonia.LogicalTree;
 
 namespace KuiperZone.Marklet.Controls.Internal.Mission;
 
@@ -36,6 +38,7 @@ namespace KuiperZone.Marklet.Controls.Internal.Mission;
 /// </summary>
 internal sealed class FolderView : Border, IDeckDrop
 {
+    private static readonly MemoryGarden Garden = GardenGrounds.Global;
     private readonly ChromeStyling Styling = ChromeStyling.Global;
     private readonly PixieGroup _group = new();
     private List<GardenDeck>? _source;
@@ -159,7 +162,7 @@ internal sealed class FolderView : Border, IDeckDrop
     {
         if (GetDropDeck(obj) != null)
         {
-            Background = ChromeBrushes.ReadyHover;
+            Background = ChromeBrushes.Highlight;
         }
     }
 
@@ -234,70 +237,72 @@ internal sealed class FolderView : Border, IDeckDrop
     /// <summary>
     /// Complete rebuild.
     /// </summary>
-    public bool FinishRebuild()
+    public GardenDeck? FinishRebuild()
     {
         const string NSpace = $"{nameof(FolderView)}.{nameof(FinishRebuild)}";
 
         var source = _source;
         _source = null;
 
-        DeckCard? check = null;
+        DeckCard? newCard = null;
         var folderFlags = SignalFlags.None;
-        var buffer = new List<Control>(source?.Count ?? 0);
 
-        if (source?.Count > 0)
+        GardenDeck? result = null;
+        GardenDeck? recent = Owner.Basket.Recent;
+
+        var count = source?.Count ?? 0;
+        var buffer = new List<Control>(count);
+
+        for(int n = 0; n < count; ++n)
         {
-            foreach (var item in source)
+            var item = source![n];
+
+            // If Owner is null, it means we have stale copy that
+            // has been removed from the database. It shouldn't happen.
+            var garden = item.Garden;
+            ConditionalDebug.ThrowIfNull(garden);
+
+            if (garden == null)
             {
-                // If Owner is null, it means we have stale copy that
-                // has been removed from the database. It shouldn't happen.
-                var garden = item.Garden;
-                ConditionalDebug.ThrowIfNull(garden);
-
-                if (garden == null)
-                {
-                    continue;
-                }
-
-                // Get these first
-                // They are reset by RefreshVisual()
-                folderFlags |= item.VisualSignals;
-
-                // See if it holding a visual object which is our child.
-                // This saves us looking it up. If not, we create a new one below.
-                if (item.VisualComponent is DeckCard exist)
-                {
-                    if (exist.Group == _group)
-                    {
-                        // This is already ours.
-                        ConditionalDebug.WriteLine(NSpace, $"Refresh: {item.Title}");
-                        buffer.Add(exist);
-                        exist.RefreshVisual(_isSearching);
-
-                        if (item.IsCurrent)
-                        {
-                            check = exist;
-                        }
-
-                        continue;
-                    }
-                }
-
-                ConditionalDebug.WriteLine(NSpace, $"NEW CARD: {item.Title}");
-
-                var obj = new DeckCard(item, IsRootFolder);
-                obj.RefreshVisual(_isSearching);
-                buffer.Add(obj);
-
-                if (item.IsCurrent)
-                {
-                    check = obj;
-                }
+                continue;
             }
 
-            _group.CollapseFooter = null;
-        }
+            // Get these first
+            // They are reset by RefreshVisual()
+            folderFlags |= item.VisualSignals;
 
+            // See if it holding a visual object which is our child.
+            // This saves us looking it up. If not, we create a new one below.
+            if (item.VisualComponent is DeckCard exist && exist.Group == _group)
+            {
+                // This is already ours.
+                ConditionalDebug.WriteLine(NSpace, $"Refresh: {item.Title}");
+                buffer.Add(exist);
+                exist.RefreshVisual(_isSearching);
+
+                if (item == recent)
+                {
+                    result = item;
+                }
+                else
+                {
+                    exist.IsChecked = false;
+                }
+
+                continue;
+            }
+
+            ConditionalDebug.WriteLine(NSpace, $"NEW CARD: {item.Title}");
+
+            newCard = new DeckCard(item, IsRootFolder);
+            newCard.RefreshVisual(_isSearching);
+            buffer.Add(newCard);
+
+            if (item == recent)
+            {
+                result = item;
+            }
+        }
 
         // This should be efficient where references are unchanged.
         // It will avoid pulling things in or out of the tree where possible.
@@ -305,8 +310,6 @@ internal sealed class FolderView : Border, IDeckDrop
         ConditionalDebug.WriteLine(NSpace, $"Buffer count: {buffer.Count}");
         ConditionalDebug.WriteLine(NSpace, $"Children count: {_group.Children.Count}");
         ConditionalDebug.ThrowIfNotEqual(_group.Children.Count, buffer.Count);
-
-        check?.IsChecked = true;
 
         if (!IsRootFolder)
         {
@@ -324,7 +327,8 @@ internal sealed class FolderView : Border, IDeckDrop
         RefreshHeader();
         _isNewlyCreated = false;
 
-        return check != null;
+        // Recent
+        return result;
     }
 
     /// <summary>
@@ -377,14 +381,14 @@ internal sealed class FolderView : Border, IDeckDrop
             // Right click
             var v = this.GetVisualAt(point.Position);
 
-            if (CardMenu.OpenAt(v?.GetThisOrParentOf<DeckCard>()))
+            if (CardMenu.OpenAt(v?.FindLogicalAncestorOfType<DeckCard>(true)))
             {
                 return;
             }
 
             if (!IsRootFolder)
             {
-                var folder = v?.GetThisOrParentOf<FolderView>();
+                var folder = v?.FindLogicalAncestorOfType<FolderView>(true);
 
                 if (folder != null && FolderMenu.OpenAt(folder.Owner.Kind, this))
                 {
@@ -453,7 +457,6 @@ internal sealed class FolderView : Border, IDeckDrop
             ConditionalDebug.WriteLine(NSpace, "Capture released");
             e.Handled = true;
             e.Pointer.Capture(null);
-            Cursor = null;
             target?.AcceptDrop(this);
         }
     }
@@ -490,6 +493,11 @@ internal sealed class FolderView : Border, IDeckDrop
         _dropTarget = null;
         target?.CancelDrop();
 
+        if (target != null)
+        {
+            Cursor = null;
+        }
+
         return target;
     }
 
@@ -501,7 +509,7 @@ internal sealed class FolderView : Border, IDeckDrop
         if (top != null && top.InputHitTest(e.GetPosition(top)) is Control control)
         {
             ConditionalDebug.WriteLine(NSpace, "Control: " + control);
-            return control.GetThisOrParentOf<IDeckDrop>();
+            return control.FindLogicalAncestorOfType<IDeckDrop>(true);
         }
 
         return null;
@@ -548,10 +556,10 @@ internal sealed class FolderView : Border, IDeckDrop
         {
             RefreshHeader();
 
-            // No current selection when closed
-            if (!IsOpen && Owner.Garden.Current?.VisualComponent is DeckCard card && Contains(card))
+            // No focused when closed
+            if (!IsOpen && Garden.Focused?.VisualComponent is DeckCard card && Contains(card))
             {
-                Owner.Garden.Current.IsCurrent = false;
+                Garden.Focused.IsFocused = false;
             }
 
             return;
@@ -561,22 +569,21 @@ internal sealed class FolderView : Border, IDeckDrop
     private void ChildRenamingHandler(object? _, GroupChildRenamingEventArgs e)
     {
         const string NSpace = $"{nameof(FolderView)}.{nameof(ChildRenamingHandler)}";
-        ConditionalDebug.WriteLine(NSpace, "Old name: " + e.OldText);
-        ConditionalDebug.WriteLine(NSpace, "New text: " + e.NewText);
+        ConditionalDebug.WriteLine(NSpace, "Old name: " + e.StartText);
+        ConditionalDebug.WriteLine(NSpace, "New text: " + e.CurrentText);
         var src = ((DeckCard)e.Card!).Source;
-        src.Title = e.NewText;
+        src.Title = e.CurrentText;
     }
 
     private void GroupRenamingHandler(object? _, GroupChildRenamingEventArgs e)
     {
         const string NSpace = $"{nameof(FolderView)}.{nameof(GroupRenamingHandler)}";
-        ConditionalDebug.WriteLine(NSpace, "Old name: " + e.OldText);
-        ConditionalDebug.WriteLine(NSpace, "New text: " + e.NewText);
+        ConditionalDebug.WriteLine(NSpace, "Old name: " + e.StartText);
+        ConditionalDebug.WriteLine(NSpace, "New text: " + e.CurrentText);
 
-        if (Owner is not BasketView view || e.OldText == e.NewText)
+        if (Owner is not BasketView view || e.StartText == e.CurrentText)
         {
             // Either inside Search (not allowed or possible), or same as old
-            ConditionalDebug.ThrowIfFalse(Owner is BasketView);
             ConditionalDebug.WriteLine(NSpace, "Do nothing");
             return;
         }
@@ -600,7 +607,7 @@ internal sealed class FolderView : Border, IDeckDrop
         }
 
         // Rename
-        if (view.Basket.RenameFolders(e.OldText, e.NewText))
+        if (view.Basket.RenameFolders(e.StartText, e.CurrentText))
         {
             ConditionalDebug.WriteLine(NSpace, "Rename accepted");
 

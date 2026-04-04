@@ -1,11 +1,11 @@
-# MARKLET AI
+# MARKLET LOCAL AI CLIENT
 
 **Marklet** is an open source AI client primarily intended for use with local AI models (i.e. in conjunction with Ollama or
 similar runners). Its primary purpose is to do this simply and to do it well.
 
 <img src="MARKLET-SCREENSHOT1.png" style="width:75%;max-width:800px;margin-bottom:2em;"/>
 
-Above, initial version 0.2 in dark mode.
+Above, early version 0.3 in dark mode.
 
 ### PRE-RELEASE PREVIEW ONLY
 
@@ -43,7 +43,7 @@ local models with local data. It may not be suited for enterprise environments o
 
 An approximate roadmap is as follows:
 
-1. Continued development of the user interface and data backend, including full search capability
+1. Continued development of the user interface and data backend
 2. Completion of "note taking" interface
 3. Complete of "project" interface
 4. Implement connection to model runners and context generation
@@ -103,7 +103,7 @@ The following principles are to guide the development of this software:
 
 Please visit the official website for more information which will be populated as the project develops:
 
-https://kuiper.zone/marklet
+https://kuiper.zone/marklet-ai
 
 
 ## Legal Stuff

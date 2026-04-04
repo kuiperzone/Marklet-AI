@@ -20,6 +20,7 @@
 
 using System.Diagnostics.CodeAnalysis;
 using Avalonia;
+using Avalonia.Controls;
 using KuiperZone.Marklet.Tooling;
 
 namespace KuiperZone.Marklet.PixieChrome.Controls;
@@ -103,26 +104,23 @@ public readonly struct CrossKey : IComparable<CrossKey>, IEquatable<CrossKey>
     /// </remarks>
     public static CrossKey GetKeyPoint(Visual visual, Visual? root)
     {
-        var r = visual.Bounds;
-
-        if (r.Width > 0.0 && r.Height > 0.0)
+        if (visual.Bounds.Width > 0.0 && visual.Bounds.Height > 0.0)
         {
             double y = 0.0;
             double x = 0.0;
 
-            while (visual.Parent != root)
+            while (visual != root)
             {
                 // Endless loop otherwise
                 // Can only occur if given a non-parent root
                 ConditionalDebug.ThrowIfNull(visual.Parent);
 
-                y += r.TopLeft.Y;
-                x += r.TopLeft.X;
+                y += visual.Bounds.TopLeft.Y;
+                x += visual.Bounds.TopLeft.X;
 
                 if (visual.Parent is Visual parent)
                 {
                     visual = parent;
-                    r = visual.Bounds;
                     continue;
                 }
 

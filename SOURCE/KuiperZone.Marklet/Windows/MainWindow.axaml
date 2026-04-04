@@ -70,11 +70,19 @@
 
                 <!-- CONTENT VIEW -->
                 <local-controls:DeckViewer Grid.Row="0" Grid.Column="0"
-                    Name="deckViewer"/>
+                    Name="viewer"/>
 
                 <!-- overlay -->
                 <local-controls:DeckOverlay Grid.Row="0" Grid.Column="0"
                     Name="overlay"/>
+
+                <local-controls:DeckNavigator Grid.Row="0" Grid.Column="0"
+                    Name="navigator"
+                    BorderBrush="{Binding BorderBrush}"
+                    BorderThickness="1 0 1 1"
+                    HorizontalAlignment="Right"
+                    VerticalAlignment="Top"
+                    CornerRadius="{Binding SmallCornerBottom}"/>
 
                 <!-- PROMPT AREA -->
                 <Border Grid.Row="1" Grid.Column="0"

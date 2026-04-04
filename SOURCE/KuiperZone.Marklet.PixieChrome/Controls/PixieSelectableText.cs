@@ -24,22 +24,22 @@ using Avalonia.Media;
 namespace KuiperZone.Marklet.PixieChrome.Controls;
 
 /// <summary>
-/// Composite control with selectable <see cref="PixieControl.Title"/> text.
+/// Composite control with selectable <see cref="Text"/> content.
 /// </summary>
-public class PixieSelectable : PixieControl
+public class PixieSelectableText : PixieControl
 {
     private readonly CrossTextBlock _block = new();
 
+    private string? _text;
     private double _titleSize = ChromeFonts.DefaultFontSize;
     private TextAlignment _titleAlignment;
+    private TextWrapping _textWrapping = TextWrapping.Wrap;
 
     /// <summary>
     /// Default constructor.
     /// </summary>
-    public PixieSelectable()
-        : base(false, Avalonia.Layout.VerticalAlignment.Center)
+    public PixieSelectableText()
     {
-        IsTitleVisible = false;
         SetSubject(_block);
 
         _block.Focusable = true;
@@ -50,40 +50,73 @@ public class PixieSelectable : PixieControl
         _block.TextAlignment = _titleAlignment;
         _block.VerticalAlignment = VerticalContentAlignment;
         _block.Margin = new(0.0, VerticalContentOffset, 0.0, VerticalContentOffset);
-
-        TitleWrapping = TextWrapping.Wrap;
     }
 
     /// <summary>
-    /// Defines the <see cref="TitleAlignment"/> property.
+    /// Defines the <see cref="TextAlignment"/> property.
     /// </summary>
-    public static readonly DirectProperty<PixieSelectable, double> TitleSizeProperty =
-        AvaloniaProperty.RegisterDirect<PixieSelectable, double>(nameof(TitleSize),
+    public static readonly DirectProperty<PixieSelectableText, string?> TextProperty =
+        AvaloniaProperty.RegisterDirect<PixieSelectableText, string?>(nameof(TitleSize),
+        o => o.Text, (o, v) => o.Text = v);
+
+    /// <summary>
+    /// Defines the <see cref="TextAlignment"/> property.
+    /// </summary>
+    public static readonly DirectProperty<PixieSelectableText, double> TextSizeProperty =
+        AvaloniaProperty.RegisterDirect<PixieSelectableText, double>(nameof(TitleSize),
         o => o.TitleSize, (o, v) => o.TitleSize = v, ChromeFonts.DefaultFontSize);
 
     /// <summary>
-    /// Defines the <see cref="TitleAlignment"/> property.
+    /// Defines the <see cref="TextAlignment"/> property.
     /// </summary>
-    public static readonly DirectProperty<PixieSelectable, TextAlignment> TitleAlignmentProperty =
-        AvaloniaProperty.RegisterDirect<PixieSelectable, TextAlignment>(nameof(TitleAlignment),
-        o => o.TitleAlignment, (o, v) => o.TitleAlignment = v);
+    public static readonly DirectProperty<PixieSelectableText, TextAlignment> TextAlignmentProperty =
+        AvaloniaProperty.RegisterDirect<PixieSelectableText, TextAlignment>(nameof(TextAlignment),
+        o => o.TextAlignment, (o, v) => o.TextAlignment = v);
 
     /// <summary>
-    /// Gets or sets the title font size.
+    /// Defines the <see cref="TextWrapping"/> property.
+    /// </summary>
+    public static readonly DirectProperty<PixieSelectableText, TextWrapping> TextWrappingProperty =
+        AvaloniaProperty.RegisterDirect<PixieSelectableText, TextWrapping>(nameof(TextWrapping),
+        o => o.TextWrapping, (o, v) => o.TextWrapping = v, TextWrapping.Wrap);
+
+    /// <summary>
+    /// Gets or sets the text content.
+    /// </summary>
+    public string? Text
+    {
+        get { return _text; }
+        set { SetAndRaise(TextProperty, ref _text, value); }
+    }
+
+    /// <summary>
+    /// Gets or sets the <see cref="Text"/> font size.
     /// </summary>
     public double TitleSize
     {
         get { return _titleSize; }
-        set { SetAndRaise(TitleSizeProperty, ref _titleSize, value); }
+        set { SetAndRaise(TextSizeProperty, ref _titleSize, value); }
     }
 
     /// <summary>
-    /// Gets or sets the title text alignment.
+    /// Gets or sets the <see cref="Text"/> alignment.
     /// </summary>
-    public TextAlignment TitleAlignment
+    public TextAlignment TextAlignment
     {
         get { return _titleAlignment; }
-        set { SetAndRaise(TitleAlignmentProperty, ref _titleAlignment, value); }
+        set { SetAndRaise(TextAlignmentProperty, ref _titleAlignment, value); }
+    }
+
+    /// <summary>
+    /// Gets or sets <see cref="Text"/> wrapping.
+    /// </summary>
+    /// <remarks>
+    /// The default here is <see cref="TextWrapping.Wrap"/>, with character ellipses trimming.
+    /// </remarks>
+    public TextWrapping TextWrapping
+    {
+        get { return _textWrapping; }
+        set { SetAndRaise(TextWrappingProperty, ref _textWrapping, value); }
     }
 
     /// <summary>
@@ -94,25 +127,25 @@ public class PixieSelectable : PixieControl
         var p = change.Property;
         base.OnPropertyChanged(change);
 
-        if (p == TitleProperty)
+        if (p == TextProperty)
         {
             _block.Text = change.GetNewValue<string?>();
             return;
         }
 
-        if (p == TitleSizeProperty)
+        if (p == TextSizeProperty)
         {
             _block.FontSize = change.GetNewValue<double>();
             return;
         }
 
-        if (p == TitleAlignmentProperty)
+        if (p == TextAlignmentProperty)
         {
             _block.TextAlignment = change.GetNewValue<TextAlignment>();
             return;
         }
 
-        if (p == TitleWrappingProperty)
+        if (p == TextWrappingProperty)
         {
             _block.TextWrapping = change.GetNewValue<TextWrapping>();
             return;

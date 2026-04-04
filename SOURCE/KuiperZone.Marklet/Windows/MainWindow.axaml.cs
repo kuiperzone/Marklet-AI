@@ -46,7 +46,7 @@ public partial class MainWindow : ChromeWindow
     private readonly LightButton _pinButton;
     private readonly ColumnDefinition _missionColumn;
     private readonly EditorState _editorState;
-    private readonly StubMessages _stub = new();
+    private readonly StubBot _stub = new();
     private GardenLeaf? _chunking;
 
     /// <summary>
@@ -70,8 +70,11 @@ public partial class MainWindow : ChromeWindow
         _pinButton.Click += (_, __) => Topmost = !Topmost;
 
         bufferBar.Basket = mission.Basket;
-        deckViewer.Garden = mission.Garden;
         bufferBar.BoxChanged += BasketChangedHandler;
+
+        navigator.Viewer = viewer;
+        navigator.Margin = new(0.0, 0.0, ChromeSizes.TabPx, 0.0);
+
         mission.BasketChanged += BasketChangedHandler;
         mission.ViewChanged += MissionViewChangedHandler;
         mission.NewClicked += MissionNewClickedHandler;
@@ -94,7 +97,9 @@ public partial class MainWindow : ChromeWindow
     protected override void OnKeyDown(KeyEventArgs e)
     {
         base.OnKeyDown(e);
-        deckViewer.HandleKeyGesture(e);
+        mission.HandleKeyGesture(e);
+        navigator.HandleKeyGesture(e);
+        viewer.HandleKeyGesture(e);
     }
 
     /// <summary>
@@ -116,18 +121,17 @@ public partial class MainWindow : ChromeWindow
         base.OnStylingChanged(init);
 
         // May as well do this programmatically
-        deckViewer.SelectionBrush = Styling.Accent50;
-        deckViewer.LinkForeground = Styling.LinkForeground;
-        deckViewer.LinkHoverBrush = Styling.LinkHover;
-        deckViewer.QuoteDecor = Styling.AccentBrush;
-        deckViewer.RuleLine = ChromeStyling.GrayForeground;
-        deckViewer.FencedBackground = Styling.BackgroundLow;
-        deckViewer.FencedBorder = ChromeStyling.GrayForeground;
-        deckViewer.FencedCornerRadius = Styling.SmallCornerRadius;
+        viewer.SelectionBrush = Styling.Accent50;
+        viewer.LinkForeground = Styling.LinkForeground;
+        viewer.LinkHoverBrush = Styling.LinkHover;
+        viewer.QuoteDecor = Styling.AccentBrush;
+        viewer.RuleLine = ChromeStyling.GrayForeground;
+        viewer.FencedBackground = Styling.BackgroundLow;
+        viewer.FencedBorder = ChromeStyling.GrayForeground;
+        viewer.FencedCornerRadius = Styling.SmallCornerRadius;
 
-
-        deckViewer.LeafCornerRadius = Styling.LargeCornerRadius;
-        deckViewer.UserBackground = ContentSettings.ToUserBrush(Styling.AccentColor);
+        viewer.LeafCornerRadius = Styling.LargeCornerRadius;
+        viewer.UserBackground = ContentSettings.ToUserBrush(Styling.AccentColor);
 
         if (Equals(bufferBar.Background, mission.Background))
         {
@@ -162,12 +166,11 @@ public partial class MainWindow : ChromeWindow
         base.OnOpenedIdle();
 
         OpenDatabase(SqliteGardener.NewMemory());
-        StubMessages.Populate(mission.Garden);
+        StubBot.InsertTest(GardenGrounds.Global);
     }
 
     private async void OpenDatabase(IMemoryGardener gardener)
     {
-        var garden = mission.Garden;
         bool upgrade = MemoryGarden.IsUpgradeRequired(gardener);
 
         if (upgrade && gardener.IsReadOnly)
@@ -185,24 +188,24 @@ public partial class MainWindow : ChromeWindow
             }
         }
 
-        garden.OpenDatabase(gardener);
+        GardenGrounds.Global.OpenDatabase(gardener);
     }
 
     private void UpdateContentSettings()
     {
         var body = ContentSettings.BodyFont;
-        deckViewer.Zoom.Default = ContentSettings.DefaultScale;
-        deckViewer.ContentWidth = ContentSettings.Width;
-        deckViewer.FontFamily = body.ToFamily();
-        deckViewer.FontSizeCorrection = body.ToCorrection();
+        viewer.Zoom.Default = ContentSettings.DefaultScale;
+        viewer.ContentWidth = ContentSettings.Width;
+        viewer.FontFamily = body.ToFamily();
+        viewer.FontSizeCorrection = body.ToCorrection();
 
-        deckViewer.UserBackground = ContentSettings.ToUserBrush(Styling.AccentColor);
-        deckViewer.HeadingFamily = ContentSettings.HeadingFont.ToFamily();
-        deckViewer.HeadingSizeCorrection = ContentSettings.HeadingFont.ToCorrection();
-        deckViewer.HeadingForeground = ContentSettings.ToHeadingBrush();
+        viewer.UserBackground = ContentSettings.ToUserBrush(Styling.AccentColor);
+        viewer.HeadingFamily = ContentSettings.HeadingFont.ToFamily();
+        viewer.HeadingSizeCorrection = ContentSettings.HeadingFont.ToCorrection();
+        viewer.HeadingForeground = ContentSettings.ToHeadingBrush();
 
-        deckViewer.FencedForeground = ContentSettings.ToFencedBrush();
-        deckViewer.DefaultWrapping = ContentSettings.DefaultFencedWrap;
+        viewer.FencedForeground = ContentSettings.ToFencedBrush();
+        viewer.DefaultWrapping = ContentSettings.DefaultFencedWrap;
 
         prompter.MaxWidth = Math.Min(ContentSettings.Width.ToPixels(), ContentWidth.Medium.ToPixels());
     }
@@ -212,24 +215,24 @@ public partial class MainWindow : ChromeWindow
         const string NSpace = $"{nameof(MainWindow)}.{nameof(SubmitMessage)}";
 
         prompter.Text = null;
-        var current = mission.GetNew(true) ?? mission.Garden.Current;
-        ConditionalDebug.WriteLine(NSpace, "Current or new: " + current?.Title);
+        var focused = mission.GetNew(true) ?? GardenGrounds.Global.Focused;
+        ConditionalDebug.WriteLine(NSpace, "Current or new: " + focused?.Title);
 
-        if (current != null)
+        if (focused != null)
         {
-            current.Append(LeafKind.User, content);
+            focused.Append(LeafKind.User, content);
 
-            if (current.Garden == null)
+            if (focused.Garden == null)
             {
                 ConditionalDebug.WriteLine(NSpace, "Insert new");
-                mission.Garden.Insert(current);
-                ConditionalDebug.ThrowIfNull(current.Garden);
+                GardenGrounds.Global.Insert(focused);
+                ConditionalDebug.ThrowIfNull(focused.Garden);
             }
 
-            deckViewer.IsBusy = true;
-            deckViewer.ScrollToEnd();
+            viewer.IsBusy = true;
+            viewer.ScrollToEnd();
 
-            _stub.StartNext();
+            _stub.StartReply(content);
             _chunking?.StopStream();
             _chunking = null;
         }
@@ -245,7 +248,7 @@ public partial class MainWindow : ChromeWindow
         prompter.IsEnabled = mission.CanReply;
     }
 
-    private void MissionViewChangedHandler(object? sender, EventArgs e)
+    private void MissionViewChangedHandler(object? _, EventArgs __)
     {
         prompter.IsEnabled = mission.CanReply;
 
@@ -255,7 +258,7 @@ public partial class MainWindow : ChromeWindow
         }
     }
 
-    private void MissionNewClickedHandler(object? sender, EventArgs e)
+    private void MissionNewClickedHandler(object? _, EventArgs __)
     {
         prompter.IsEnabled = mission.CanReply;
         var pending = mission.GetNew(false);
@@ -272,12 +275,12 @@ public partial class MainWindow : ChromeWindow
 
     private void StubChunkedHandler(object? _, EventArgs __)
     {
-        var selected = mission.Garden.Current;
+        var focused = GardenGrounds.Global.Focused;
 
-        if (selected != null)
+        if (focused != null)
         {
-            deckViewer.IsBusy = false;
-            _chunking ??= selected.AppendStream(LeafKind.Assistant);
+            viewer.IsBusy = false;
+            _chunking ??= focused.AppendStream(LeafKind.Assistant);
 
             if (_stub.Chunk == null)
             {

@@ -18,18 +18,12 @@
 // You should have received a copy of the GNU Affero General Public License along
 // with Marklet. If not, see <https://www.gnu.org/licenses/>.
 
-using Avalonia.Controls;
-using KuiperZone.Marklet.Stack.Garden;
-using KuiperZone.Marklet.Tooling;
-using KuiperZone.Marklet.Shared;
 using Avalonia.Input;
-using Avalonia.Interactivity;
-using KuiperZone.Marklet.PixieChrome;
 
 namespace KuiperZone.Marklet.Controls.Internal.Mission;
 
 /// <summary>
-/// Keep input gestures in one place.
+/// Keep key input gestures in one place.
 /// </summary>
 internal static class BasketKeys
 {

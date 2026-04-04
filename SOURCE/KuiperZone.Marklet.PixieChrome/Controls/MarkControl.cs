@@ -34,9 +34,9 @@ namespace KuiperZone.Marklet.PixieChrome.Controls;
 /// Base class for <see cref="MarkView"/> and container classes.
 /// </summary>
 /// <remarks>
-/// The class is not aware <see cref="ChromeStyling"/> and properties are "direct".
+/// The class is concrete but not intended to be used directly.
 /// </remarks>
-public abstract class MarkControl : Border
+public class MarkControl : Border
 {
     /// <summary>
     /// Gets <see cref="ChromeStyling.Global"/> for convenience.
@@ -44,13 +44,11 @@ public abstract class MarkControl : Border
     protected static readonly ChromeStyling Styling = ChromeStyling.Global;
 
     /// <summary>
-    /// Property coalescer which calls <see cref="ImmediateRefresh"/> asynchronous in respose to property to change.
+    /// Property coalescer which calls <see cref="PropertyRefresh"/> asynchronous in respose to property to change.
     /// </summary>
-    protected readonly DispatchCoalescer? PropertyCoalescer;
+    protected readonly DispatchCoalescer PropertyCoalescer = new(DispatcherPriority.Render);
 
     private const double DefaultFontSize = 14.0;
-    private const double LineHeightMultiple = 1.8;
-    private const double LetterSpacing = 1.3;
     private const bool DefaultLinkHoverUnderline = true;
     private static readonly ImmutableSolidColorBrush DefaultSelectionBrush = CrossTextBlock.DefaultSelectionBrush;
     private static readonly FontFamily DefaultMonoFamily = ChromeFonts.MonospaceFamily;
@@ -64,7 +62,7 @@ public abstract class MarkControl : Border
     // Backing fields
     private bool _isChromeStyled;
     private IBrush? _foreground;
-    private FontFamily _fontFamily = FontFamily.Default;
+    private FontFamily _fontFamily = ChromeFonts.DefaultFamily;
     private double _fontSize = DefaultFontSize;
     private double _fontSizeCorrection = 1.0;
     private IBrush _selectionBrush = DefaultSelectionBrush;
@@ -72,7 +70,7 @@ public abstract class MarkControl : Border
     private IBrush? _linkHoverBrush = DefaultLinkHover;
     private bool _linkHoverUnderline = DefaultLinkHoverUnderline;
     private IBrush? _headingForeground;
-    private FontFamily _headingFamily = FontFamily.Default;
+    private FontFamily _headingFamily = ChromeFonts.DefaultFamily;
     private double _headingSizeCorrection = 1.0;
     private FontFamily _monoFamily = DefaultMonoFamily;
     private double _monoSizeCorrection = 1.0;
@@ -119,42 +117,32 @@ public abstract class MarkControl : Border
     /// <summary>
     /// Default constructor.
     /// </summary>
+    /// <remarks>
+    /// Subclass must set Border.Child base property. It can be set once only during construction.
+    /// </remarks>
     public MarkControl()
+        : this(null)
     {
-        Tracker = new(this);
-        Zoom = new();
-
-        Zoom.Changed += PropertyChangedHandler;
-
-        PropertyCoalescer = new(DispatcherPriority.Render);
-        PropertyCoalescer.Posted += PropertyChangedHandler;
     }
 
     /// <summary>
-    /// Protected constructor.
-    /// </summary>
-    protected MarkControl(CrossTracker tracker)
-    {
-        Tracker = tracker;
-        Zoom = new();
-
-        Zoom.Changed += PropertyChangedHandler;
-
-        PropertyCoalescer = new(DispatcherPriority.Render);
-        PropertyCoalescer.Posted += PropertyChangedHandler;
-    }
-
-    /// <summary>
-    /// Protected constructor where this is a child instance of "owner".
+    /// Constructor with "shared" tracker.
     /// </summary>
     /// <remarks>
-    /// The <see cref="PropertyCoalescer"/> is null as owner is responsible for calling <see cref="ImmediateRefresh"/>.
+    /// If "shared" is null, same as default construction. Subclass must set Border.Child base property. It can be set
+    /// once only during construction.
     /// </remarks>
-    protected MarkControl(MarkControl owner)
+    public MarkControl(CrossTracker? shared)
     {
-        Tracker = owner.Tracker;
-        Zoom = owner.Zoom;
-        CopyProperties(owner);
+        Tracker = shared ?? new(this);
+        Zoom = new();
+
+        Focusable = true;
+        IsTabStop = false;
+        FocusAdorner = null;
+
+        Zoom.Changed += PropertyChangedHandler;
+        PropertyCoalescer.Posted += PropertyChangedHandler;
     }
 
     /// <summary>
@@ -175,7 +163,7 @@ public abstract class MarkControl : Border
     /// </summary>
     public static readonly DirectProperty<MarkControl, FontFamily> FontFamilyProperty =
         AvaloniaProperty.RegisterDirect<MarkControl, FontFamily>(nameof(FontFamily),
-        o => o.FontFamily, (o, v) => o.FontFamily = v, FontFamily.Default);
+        o => o.FontFamily, (o, v) => o.FontFamily = v, ChromeFonts.DefaultFamily);
 
     /// <summary>
     /// Defines the <see cref="FontSize"/> property.
@@ -330,9 +318,14 @@ public abstract class MarkControl : Border
     protected internal static readonly ImmutableSolidColorBrush NeutralForegroundBrush = new(0xFF808080);
 
     /// <summary>
+    /// Fixed brush. Orange.
+    /// </summary>
+    protected internal static readonly ImmutableSolidColorBrush DefaultCodeForeground = new(0xFFC88800);
+
+    /// <summary>
     /// Fixed brush. Semi-gray.
     /// </summary>
-    protected internal static readonly ImmutableSolidColorBrush DefaultCodeBackground = new(0x80808080);
+    protected internal static readonly ImmutableSolidColorBrush DefaultCodeBackground = new(0x10808080);
 
     /// <summary>
     /// Fixed brush. Semi-opaque yellow.
@@ -340,10 +333,15 @@ public abstract class MarkControl : Border
     protected internal static readonly ImmutableSolidColorBrush MarkBackgroundBrush = new(0x80C4A000);
 
     /// <summary>
+    /// Fixed brush. Semi-opaque yellow.
+    /// </summary>
+    protected internal static readonly ImmutableSolidColorBrush KeywordBackgroundBrush = new(0xA0ED5B00);
+
+    /// <summary>
     /// Gets or sets whether visual properties follow <see cref="ChromeStyling"/> values and respond to changes.
     /// </summary>
     /// <remarks>
-    /// The default is false.
+    /// The base class default is false.
     /// </remarks>
     public bool IsChromeStyled
     {
@@ -458,7 +456,7 @@ public abstract class MarkControl : Border
     /// Gets or sets the font family used for headings.
     /// </summary>
     /// <remarks>
-    /// The default is <see cref="FontFamily.Default"/>.
+    /// The default is <see cref="ChromeFonts.DefaultFamily"/>.
     /// </remarks>
     public FontFamily HeadingFamily
     {
@@ -621,75 +619,12 @@ public abstract class MarkControl : Border
     }
 
     /// <summary>
-    /// Gets the shared <see cref="CrossTracker"/> instance.
-    /// </summary>
-    public CrossTracker Tracker { get; }
-
-    /// <summary>
     /// Gets the zooming instance.
     /// </summary>
-    public Zoomer Zoom { get; }
+    public Zoomer Zoom { get; } = new();
 
-    /// <summary>
-    /// Gets the <see cref="FontSize"/> multiplied by the <see cref="Zoomer.Fraction"/>.
-    /// </summary>
-    protected internal double ScaledFontSize
-    {
-        get { return FontSize * Zoom.Fraction; }
-    }
-
-    /// <summary>
-    /// Gets the <see cref="LineHeightMultiple"/> multiplied by the <see cref="Zoomer.Fraction"/>.
-    /// </summary>
-    protected internal double ScaledLineHeight
-    {
-        get { return LineHeightMultiple * FontSize * Zoom.Fraction; }
-    }
-
-    /// <summary>
-    /// Gets the scaled letter spacing the <see cref="Zoomer.Fraction"/>.
-    /// </summary>
-    protected internal double ScaledLetterSpacing
-    {
-        get { return LetterSpacing * Zoom.Fraction; }
-    }
-
-    /// <summary>
-    /// Gets the width a non-rule line.
-    /// </summary>
-    protected internal double LinePixels
-    {
-        get { return Zoom.Fraction; }
-    }
-
-    /// <summary>
-    /// Gets the width of a "rule" line.
-    /// </summary>
-    protected internal double RulePixels
-    {
-        get { return 1.5 * Zoom.Fraction; }
-    }
-
-    /// <summary>
-    /// Gets a number of pixels very approx equal to one character width.
-    /// </summary>
-    protected internal double OneCh
-    {
-        get { return 0.5 * ScaledFontSize; }
-    }
-
-    /// <summary>
-    /// Gets the number of indentation pixels derived from <see cref="FontSize"/>.
-    /// </summary>
-    protected internal double TabPx
-    {
-        get { return 4.0 * OneCh; }
-    }
-
-    /// <summary>
-    /// Gets whether the base class has a child control.
-    /// </summary>
-    protected bool HasChild { get; private set; }
+    /// <inheritdoc cref="ICrossTrackOwner.Tracker"/>
+    public CrossTracker Tracker { get; }
 
     /// <summary>
     /// Handles key input and returns true if handled.
@@ -751,40 +686,11 @@ public abstract class MarkControl : Border
     /// <summary>
     /// Called when one or more of the properties of this base class have changed.
     /// </summary>
-    protected abstract void ImmediateRefresh();
-
-    /// <summary>
-    /// Copies properties of "other" to this.
-    /// </summary>
     /// <remarks>
-    /// The method does NOT raise property changes. The base class properties of "other", i.e. <see
-    /// cref="Border.Background"/> etc., are not copied. The <see cref="Zoom"/> value is not copied.
+    /// IMPORTANT. Base implementation does nothing and must be overridded.
     /// </remarks>
-    protected void CopyProperties(MarkControl other)
+    protected virtual void PropertyRefresh()
     {
-        _foreground = other._foreground;
-        _fontFamily = other._fontFamily;
-        _fontSize = other._fontSize;
-        _fontSizeCorrection = other._fontSizeCorrection;
-        _selectionBrush = other._selectionBrush;
-        _linkForeground = other._linkForeground;
-        _linkHoverBrush = other._linkHoverBrush;
-        _linkHoverUnderline = other._linkHoverUnderline;
-        _headingForeground = other._headingForeground;
-        _headingFamily = other._headingFamily;
-        _headingSizeCorrection = other._headingSizeCorrection;
-        _monoFamily = other._monoFamily;
-        _monoSizeCorrection = other._monoSizeCorrection;
-        _quoteFamily = other._quoteFamily;
-        _quoteSizeCorrection = other._quoteSizeCorrection;
-        _quoteItalic = other._quoteItalic;
-        _quoteDecor = other._quoteDecor;
-        _ruleLine = other._ruleLine;
-        _fencedForeground = other._fencedForeground;
-        _fencedBackground = other._fencedBackground;
-        _fencedBorder = other._fencedBorder;
-        _fencedCornerRadius = other._fencedCornerRadius;
-        _defaultWrapping = other._defaultWrapping;
     }
 
     /// <summary>
@@ -792,17 +698,20 @@ public abstract class MarkControl : Border
     /// </summary>
     protected virtual void OnStylingChanged()
     {
-        // This will asynchronously invoke Refresh() provided has Refresher coalescer.
-        SelectionBrush = Styling.Accent50;
-        LinkForeground = Styling.LinkForeground;
-        LinkHoverBrush = Styling.LinkHover;
+        // This will asynchronously invoke Refresh() using coalescer.
+        if (IsChromeStyled)
+        {
+            SelectionBrush = Styling.Accent50;
+            LinkForeground = Styling.LinkForeground;
+            LinkHoverBrush = Styling.LinkHover;
 
-        QuoteDecor = Styling.AccentBrush;
-        RuleLine = ChromeStyling.GrayForeground;
+            QuoteDecor = Styling.AccentBrush;
+            RuleLine = ChromeStyling.GrayForeground;
 
-        FencedBorder = ChromeStyling.GrayForeground;
-        FencedCornerRadius = Styling.SmallCornerRadius;
-        FencedBackground = Styling.BackgroundLow;
+            FencedBorder = ChromeStyling.GrayForeground;
+            FencedCornerRadius = Styling.SmallCornerRadius;
+            FencedBackground = Styling.BackgroundLow;
+        }
     }
 
     /// <summary>
@@ -815,22 +724,16 @@ public abstract class MarkControl : Border
 
         if (p == ChildProperty)
         {
-            if (p == ChildProperty && change.OldValue != null)
+            if (change.OldValue != null)
             {
                 // Set once on construction only
                 throw new InvalidOperationException($"Cannot set {p.Name} on {GetType().Name}");
             }
 
-            HasChild = change.NewValue != null;
             return;
         }
 
-        if (!HasChild)
-        {
-            return;
-        }
-
-        if (PropertyCoalescer != null && IsMarkControlProperty(p))
+        if (IsMarkControlProperty(p))
         {
             PropertyCoalescer.Post();
             return;
@@ -838,21 +741,9 @@ public abstract class MarkControl : Border
 
         if (p == IsChromeStyledProperty)
         {
-            var value = change.GetNewValue<bool>();
-
-            if (value)
+            if (change.GetNewValue<bool>())
             {
                 OnStylingChanged();
-
-                if (this.IsAttachedToVisualTree())
-                {
-                    Styling.StylingChanged += StylingChangedHandler;
-                }
-            }
-            else
-            if (!value)
-            {
-                Styling.StylingChanged -= StylingChangedHandler;
             }
 
             return;
@@ -865,11 +756,7 @@ public abstract class MarkControl : Border
     protected override void OnAttachedToVisualTree(VisualTreeAttachmentEventArgs e)
     {
         base.OnAttachedToVisualTree(e);
-
-        if (PropertyCoalescer != null)
-        {
-            Styling.StylingChanged += StylingChangedHandler;
-        }
+        Styling.StylingChanged += StylingChangedHandler;
     }
 
     /// <summary>
@@ -878,20 +765,16 @@ public abstract class MarkControl : Border
     protected override void OnDetachedFromVisualTree(VisualTreeAttachmentEventArgs e)
     {
         base.OnDetachedFromVisualTree(e);
-
-        if (PropertyCoalescer != null)
-        {
-            Styling.StylingChanged -= StylingChangedHandler;
-        }
-    }
-
-    private void PropertyChangedHandler(object? _, EventArgs __)
-    {
-        ImmediateRefresh();
+        Styling.StylingChanged -= StylingChangedHandler;
     }
 
     private void StylingChangedHandler(object? _, EventArgs __)
     {
         OnStylingChanged();
+    }
+
+    private void PropertyChangedHandler(object? _, EventArgs __)
+    {
+        PropertyRefresh();
     }
 }

@@ -22,6 +22,7 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Interactivity;
+using Avalonia.LogicalTree;
 using KuiperZone.Marklet.Tooling;
 
 namespace KuiperZone.Marklet.PixieChrome.Controls.Internal;
@@ -59,7 +60,7 @@ internal static class CrossContextMenu
         const string NSpace = $"{nameof(CrossContextMenu)}.{nameof(ContextOpenedHandler)}";
         ConditionalDebug.WriteLine(NSpace, "Opened menu");
 
-        var parent = Global.GetParentOf<ICrossTrackOwner>();
+        var parent = Global.FindLogicalAncestorOfType<ICrossTrackOwner>();
 
         if (parent != null)
         {
@@ -92,7 +93,7 @@ internal static class CrossContextMenu
         ConditionalDebug.WriteLine(NSpace, "Copy text");
 
         e.Handled = true;
-        var parent = Global.GetParentOf<ICrossTrackOwner>();
+        var parent = Global.FindLogicalAncestorOfType<ICrossTrackOwner>();
 
         if (parent != null)
         {
@@ -120,7 +121,7 @@ internal static class CrossContextMenu
         ConditionalDebug.WriteLine(NSpace, "Select all");
 
         e.Handled = true;
-        var parent = Global.GetParentOf<ICrossTrackOwner>();
+        var parent = Global.FindLogicalAncestorOfType<ICrossTrackOwner>();
 
         if (parent != null)
         {

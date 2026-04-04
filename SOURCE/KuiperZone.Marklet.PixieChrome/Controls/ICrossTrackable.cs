@@ -23,7 +23,7 @@ using Avalonia;
 namespace KuiperZone.Marklet.PixieChrome.Controls;
 
 /// <summary>
-/// Interface for objects possessing cross-text selection capability..
+/// Interface for objects possessing cross-text selection capability.
 /// </summary>
 public interface ICrossTrackable : ICrossTrackOwner
 {

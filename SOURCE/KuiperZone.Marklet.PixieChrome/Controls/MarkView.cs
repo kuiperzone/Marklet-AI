@@ -22,6 +22,7 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
 using KuiperZone.Marklet.PixieChrome.Controls.Internal;
+using KuiperZone.Marklet.PixieChrome.Shared;
 using KuiperZone.Marklet.Tooling;
 using KuiperZone.Marklet.Tooling.Markdown;
 
@@ -35,54 +36,35 @@ namespace KuiperZone.Marklet.PixieChrome.Controls;
 /// </remarks>
 public class MarkView : MarkControl, ICrossTrackOwner
 {
+    private readonly MarkEngine _engine;
     private readonly StackPanel _panel = new();
-    private readonly List<MarkVisualHost> _cache = new();
-    private readonly MarkDocument _source = new();
+    private MarkDocument? _source;
+    private MarkDocument? _found;
     private Control? _header;
     private Control? _footer;
-
     private string? _content;
 
     /// <summary>
     /// Default constructor.
     /// </summary>
     public MarkView()
+        : this(null)
     {
-        Focusable = true;
-        IsTabStop = false;
-        FocusAdorner = null;
-
-        ContextMenu = CrossContextMenu.Global;
-        base.Child = _panel;
     }
 
     /// <summary>
-    /// Constructor with shared selection host.
-    /// </summary>
-    public MarkView(CrossTracker tracker)
-        : base(tracker)
-    {
-        Focusable = true;
-        IsTabStop = false;
-        FocusAdorner = null;
-
-        ContextMenu = CrossContextMenu.Global;
-        base.Child = _panel;
-    }
-
-    /// <summary>
-    /// Constructor with owner, the properties of which are copied to this.
+    /// Constructor with "shared" tracker.
     /// </summary>
     /// <remarks>
-    /// Intended where the instance is one of many children within a more sophisticated control.
+    /// If "shared" is null, same as default construction.
     /// </remarks>
-    protected MarkView(MarkControl owner)
-        : base(owner)
+    public MarkView(CrossTracker? shared)
+        : base(shared)
     {
-        // Ensure these are off
-        ConditionalDebug.ThrowIfTrue(Focusable);
-        ConditionalDebug.ThrowIfTrue(IsTabStop);
-        base.Child = _panel;
+        Child = _panel;
+        _engine = new(this, _panel.Children);
+
+        ContextMenu = CrossContextMenu.Global;
     }
 
     /// <summary>
@@ -95,7 +77,7 @@ public class MarkView : MarkControl, ICrossTrackOwner
     /// Gets or sets the markdown content.
     /// </summary>
     /// <remarks>
-    /// Note that after setting, actual rending may occur later. The default value is null.
+    /// The default value is null.
     /// </remarks>
     public string? Content
     {
@@ -104,9 +86,27 @@ public class MarkView : MarkControl, ICrossTrackOwner
     }
 
     /// <summary>
-    /// Gets or sets the markdown options used for processing <see cref="Content"/>.
+    /// Gets or sets the markdown options used for processing <see cref="Content"/> and <see cref="SetContent"/>.
     /// </summary>
-    public MarkOptions Options { get; set; }
+    /// <remarks>
+    /// Setting this value does not cause a visible update. Rather options are used on next update.
+    /// </remarks>
+    public MarkOptions Options { get; set; } = MarkOptions.Markdown | MarkOptions.Coalesce | MarkOptions.Sanitize;
+
+    /// <summary>
+    /// Gets the "find in text" substring text.
+    /// </summary>
+    public string? FindText { get; private set; }
+
+    /// <summary>
+    /// Gets the "find in text" flag options.
+    /// </summary>
+    public FindFlags FindFlags { get; private set; }
+
+    /// <summary>
+    /// Gets the number of occurrences of <see cref="FindText"/>.
+    /// </summary>
+    public int FindCount { get; private set; }
 
     /// <summary>
     /// Gets or sets a header Control instance.
@@ -169,21 +169,17 @@ public class MarkView : MarkControl, ICrossTrackOwner
     /// <summary>
     /// Gets the first <see cref="ICrossTrackable.TrackKey"/> value consumed.
     /// </summary>
-    public ICrossTrackable? Track0 { get; protected set; }
+    public ICrossTrackable? Track0
+    {
+        get { return _engine.Track0; }
+    }
 
     /// <summary>
     /// Gets the last <see cref="ICrossTrackable.TrackKey"/> value consumed.
     /// </summary>
-    public ICrossTrackable? Track1 { get; protected set; }
-
-    /// <summary>
-    /// Do not use.
-    /// </summary>
-    [Obsolete($"Do not use.", true)]
-    protected new Control? Child
+    public ICrossTrackable? Track1
     {
-        get { return base.Child; }
-        set { base.Child = value; }
+        get { return _engine.Track1; }
     }
 
     /// <summary>
@@ -223,37 +219,54 @@ public class MarkView : MarkControl, ICrossTrackOwner
     }
 
     /// <summary>
-    /// Gets an array of internal blocks kinds primarily for test.
+    /// Sets <see cref="Content"/>, <see cref="FindText"/> and <see cref="FindFlags"/> in single operation,
+    /// returning true if changed and visible update applied.
     /// </summary>
-    /// <remarks>
-    /// The result is subject to coalescing and blocks may be combined. Blocks contained within quote or list levels
-    /// return a single block of <see cref="BlockKind.Para"/> irrespective of their contents. The result excludes <see
-    /// cref="Header"/> and <see cref="Footer"/>.
-    /// </remarks>
-    public BlockKind[] GetBlockKinds()
+    public bool SetContent(string? content, string? find = null, FindFlags flags = FindFlags.None)
     {
-        var array = new BlockKind[_cache.Count];
-
-        for (int n = 0; n < _cache.Count; ++n)
+        if (string.IsNullOrWhiteSpace(content))
         {
-            if (_cache[n] is MarkBlockHost block)
-            {
-                array[n] = block.Kind;
-            }
+            content = null;
         }
 
-        return array;
+        bool update = false;
+
+        if (_content != content)
+        {
+            update = true;
+            _content = content;
+            _source = new(content, Options);
+            _found = null;
+        }
+
+        if (SetFindInternal(find, flags) || update)
+        {
+            Rebuild();
+            return true;
+        }
+
+        return false;
     }
 
-    /// <inheritdoc cref="MarkControl.ImmediateRefresh"/>
-    protected override void ImmediateRefresh()
+    /// <summary>
+    /// Sets <see cref="FindText"/> and <see cref="FindFlags"/>, returning true if changed and visible update
+    /// applied.
+    /// </summary>
+    public bool SetFind(string? find, FindFlags flags)
     {
-        int nm1 = _cache.Count - 1;
-
-        for (int n = 0; n < _cache.Count; ++n)
+        if (SetFindInternal(find, flags))
         {
-            _cache[n].Refresh(n == 0, n == nm1);
+            Rebuild();
+            return true;
         }
+
+        return false;
+    }
+
+    /// <inheritdoc cref="MarkControl.PropertyRefresh"/>
+    protected override void PropertyRefresh()
+    {
+        _engine.OwnerRefresh();
     }
 
     /// <summary>
@@ -268,32 +281,11 @@ public class MarkView : MarkControl, ICrossTrackOwner
 
         if (p == ContentProperty)
         {
-            if (_source.Update(_content, Options))
-            {
-                ConditionalDebug.WriteLine(NSpace, "Update content");
-
-                // Supply coalesced clone
-                // This is intended to be efficient as it requires
-                // fewer visual controls but does work in Coalesce().
-                UpdateInternal(_source.Coalesce());
-
-                // Alternatively...
-                //UpdateInternal(_source);
-            }
-
-            return;
-        }
-
-        if (p == ContextMenuProperty)
-        {
-            var value = change.GetNewValue<ContextMenu?>();
-
-            foreach (var item in _cache)
-            {
-                // Set null to clear as now set on parent
-                item.Control.ContextMenu = null;
-            }
-
+            ConditionalDebug.WriteLine(NSpace, "Update content");
+            _found = null;
+            _source = new(_content, Options);
+            SetFindInternal(FindText, FindFlags);
+            Rebuild();
             return;
         }
     }
@@ -329,87 +321,43 @@ public class MarkView : MarkControl, ICrossTrackOwner
         }
     }
 
-    private void UpdateInternal(MarkDocument doc)
+    private void Rebuild()
     {
-        const string NSpace = $"{nameof(MarkView)}.{nameof(UpdateInternal)}";
-        ConditionalDebug.WriteLine(NSpace, "UPDATE PROCESSSING");
+        var src = _found ?? _source;
 
-        try
+        if (src != null)
         {
-            int index = 0;
-            int cacheN = 0;
-            var buffer = new List<Control>(doc.Count);
-
-            Track0 = null;
-            Track1 = null;
-
-            if (_header != null)
-            {
-                buffer.Add(_header);
-            }
-
-            while (index < doc.Count)
-            {
-                MarkVisualHost host;
-
-                if (cacheN < _cache.Count)
-                {
-                    host = _cache[cacheN];
-
-                    if (host.ConsumeUpdates(doc, ref index) == MarkConsumed.Incompatible)
-                    {
-                        host = MarkVisualHost.New(this, doc, ref index);
-                        _cache[cacheN] = host;
-                    }
-
-                    cacheN += 1;
-                    AddTracks(host);
-                    buffer.Add(host.Control);
-                    continue;
-                }
-
-                host = MarkVisualHost.New(this, doc, ref index);
-
-                _cache.Add(host);
-                cacheN = _cache.Count;
-
-                AddTracks(host);
-                buffer.Add(host.Control);
-            }
-
-            _cache.RemoveRange(cacheN, _cache.Count - cacheN);
-            _cache.TrimCapacity();
-
-            if (_footer != null)
-            {
-                buffer.Add(_footer);
-            }
-
-            // WRITE NEW CONTENTS
-            // Relies on extension method that avoids removing objects from visual tree.
-            var children = _panel.Children;
-            children.Replace(buffer);
-
-            if (children.Capacity - children.Count > 32)
-            {
-                children.Capacity = children.Count;
-            }
-
-            ConditionalDebug.WriteLine(NSpace, "END OF UPDATE");
-        }
-        catch (Exception e)
-        {
-            ConditionalDebug.WriteLine(NSpace, e);
-            throw;
+            _engine.Rebuild(src, _header, _footer);
         }
     }
 
-    private void AddTracks(MarkVisualHost host)
+    private bool SetFindInternal(string? find, FindFlags flags)
     {
-        if (host.Track0 != null)
+        if (string.IsNullOrWhiteSpace(find))
         {
-            Track0 ??= host.Track0;
-            Track1 = host.Track1 ?? host.Track0;
+            // Will not trim the sides, but not going to searching for a single space etc.
+            find = null;
         }
+
+        if (Options.HasFlag(MarkOptions.Sanitize))
+        {
+            find = Sanitizer.Sanitize(find, SanFlags.SubControl | SanFlags.NormC);
+        }
+
+        if (_found == null || FindText != find || FindFlags != flags)
+        {
+            FindText = find;
+            FindFlags = flags;
+
+            int counter = 0;
+            var old = _found;
+
+            _found = _source?.Find(FindText, FindFlags, out counter);
+            FindCount = counter;
+
+            return old != null || _found != null;
+        }
+
+        return false;
     }
 }

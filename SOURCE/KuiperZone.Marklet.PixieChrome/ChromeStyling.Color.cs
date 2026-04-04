@@ -69,7 +69,7 @@ public sealed partial class ChromeStyling
     /// <remarks>
     /// The color is semi-transparent and intended to be light/dark independent.
     /// </remarks>
-    public static readonly ImmutableSolidColorBrush PixieHover = new(0x206F8396);
+    public static readonly ImmutableSolidColorBrush PixieHover = ChromeBrushes.Highlight;
 
     /// <summary>
     /// Gets the group shade background.
@@ -77,7 +77,7 @@ public sealed partial class ChromeStyling
     /// <remarks>
     /// The color is semi-transparent and intended to be light/dark independent.
     /// </remarks>
-    public static readonly ImmutableSolidColorBrush GroupShade = new(0x206F8396);
+    public static readonly ImmutableSolidColorBrush GroupShade = ChromeBrushes.Highlight;
 
     /// <summary>
     /// Gets the (disabled) foreground gray.

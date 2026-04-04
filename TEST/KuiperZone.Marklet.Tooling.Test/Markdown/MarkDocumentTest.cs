@@ -18,7 +18,6 @@
 // You should have received a copy of the GNU Affero General Public License along
 // with Marklet. If not, see <https://www.gnu.org/licenses/>.
 
-using System.Text;
 using KuiperZone.Marklet.Tooling.Markdown;
 using Xunit.Abstractions;
 
@@ -34,7 +33,232 @@ public partial class MarkDocumentTest : BaseTest
     }
 
     [Fact]
-    public void Update_HtmlBlocks_TreatAsIndented()
+    public void FindHighlight_Edge()
+    {
+        var text = @"a sub1 b";
+
+        var obj0 = new MarkDocument(text);
+        Assert.Null(obj0.Find("", FindFlags.None));
+        Assert.Null(obj0.Find("notfound", FindFlags.None));
+        Assert.NotNull(obj0.Find(" ", FindFlags.None));
+    }
+
+    [Fact]
+    public void FindHighlight_Default()
+    {
+        var text = @"a sub0 b
+
+sub
+
+Sub
+
+asub
+
+subb";
+
+        var obj0 = new MarkDocument(text);
+        var obj = obj0.Find("sub", FindFlags.None);
+        Assert.NotNull(obj);
+        WriteTestCode(obj);
+
+        // a sub0 b
+        Assert.Equal(BlockKind.Para, obj[0].Kind);
+        Assert.Equal(0, obj[0].QuoteLevel);
+        Assert.Equal(0, obj[0].ListLevel);
+        Assert.Equal(0, obj[0].ListOrder);
+        Assert.Equal('\0', obj[0].ListBullet);
+        Assert.Equal(InlineStyling.Default, obj[0].Elements[0].Styling);
+        Assert.Equal("a ", obj[0].Elements[0].Text);
+        Assert.Equal(InlineStyling.Keyword, obj[0].Elements[1].Styling);
+        Assert.Equal("sub", obj[0].Elements[1].Text);
+        Assert.Equal(InlineStyling.Default, obj[0].Elements[2].Styling);
+        Assert.Equal("0 b", obj[0].Elements[2].Text);
+        //
+        // sub
+        Assert.Equal(BlockKind.Para, obj[1].Kind);
+        Assert.Equal(0, obj[1].QuoteLevel);
+        Assert.Equal(0, obj[1].ListLevel);
+        Assert.Equal(0, obj[1].ListOrder);
+        Assert.Equal('\0', obj[1].ListBullet);
+        Assert.Equal(InlineStyling.Keyword, obj[1].Elements[0].Styling);
+        Assert.Equal("sub", obj[1].Elements[0].Text);
+        //
+        // Sub
+        Assert.Equal(BlockKind.Para, obj[2].Kind);
+        Assert.Equal(0, obj[2].QuoteLevel);
+        Assert.Equal(0, obj[2].ListLevel);
+        Assert.Equal(0, obj[2].ListOrder);
+        Assert.Equal('\0', obj[2].ListBullet);
+        Assert.Equal(InlineStyling.Default, obj[2].Elements[0].Styling);
+        Assert.Equal("Sub", obj[2].Elements[0].Text);
+        //
+        // asub
+        Assert.Equal(BlockKind.Para, obj[3].Kind);
+        Assert.Equal(0, obj[3].QuoteLevel);
+        Assert.Equal(0, obj[3].ListLevel);
+        Assert.Equal(0, obj[3].ListOrder);
+        Assert.Equal('\0', obj[3].ListBullet);
+        Assert.Equal(InlineStyling.Default, obj[3].Elements[0].Styling);
+        Assert.Equal("a", obj[3].Elements[0].Text);
+        Assert.Equal(InlineStyling.Keyword, obj[3].Elements[1].Styling);
+        Assert.Equal("sub", obj[3].Elements[1].Text);
+        //
+        // subb
+        Assert.Equal(BlockKind.Para, obj[4].Kind);
+        Assert.Equal(0, obj[4].QuoteLevel);
+        Assert.Equal(0, obj[4].ListLevel);
+        Assert.Equal(0, obj[4].ListOrder);
+        Assert.Equal('\0', obj[4].ListBullet);
+        Assert.Equal(InlineStyling.Keyword, obj[4].Elements[0].Styling);
+        Assert.Equal("sub", obj[4].Elements[0].Text);
+        Assert.Equal(InlineStyling.Default, obj[4].Elements[1].Styling);
+        Assert.Equal("b", obj[4].Elements[1].Text);
+        //
+        Assert.Equal(5, obj.Count);
+    }
+
+    [Fact]
+    public void FindHighlight_Word()
+    {
+        var text = @"a sub0 b
+
+sub
+
+Sub
+
+asub
+
+subb";
+
+        var obj0 = new MarkDocument(text);
+        var obj = obj0.Find("sub", FindFlags.Word);
+        Assert.NotNull(obj);
+        WriteTestCode(obj);
+
+        // a sub0 b
+        Assert.Equal(BlockKind.Para, obj[0].Kind);
+        Assert.Equal(0, obj[0].QuoteLevel);
+        Assert.Equal(0, obj[0].ListLevel);
+        Assert.Equal(0, obj[0].ListOrder);
+        Assert.Equal('\0', obj[0].ListBullet);
+        Assert.Equal(InlineStyling.Default, obj[0].Elements[0].Styling);
+        Assert.Equal("a sub0 b", obj[0].Elements[0].Text);
+        //
+        // sub
+        Assert.Equal(BlockKind.Para, obj[1].Kind);
+        Assert.Equal(0, obj[1].QuoteLevel);
+        Assert.Equal(0, obj[1].ListLevel);
+        Assert.Equal(0, obj[1].ListOrder);
+        Assert.Equal('\0', obj[1].ListBullet);
+        Assert.Equal(InlineStyling.Keyword, obj[1].Elements[0].Styling);
+        Assert.Equal("sub", obj[1].Elements[0].Text);
+        //
+        // Sub
+        Assert.Equal(BlockKind.Para, obj[2].Kind);
+        Assert.Equal(0, obj[2].QuoteLevel);
+        Assert.Equal(0, obj[2].ListLevel);
+        Assert.Equal(0, obj[2].ListOrder);
+        Assert.Equal('\0', obj[2].ListBullet);
+        Assert.Equal(InlineStyling.Default, obj[2].Elements[0].Styling);
+        Assert.Equal("Sub", obj[2].Elements[0].Text);
+        //
+        // asub
+        Assert.Equal(BlockKind.Para, obj[3].Kind);
+        Assert.Equal(0, obj[3].QuoteLevel);
+        Assert.Equal(0, obj[3].ListLevel);
+        Assert.Equal(0, obj[3].ListOrder);
+        Assert.Equal('\0', obj[3].ListBullet);
+        Assert.Equal(InlineStyling.Default, obj[3].Elements[0].Styling);
+        Assert.Equal("asub", obj[3].Elements[0].Text);
+        //
+        // subb
+        Assert.Equal(BlockKind.Para, obj[4].Kind);
+        Assert.Equal(0, obj[4].QuoteLevel);
+        Assert.Equal(0, obj[4].ListLevel);
+        Assert.Equal(0, obj[4].ListOrder);
+        Assert.Equal('\0', obj[4].ListBullet);
+        Assert.Equal(InlineStyling.Default, obj[4].Elements[0].Styling);
+        Assert.Equal("subb", obj[4].Elements[0].Text);
+        //
+        Assert.Equal(5, obj.Count);
+    }
+
+    [Fact]
+    public void FindHighlight_IgnoreCase()
+    {
+        var text = @"a sub0 b
+
+sub
+
+Sub
+
+asub
+
+subb";
+
+        var obj0 = new MarkDocument(text);
+        var obj = obj0.Find("sub", FindFlags.IgnoreCase);
+        Assert.NotNull(obj);
+        WriteTestCode(obj);
+
+        // a sub0 b
+        Assert.Equal(BlockKind.Para, obj[0].Kind);
+        Assert.Equal(0, obj[0].QuoteLevel);
+        Assert.Equal(0, obj[0].ListLevel);
+        Assert.Equal(0, obj[0].ListOrder);
+        Assert.Equal('\0', obj[0].ListBullet);
+        Assert.Equal(InlineStyling.Default, obj[0].Elements[0].Styling);
+        Assert.Equal("a ", obj[0].Elements[0].Text);
+        Assert.Equal(InlineStyling.Keyword, obj[0].Elements[1].Styling);
+        Assert.Equal("sub", obj[0].Elements[1].Text);
+        Assert.Equal(InlineStyling.Default, obj[0].Elements[2].Styling);
+        Assert.Equal("0 b", obj[0].Elements[2].Text);
+        //
+        // sub
+        Assert.Equal(BlockKind.Para, obj[1].Kind);
+        Assert.Equal(0, obj[1].QuoteLevel);
+        Assert.Equal(0, obj[1].ListLevel);
+        Assert.Equal(0, obj[1].ListOrder);
+        Assert.Equal('\0', obj[1].ListBullet);
+        Assert.Equal(InlineStyling.Keyword, obj[1].Elements[0].Styling);
+        Assert.Equal("sub", obj[1].Elements[0].Text);
+        //
+        // Sub
+        Assert.Equal(BlockKind.Para, obj[2].Kind);
+        Assert.Equal(0, obj[2].QuoteLevel);
+        Assert.Equal(0, obj[2].ListLevel);
+        Assert.Equal(0, obj[2].ListOrder);
+        Assert.Equal('\0', obj[2].ListBullet);
+        Assert.Equal(InlineStyling.Keyword, obj[2].Elements[0].Styling);
+        Assert.Equal("Sub", obj[2].Elements[0].Text);
+        //
+        // asub
+        Assert.Equal(BlockKind.Para, obj[3].Kind);
+        Assert.Equal(0, obj[3].QuoteLevel);
+        Assert.Equal(0, obj[3].ListLevel);
+        Assert.Equal(0, obj[3].ListOrder);
+        Assert.Equal('\0', obj[3].ListBullet);
+        Assert.Equal(InlineStyling.Default, obj[3].Elements[0].Styling);
+        Assert.Equal("a", obj[3].Elements[0].Text);
+        Assert.Equal(InlineStyling.Keyword, obj[3].Elements[1].Styling);
+        Assert.Equal("sub", obj[3].Elements[1].Text);
+        //
+        // subb
+        Assert.Equal(BlockKind.Para, obj[4].Kind);
+        Assert.Equal(0, obj[4].QuoteLevel);
+        Assert.Equal(0, obj[4].ListLevel);
+        Assert.Equal(0, obj[4].ListOrder);
+        Assert.Equal('\0', obj[4].ListBullet);
+        Assert.Equal(InlineStyling.Keyword, obj[4].Elements[0].Styling);
+        Assert.Equal("sub", obj[4].Elements[0].Text);
+        Assert.Equal(InlineStyling.Default, obj[4].Elements[1].Styling);
+        Assert.Equal("b", obj[4].Elements[1].Text);
+        //
+        Assert.Equal(5, obj.Count);
+    }
+
+    [Fact]
+    public void HtmlBlocks_TreatAsIndented()
     {
         var text = @"
 <blockquote>
@@ -43,7 +267,7 @@ public partial class MarkDocumentTest : BaseTest
 
 Normal text";
 
-        var obj = UpdateWriteOut(text);
+        var obj = NewObj(text);
         // <blockquote>\n    <p>Text</p>\n</blockquote>
         Assert.Equal(BlockKind.IndentedCode, obj[0].Kind);
         Assert.Equal(0, obj[0].QuoteLevel);
@@ -66,7 +290,7 @@ Normal text";
     }
 
     [Fact]
-    public void Update_Tab_Preserves()
+    public void Tab_Preserves()
     {
         var text = @"
 * Unordered 1 level 1
@@ -83,7 +307,7 @@ Normal text";
 ";
         text = text.Replace("    ", "\t");
 
-        var obj = UpdateWriteOut(text);
+        var obj = NewObj(text);
         // * Unordered 1 level 1
         Assert.Equal(BlockKind.Para, obj[0].Kind);
         Assert.Equal(0, obj[0].QuoteLevel);
@@ -145,7 +369,7 @@ Normal text";
 
 
     [Fact]
-    public void Update_FencedCodeInList()
+    public void FencedCodeInList_Succeeds()
     {
         var text = @"
 - a
@@ -155,7 +379,7 @@ Normal text";
   ```
 - e";
 
-        var obj = UpdateWriteOut(text);
+        var obj = NewObj(text);
         // - a
         Assert.Equal(BlockKind.Para, obj[0].Kind);
         Assert.Equal(0, obj[0].QuoteLevel);
@@ -185,302 +409,6 @@ Normal text";
         //
         Assert.Equal(3, obj.Count);
 
-    }
-
-    [Fact]
-    public void Update_MaintainsSync()
-    {
-        var obj = new MarkDocument();
-        var sb = new StringBuilder();
-        sb.Append("Hello ");
-
-        obj.Update(sb.ToString());
-        WriteTestCode(obj);
-        //
-        // Hello
-        Assert.Equal(BlockKind.Para, obj[0].Kind);
-        Assert.Equal(0, obj[0].QuoteLevel);
-        Assert.Equal(0, obj[0].ListLevel);
-        Assert.Equal(0, obj[0].ListOrder);
-        Assert.Equal('\0', obj[0].ListBullet);
-        Assert.Equal(InlineStyling.Default, obj[0].Elements[0].Styling);
-        Assert.Equal("Hello", obj[0].Elements[0].Text);
-        Assert.Single(obj);
-
-        sb.Append("*world*\n\n");
-        obj.Update(sb.ToString());
-        WriteTestCode(obj);
-        //
-        // Hello *world*
-        Assert.Equal(BlockKind.Para, obj[0].Kind);
-        Assert.Equal(0, obj[0].QuoteLevel);
-        Assert.Equal(0, obj[0].ListLevel);
-        Assert.Equal(0, obj[0].ListOrder);
-        Assert.Equal('\0', obj[0].ListBullet);
-        Assert.Equal(InlineStyling.Default, obj[0].Elements[0].Styling);
-        Assert.Equal("Hello ", obj[0].Elements[0].Text);
-        Assert.Equal(InlineStyling.Emphasis, obj[0].Elements[1].Styling);
-        Assert.Equal("world", obj[0].Elements[1].Text);
-        Assert.Single(obj);
-
-        sb.Append("Para2\n\n");
-        obj.Update(sb.ToString());
-        WriteTestCode(obj);
-        //
-        // Hello *world*
-        Assert.Equal(BlockKind.Para, obj[0].Kind);
-        Assert.Equal(0, obj[0].QuoteLevel);
-        Assert.Equal(0, obj[0].ListLevel);
-        Assert.Equal(0, obj[0].ListOrder);
-        Assert.Equal('\0', obj[0].ListBullet);
-        Assert.Equal(InlineStyling.Default, obj[0].Elements[0].Styling);
-        Assert.Equal("Hello ", obj[0].Elements[0].Text);
-        Assert.Equal(InlineStyling.Emphasis, obj[0].Elements[1].Styling);
-        Assert.Equal("world", obj[0].Elements[1].Text);
-        //
-        // Para2
-        Assert.Equal(BlockKind.Para, obj[1].Kind);
-        Assert.Equal(0, obj[1].QuoteLevel);
-        Assert.Equal(0, obj[1].ListLevel);
-        Assert.Equal(0, obj[1].ListOrder);
-        Assert.Equal('\0', obj[1].ListBullet);
-        Assert.Equal(InlineStyling.Default, obj[1].Elements[0].Styling);
-        Assert.Equal("Para2", obj[1].Elements[0].Text);
-        //
-        Assert.Equal(2, obj.Count);
-
-        sb.Append("Para3\n\n");
-        obj.Update(sb.ToString());
-        WriteTestCode(obj);
-        //
-        // Para2
-        Assert.Equal(BlockKind.Para, obj[1].Kind);
-        Assert.Equal(0, obj[1].QuoteLevel);
-        Assert.Equal(0, obj[1].ListLevel);
-        Assert.Equal(0, obj[1].ListOrder);
-        Assert.Equal('\0', obj[1].ListBullet);
-        Assert.Equal(InlineStyling.Default, obj[1].Elements[0].Styling);
-        Assert.Equal("Para2", obj[1].Elements[0].Text);
-        //
-        // Para3
-        Assert.Equal(BlockKind.Para, obj[2].Kind);
-        Assert.Equal(0, obj[2].QuoteLevel);
-        Assert.Equal(0, obj[2].ListLevel);
-        Assert.Equal(0, obj[2].ListOrder);
-        Assert.Equal('\0', obj[2].ListBullet);
-        Assert.Equal(InlineStyling.Default, obj[2].Elements[0].Styling);
-        Assert.Equal("Para3", obj[2].Elements[0].Text);
-        //
-        Assert.Equal(3, obj.Count);
-
-        sb.Append("> Quote\n\n");
-        obj.Update(sb.ToString());
-        WriteTestCode(obj);
-        //
-        // Para3
-        Assert.Equal(BlockKind.Para, obj[2].Kind);
-        Assert.Equal(0, obj[2].QuoteLevel);
-        Assert.Equal(0, obj[2].ListLevel);
-        Assert.Equal(0, obj[2].ListOrder);
-        Assert.Equal('\0', obj[2].ListBullet);
-        Assert.Equal(InlineStyling.Default, obj[2].Elements[0].Styling);
-        Assert.Equal("Para3", obj[2].Elements[0].Text);
-        //
-        // > Quote
-        Assert.Equal(BlockKind.Para, obj[3].Kind);
-        Assert.Equal(1, obj[3].QuoteLevel);
-        Assert.Equal(0, obj[3].ListLevel);
-        Assert.Equal(0, obj[3].ListOrder);
-        Assert.Equal('\0', obj[3].ListBullet);
-        Assert.Equal(InlineStyling.Default, obj[3].Elements[0].Styling);
-        Assert.Equal("Quote", obj[3].Elements[0].Text);
-        //
-        Assert.Equal(4, obj.Count);
-
-        sb.Append("> * List\n");
-        obj.Update(sb.ToString());
-        WriteTestCode(obj);
-        //
-        // > Quote
-        Assert.Equal(BlockKind.Para, obj[3].Kind);
-        Assert.Equal(1, obj[3].QuoteLevel);
-        Assert.Equal(0, obj[3].ListLevel);
-        Assert.Equal(0, obj[3].ListOrder);
-        Assert.Equal('\0', obj[3].ListBullet);
-        Assert.Equal(InlineStyling.Default, obj[3].Elements[0].Styling);
-        Assert.Equal("Quote", obj[3].Elements[0].Text);
-        //
-        // > * List
-        Assert.Equal(BlockKind.Para, obj[4].Kind);
-        Assert.Equal(1, obj[4].QuoteLevel);
-        Assert.Equal(1, obj[4].ListLevel);
-        Assert.Equal(0, obj[4].ListOrder);
-        Assert.Equal('*', obj[4].ListBullet);
-        Assert.Equal(InlineStyling.Default, obj[4].Elements[0].Styling);
-        Assert.Equal("List", obj[4].Elements[0].Text);
-        //
-        Assert.Equal(5, obj.Count);
-
-        sb.Append("> \n>   Item\n\n");
-        obj.Update(sb.ToString());
-        WriteTestCode(obj);
-        //
-        // > Quote
-        Assert.Equal(BlockKind.Para, obj[3].Kind);
-        Assert.Equal(1, obj[3].QuoteLevel);
-        Assert.Equal(0, obj[3].ListLevel);
-        Assert.Equal(0, obj[3].ListOrder);
-        Assert.Equal('\0', obj[3].ListBullet);
-        Assert.Equal(InlineStyling.Default, obj[3].Elements[0].Styling);
-        Assert.Equal("Quote", obj[3].Elements[0].Text);
-        //
-        // > * List
-        Assert.Equal(BlockKind.Para, obj[4].Kind);
-        Assert.Equal(1, obj[4].QuoteLevel);
-        Assert.Equal(1, obj[4].ListLevel);
-        Assert.Equal(0, obj[4].ListOrder);
-        Assert.Equal('*', obj[4].ListBullet);
-        Assert.Equal(InlineStyling.Default, obj[4].Elements[0].Styling);
-        Assert.Equal("List", obj[4].Elements[0].Text);
-        //
-        // > Item
-        Assert.Equal(BlockKind.Para, obj[5].Kind);
-        Assert.Equal(1, obj[5].QuoteLevel);
-        Assert.Equal(1, obj[5].ListLevel);
-        Assert.Equal(0, obj[5].ListOrder);
-        Assert.Equal('\0', obj[5].ListBullet);
-        Assert.Equal(InlineStyling.Default, obj[5].Elements[0].Styling);
-        Assert.Equal("Item", obj[5].Elements[0].Text);
-        //
-        Assert.Equal(6, obj.Count);
-
-
-        sb.Append("```\nCode\n```\n\n");
-        obj.Update(sb.ToString());
-        WriteTestCode(obj);
-        //
-        // > Item
-        Assert.Equal(BlockKind.Para, obj[5].Kind);
-        Assert.Equal(1, obj[5].QuoteLevel);
-        Assert.Equal(1, obj[5].ListLevel);
-        Assert.Equal(0, obj[5].ListOrder);
-        Assert.Equal('\0', obj[5].ListBullet);
-        Assert.Equal(InlineStyling.Default, obj[5].Elements[0].Styling);
-        Assert.Equal("Item", obj[5].Elements[0].Text);
-        //
-        // ```\nCode\n```
-        Assert.Equal(BlockKind.FencedCode, obj[6].Kind);
-        Assert.Equal(0, obj[6].QuoteLevel);
-        Assert.Equal(0, obj[6].ListLevel);
-        Assert.Equal(0, obj[6].ListOrder);
-        Assert.Equal('\0', obj[6].ListBullet);
-        Assert.Equal(InlineStyling.Default, obj[6].Elements[0].Styling);
-        Assert.Equal("Code", obj[6].Elements[0].Text);
-
-        sb.Append("Final");
-        obj.Update(sb.ToString());
-        WriteTestCode(obj);
-        //
-        // Hello *world*
-        Assert.Equal(BlockKind.Para, obj[0].Kind);
-        Assert.Equal(0, obj[0].QuoteLevel);
-        Assert.Equal(0, obj[0].ListLevel);
-        Assert.Equal(0, obj[0].ListOrder);
-        Assert.Equal('\0', obj[0].ListBullet);
-        Assert.Equal(InlineStyling.Default, obj[0].Elements[0].Styling);
-        Assert.Equal("Hello ", obj[0].Elements[0].Text);
-        Assert.Equal(InlineStyling.Emphasis, obj[0].Elements[1].Styling);
-        Assert.Equal("world", obj[0].Elements[1].Text);
-        //
-        // Para2
-        Assert.Equal(BlockKind.Para, obj[1].Kind);
-        Assert.Equal(0, obj[1].QuoteLevel);
-        Assert.Equal(0, obj[1].ListLevel);
-        Assert.Equal(0, obj[1].ListOrder);
-        Assert.Equal('\0', obj[1].ListBullet);
-        Assert.Equal(InlineStyling.Default, obj[1].Elements[0].Styling);
-        Assert.Equal("Para2", obj[1].Elements[0].Text);
-        //
-        // Para3
-        Assert.Equal(BlockKind.Para, obj[2].Kind);
-        Assert.Equal(0, obj[2].QuoteLevel);
-        Assert.Equal(0, obj[2].ListLevel);
-        Assert.Equal(0, obj[2].ListOrder);
-        Assert.Equal('\0', obj[2].ListBullet);
-        Assert.Equal(InlineStyling.Default, obj[2].Elements[0].Styling);
-        Assert.Equal("Para3", obj[2].Elements[0].Text);
-        //
-        // > Quote
-        Assert.Equal(BlockKind.Para, obj[3].Kind);
-        Assert.Equal(1, obj[3].QuoteLevel);
-        Assert.Equal(0, obj[3].ListLevel);
-        Assert.Equal(0, obj[3].ListOrder);
-        Assert.Equal('\0', obj[3].ListBullet);
-        Assert.Equal(InlineStyling.Default, obj[3].Elements[0].Styling);
-        Assert.Equal("Quote", obj[3].Elements[0].Text);
-        //
-        // > * List
-        Assert.Equal(BlockKind.Para, obj[4].Kind);
-        Assert.Equal(1, obj[4].QuoteLevel);
-        Assert.Equal(1, obj[4].ListLevel);
-        Assert.Equal(0, obj[4].ListOrder);
-        Assert.Equal('*', obj[4].ListBullet);
-        Assert.Equal(InlineStyling.Default, obj[4].Elements[0].Styling);
-        Assert.Equal("List", obj[4].Elements[0].Text);
-        //
-        // > Item
-        Assert.Equal(BlockKind.Para, obj[5].Kind);
-        Assert.Equal(1, obj[5].QuoteLevel);
-        Assert.Equal(1, obj[5].ListLevel);
-        Assert.Equal(0, obj[5].ListOrder);
-        Assert.Equal('\0', obj[5].ListBullet);
-        Assert.Equal(InlineStyling.Default, obj[5].Elements[0].Styling);
-        Assert.Equal("Item", obj[5].Elements[0].Text);
-        //
-        // ```\nCode\n```
-        Assert.Equal(BlockKind.FencedCode, obj[6].Kind);
-        Assert.Equal(0, obj[6].QuoteLevel);
-        Assert.Equal(0, obj[6].ListLevel);
-        Assert.Equal(0, obj[6].ListOrder);
-        Assert.Equal('\0', obj[6].ListBullet);
-        Assert.Equal(InlineStyling.Default, obj[6].Elements[0].Styling);
-        Assert.Equal("Code", obj[6].Elements[0].Text);
-        //
-        // Final
-        Assert.Equal(BlockKind.Para, obj[7].Kind);
-        Assert.Equal(0, obj[7].QuoteLevel);
-        Assert.Equal(0, obj[7].ListLevel);
-        Assert.Equal(0, obj[7].ListOrder);
-        Assert.Equal('\0', obj[7].ListBullet);
-        Assert.Equal(InlineStyling.Default, obj[7].Elements[0].Styling);
-        Assert.Equal("Final", obj[7].Elements[0].Text);
-        //
-        Assert.Equal(8, obj.Count);
-
-        obj.Update("Other");
-        WriteTestCode(obj);
-        //
-        // Other
-        Assert.Equal(BlockKind.Para, obj[0].Kind);
-        Assert.Equal(0, obj[0].QuoteLevel);
-        Assert.Equal(0, obj[0].ListLevel);
-        Assert.Equal(0, obj[0].ListOrder);
-        Assert.Equal('\0', obj[0].ListBullet);
-        Assert.Equal(InlineStyling.Default, obj[0].Elements[0].Styling);
-        Assert.Equal("Other", obj[0].Elements[0].Text);
-        //
-        Assert.Single(obj);
-
-    }
-
-    [Fact]
-    public void Coalesce_Empty()
-    {
-        var obj = new MarkDocument();
-        var clone = obj.Coalesce();
-        WriteTestCode(clone);
-
-        Assert.Empty(obj);
     }
 
     [Fact]
@@ -521,7 +449,7 @@ Para 6
 |--
 |Data";
 
-        var obj = new MarkDocument(content).Coalesce();
+        var obj = new MarkDocument(content, MarkOptions.Markdown | MarkOptions.Coalesce);
         WriteTestCode(obj);
 
         // Para 0

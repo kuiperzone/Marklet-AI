@@ -23,6 +23,7 @@ using Avalonia.Collections;
 using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Interactivity;
+using Avalonia.LogicalTree;
 using Avalonia.Media;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
@@ -35,46 +36,6 @@ namespace KuiperZone.Marklet.PixieChrome;
 /// </summary>
 public static partial class HelperExt
 {
-    /// <summary>
-    /// Gets first parent of type T, or null.
-    /// </summary>
-    public static T? GetParentOf<T>(this StyledElement src) where T : class
-    {
-        var parent = src?.Parent;
-
-        while (parent != null)
-        {
-            if (parent is T t)
-            {
-                return t;
-            }
-
-            parent = parent.Parent;
-        }
-
-        return default;
-    }
-
-    /// <summary>
-    /// Gets first parent of type T, or null.
-    /// </summary>
-    public static T? GetThisOrParentOf<T>(this StyledElement src) where T : class
-    {
-        var parent = src;
-
-        while (parent != null)
-        {
-            if (parent is T t)
-            {
-                return t;
-            }
-
-            parent = parent.Parent;
-        }
-
-        return default;
-    }
-
     /// <summary>
     /// Restart timer.
     /// </summary>
@@ -215,6 +176,17 @@ public static partial class HelperExt
         }
 
         return rslt;
+    }
+
+    /// <summary>
+    /// Calls TrimExcess() only Capacity exceed Count by delta.
+    /// </summary>
+    public static void TrimCapacity<T>(this AvaloniaList<T> src, int delta = 32)
+    {
+        if (src.Capacity - src.Count > delta)
+        {
+            src.Capacity = src.Count;
+        }
     }
 
     /// <summary>

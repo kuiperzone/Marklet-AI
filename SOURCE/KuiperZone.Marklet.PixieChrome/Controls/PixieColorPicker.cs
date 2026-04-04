@@ -70,8 +70,8 @@ public class PixieColorPicker : PixieControl
     /// Default constructor.
     /// </summary>
     public PixieColorPicker()
+        : base(false, Avalonia.Layout.VerticalAlignment.Center)
     {
-        IsTitleVisible = false;
         SetSubject(_grid);
 
         _grid.VerticalAlignment = VerticalContentAlignment;

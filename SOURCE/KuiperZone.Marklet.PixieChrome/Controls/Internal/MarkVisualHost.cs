@@ -21,6 +21,7 @@
 using System.Globalization;
 using System.Text;
 using Avalonia.Controls;
+using KuiperZone.Marklet.PixieChrome.Shared;
 using KuiperZone.Marklet.Tooling.Markdown;
 
 namespace KuiperZone.Marklet.PixieChrome.Controls.Internal;
@@ -35,15 +36,15 @@ internal abstract class MarkVisualHost
 {
     private Control? _control;
 
-    protected MarkVisualHost(MarkView owner)
+    protected MarkVisualHost(MarkShim shim)
     {
-        Owner = owner;
+        Shim = shim;
     }
 
     /// <summary>
-    /// Gets the owner.
+    /// Gets the shim/owner.
     /// </summary>
-    public MarkView Owner { get; }
+    public MarkShim Shim { get; }
 
     /// <summary>
     /// Gets the quote level (subclass must set).
@@ -83,13 +84,13 @@ internal abstract class MarkVisualHost
     /// <remarks>
     /// Always consumes exactly one block.
     /// </remarks>
-    public static MarkVisualHost New(MarkView owner, IReadOnlyList<IReadOnlyMarkBlock> sequence, ref int index)
+    public static MarkVisualHost New(MarkShim shim, IReadOnlyList<IReadOnlyMarkBlock> sequence, ref int index)
     {
         var source = sequence[index];
 
         if (source.QuoteLevel > 0 || source.ListLevel > 0)
         {
-            var host = new MarkLevelHost(owner, source);
+            var host = new MarkLevelHost(shim, source);
 
             if (host.ConsumeUpdates(sequence, ref index) != MarkConsumed.Changed)
             {
@@ -99,7 +100,7 @@ internal abstract class MarkVisualHost
             return host;
         }
 
-        return MarkBlockHost.New(owner, sequence, ref index);
+        return MarkBlockHost.New(shim, sequence, ref index);
     }
 
     /// <summary>

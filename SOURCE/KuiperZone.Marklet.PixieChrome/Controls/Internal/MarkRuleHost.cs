@@ -20,6 +20,7 @@
 
 using System.Text;
 using Avalonia.Controls.Shapes;
+using KuiperZone.Marklet.PixieChrome.Shared;
 using KuiperZone.Marklet.Tooling;
 using KuiperZone.Marklet.Tooling.Markdown;
 
@@ -32,8 +33,8 @@ internal sealed class MarkRuleHost : MarkBlockHost
 {
     private readonly Rectangle _rule = new();
 
-    public MarkRuleHost(MarkView owner, IReadOnlyMarkBlock source)
-        : base(owner, source)
+    public MarkRuleHost(MarkShim shim, IReadOnlyMarkBlock source)
+        : base(shim, source)
     {
         ConditionalDebug.ThrowIfNotEqual(Kind, BlockKind.Rule);
         Control = _rule;
@@ -81,12 +82,12 @@ internal sealed class MarkRuleHost : MarkBlockHost
 
     private void RefreshInternal()
     {
-        var fill = Owner.RuleLine;
+        var fill = Shim.Owner.RuleLine;
         _rule.Fill = fill;
 
         if (fill != null)
         {
-            _rule.Height = Owner.RulePixels;
+            _rule.Height = Shim.RulePixels;
             return;
         }
 

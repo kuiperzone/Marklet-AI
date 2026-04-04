@@ -150,7 +150,7 @@ internal sealed class MoreBar : DockPanel
                 {
                     IsAlphaFolderSort = false;
                 }
-                DispatcherTimer.RunOnce(() => SetDelayedMore(value), BasketCase.ShortInterval);
+                DispatcherTimer.RunOnce(() => SetDelayedMore(value), BasketView.ScheduleSpan);
                 ViewChangeRequired?.Invoke(this, EventArgs.Empty);
             }
         }

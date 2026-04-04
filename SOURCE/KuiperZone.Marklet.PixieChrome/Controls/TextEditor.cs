@@ -90,12 +90,6 @@ public class TextEditor : TextBox
         RoutedEvent.Register<TextEditor, SubmittedEventArgs>(nameof(Submitted), RoutingStrategies.Direct);
 
     /// <summary>
-    /// Defines the <see cref="CaseOrWordChecked"/> event.
-    /// </summary>
-    public static readonly RoutedEvent<RoutedEventArgs> CaseOrWordCheckedEvent =
-        RoutedEvent.Register<TextEditor, RoutedEventArgs>(nameof(CaseOrWordChecked), RoutingStrategies.Direct);
-
-    /// <summary>
     /// Defines the <see cref="MinLength"/> property.
     /// </summary>
     public static readonly StyledProperty<int> MinLengthProperty =
@@ -154,15 +148,6 @@ public class TextEditor : TextBox
     }
 
     /// <summary>
-    /// Occurs when the user checks or unchecks the <see cref="HasMatchCaseButton"/> or <see cref="HasMatchWordButton"/> options.
-    /// </summary>
-    public event EventHandler<RoutedEventArgs> CaseOrWordChecked
-    {
-        add { AddHandler(CaseOrWordCheckedEvent, value); }
-        remove { RemoveHandler(CaseOrWordCheckedEvent, value); }
-    }
-
-    /// <summary>
     /// Gets or sets the minimum text length.
     /// </summary>
     /// <remarks>
@@ -204,7 +189,7 @@ public class TextEditor : TextBox
     /// Gets or sets whether to show a checkable "match case" button.
     /// </summary>
     /// <remarks>
-    /// Default is false.
+    /// Default is false. Note that clicking the "case" button invokes the <see cref="SubmittedEvent"/>.
     /// </remarks>
     public bool HasMatchCaseButton
     {
@@ -216,7 +201,7 @@ public class TextEditor : TextBox
     /// Gets or sets whether to show a checkable "match word" button.
     /// </summary>
     /// <remarks>
-    /// Default is false.
+    /// Default is false. Note that clicking the "case" button invokes the <see cref="SubmittedEvent"/>.
     /// </remarks>
     public bool HasMatchWordButton
     {
@@ -273,22 +258,26 @@ public class TextEditor : TextBox
     /// Gets whether the "match case" button is checked.
     /// </summary>
     /// <remarks>
-    /// The <see cref="HasMatchCaseButton"/> property must be true otherwise the result of this is always false.
+    /// The <see cref="HasMatchCaseButton"/> property must be true otherwise the result of this is always false. Setting
+    /// when <see cref="HasMatchCaseButton"/> is false does nothing. Setting programmatically does not trigger an event.
     /// </remarks>
     public bool IsMatchCaseChecked
     {
         get { return _caseButton?.IsChecked == true; }
+        set { _caseButton?.IsChecked = value; }
     }
 
     /// <summary>
     /// Gets whether the "match word" button is checked.
     /// </summary>
     /// <remarks>
-    /// The <see cref="HasMatchWordButton"/> property must be true otherwise the result of this is always false.
+    /// The <see cref="HasMatchWordButton"/> property must be true otherwise the result of this is always false. Setting
+    /// when <see cref="HasMatchWordButton"/> is false does nothing. Setting programmatically does not trigger an event.
     /// </remarks>
     public bool IsMatchWordChecked
     {
         get { return _wordButton?.IsChecked == true; }
+        set { _wordButton?.IsChecked = value; }
     }
 
     /// <summary>
@@ -1289,7 +1278,7 @@ public class TextEditor : TextBox
 
     private void CaseWordClickHandler(object? _, EventArgs __)
     {
-        RaiseEvent(new RoutedEventArgs(CaseOrWordCheckedEvent, this));
+        OnSubmitted();
     }
 
     private void DeleteClickHandler(object? _, EventArgs __)

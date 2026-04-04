@@ -194,64 +194,69 @@ public class MemoryGardenTest : GardenTestBase
 
 
     [Fact]
-    public void SetCurrent_InvokesEvent()
+    public void SetFocused_InvokesEvent()
     {
         // Don't need a separate reader
         var obj = OpenNew();
         Populate(obj, DeckKind.Chat, BasketKind.Recent, 5);
 
         // Initially null
-        Assert.Null(obj.Current);
+        Assert.Null(obj.Focused);
 
         var receiver = new ChangeReceiver();
-        obj.CurrentChanged += receiver.CurrentChangedHandler;
-        obj.CurrentUpdated += receiver.CurrentUpdatedHandler;
+        obj.FocusChanged += receiver.FocusChangedHandler;
+        obj.FocusedUpdated += receiver.FocusedUpdatedHandler;
 
         var first = obj.FindTitleExact("0");
         var childN = obj.FindTitleExact("1");
         Assert.NotNull(first);
         Assert.NotNull(childN);
 
-        first.IsCurrent = true;
-        Assert.True(first.IsCurrent);
-        Assert.Same(first, obj.Current);
-        Assert.NotNull(receiver.CurrentChangedEvent);
-        Assert.Same(first, receiver.CurrentChangedEvent.Current);
-        Assert.Null(receiver.CurrentChangedEvent.Previous);
-        Assert.Null(receiver.CurrentUpdatedEvent); // <- remains null
+        first.IsFocused = true;
+        Assert.True(first.IsFocused);
+        Assert.Same(first, obj.Focused);
+        Assert.NotNull(receiver.FocusChangedEvent);
+        Assert.Same(first, receiver.FocusChangedEvent.Current);
+        Assert.Null(receiver.FocusChangedEvent.Previous);
+        Assert.Null(receiver.FocusedUpdatedEvent); // <- remains null
         receiver.Reset();
 
-        childN.IsCurrent = true;
-        Assert.False(first.IsCurrent);
-        Assert.True(childN.IsCurrent);
-        Assert.Same(childN, obj.Current);
-        Assert.NotNull(receiver.CurrentChangedEvent);
-        Assert.Same(childN, receiver.CurrentChangedEvent.Current);
-        Assert.Same(first, receiver.CurrentChangedEvent.Previous);
-        Assert.Null(receiver.CurrentUpdatedEvent); // <- remains null
+        childN.IsFocused = true;
+        Assert.False(first.IsFocused);
+        Assert.True(childN.IsFocused);
+        Assert.Same(childN, obj.Focused);
+        Assert.NotNull(receiver.FocusChangedEvent);
+        Assert.Same(childN, receiver.FocusChangedEvent.Current);
+        Assert.Same(first, receiver.FocusChangedEvent.Previous);
+        Assert.Null(receiver.FocusedUpdatedEvent); // <- remains null
         receiver.Reset();
 
         // Modify selected
         childN.Model = "model change";
-        Assert.True(childN.IsCurrent);
-        Assert.NotNull(receiver.CurrentUpdatedEvent);
-        Assert.Same(childN, receiver.CurrentUpdatedEvent.Current);
+        Assert.True(childN.IsFocused);
+        Assert.NotNull(receiver.FocusedUpdatedEvent);
+        Assert.Same(childN, receiver.FocusedUpdatedEvent.Current);
         receiver.Reset();
 
-        childN.Append(LeafKind.DisplayMessage, "Message");
-        Assert.NotNull(receiver.CurrentUpdatedEvent);
-        Assert.Same(childN, receiver.CurrentUpdatedEvent.Current);
+        childN.Append(LeafKind.PersistantMessage, "Message");
+        Assert.NotNull(receiver.FocusedUpdatedEvent);
+        Assert.Same(childN, receiver.FocusedUpdatedEvent.Current);
+        receiver.Reset();
+
+        childN.Append(LeafKind.EphemeralMessage, "Message");
+        Assert.NotNull(receiver.FocusedUpdatedEvent);
+        Assert.Same(childN, receiver.FocusedUpdatedEvent.Current);
         receiver.Reset();
 
         // Delete the instance and check selected is null
         Assert.True(obj.Delete(childN));
         Assert.Null(childN.Garden);
 
-        Assert.Null(obj.Current);
-        Assert.NotNull(receiver.CurrentChangedEvent);
-        Assert.Null(receiver.CurrentChangedEvent.Current);
-        Assert.Same(childN, receiver.CurrentChangedEvent.Previous);
-        Assert.Null(receiver.CurrentUpdatedEvent); // <- remains null
+        Assert.Null(obj.Focused);
+        Assert.NotNull(receiver.FocusChangedEvent);
+        Assert.Null(receiver.FocusChangedEvent.Current);
+        Assert.Same(childN, receiver.FocusChangedEvent.Previous);
+        Assert.Null(receiver.FocusedUpdatedEvent); // <- remains null
         receiver.Reset();
     }
 }

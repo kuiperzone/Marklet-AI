@@ -29,6 +29,7 @@ using System.Text;
 using KuiperZone.Marklet.Tooling;
 using KuiperZone.Marklet.PixieChrome.Controls.Internal;
 using Avalonia.Interactivity;
+using Avalonia.VisualTree;
 
 namespace KuiperZone.Marklet.PixieChrome.Controls;
 
@@ -136,7 +137,11 @@ public class CrossTextBlock : TextBlock, ICrossTrackable, ICrossTrackOwner
                 _tracker?.RemoveInternal(this);
 
                 _tracker = value;
-                value?.AddInternal(this);
+
+                if (value != null && this.IsAttachedToVisualTree())
+                {
+                    value.AddInternal(this);
+                }
             }
         }
     }
@@ -388,7 +393,8 @@ public class CrossTextBlock : TextBlock, ICrossTrackable, ICrossTrackOwner
     protected override void OnAttachedToVisualTree(VisualTreeAttachmentEventArgs e)
     {
         base.OnAttachedToVisualTree(e);
-       _rootTop = e.Root as Visual;
+        _rootTop = e.Root as Visual;
+        _tracker?.AddInternal(this);
     }
 
     /// <summary>
@@ -398,6 +404,7 @@ public class CrossTextBlock : TextBlock, ICrossTrackable, ICrossTrackOwner
     {
         base.OnDetachedFromVisualTree(e);
         _rootTop = null;
+        _tracker?.RemoveInternal(this);
     }
 
     /// <summary>

@@ -21,7 +21,6 @@
 using System.Collections;
 using System.Data.Common;
 using System.Diagnostics.CodeAnalysis;
-using KuiperZone.Marklet.Stack.Garden.Internal;
 using KuiperZone.Marklet.Tooling;
 
 namespace KuiperZone.Marklet.Stack.Garden;
@@ -92,6 +91,11 @@ public sealed class GardenBasket : IReadOnlyCollection<GardenDeck>
     {
         get { return _master.Count == 0 && _folders.Count == 0; }
     }
+
+    /// <summary>
+    /// Gets the most recent focused instance in this basket.
+    /// </summary>
+    public GardenDeck? Recent { get; private set; }
 
     /// <summary>
     /// Gets of value intended to approximate memory consumed by child items in bytes.
@@ -202,26 +206,19 @@ public sealed class GardenBasket : IReadOnlyCollection<GardenDeck>
     /// </remarks>
     public List<GardenDeck>? GetFolderContents(string? name, GardenSort sort = GardenSort.Default)
     {
-        var folder = GetFolder(MemoryGarden.Sanitize(name, MemoryGarden.MaxMetaLength));
-
-        if (folder == null)
-        {
-            return null;
-        }
-
-        return Sort(new List<GardenDeck>(folder), sort);
+        return GetFolderContents(name, null, sort);
     }
 
     /// <summary>
-    /// Returns the sorted sequence of children with <see cref="GardenDeck.Folder"/> equal to "name" while
-    /// returning only those items which match the given <see cref="SearchOptions"/>.
+    /// Returns the sorted sequence of children with <see cref="GardenDeck.Folder"/> equal to "name" while also
+    /// restricting results to only those items which match the given <see cref="FindOptions"/>.
     /// </summary>
     /// <remarks>
-    /// Folder names are compared case sensitively. A null or empty "name" will return root items. If the folder
-    /// name does not exist, the result is null. If the folder exists but no items meet the "match" criteria, the result
-    /// is an empty list. If "match" is null, behaves as <see cref="GetFolderContents(string?, GardenSort)"/>.
+    /// Folder names are compared case sensitively. A null or empty "name" will return root items. If the folder name
+    /// does not exist, the result is null. If the folder exists but no items meet the "match" criteria, the result is
+    /// an empty list. If "match" is null, behaves as <see cref="GetFolderContents(string?, GardenSort)"/>.
     /// </remarks>
-    public List<GardenDeck>? GetFolderContents(string? name, SearchOptions? match, GardenSort sort = GardenSort.Default)
+    public List<GardenDeck>? GetFolderContents(string? name, FindOptions? match, GardenSort sort = GardenSort.Default)
     {
         var folder = GetFolder(MemoryGarden.Sanitize(name, MemoryGarden.MaxMetaLength));
 
@@ -235,16 +232,16 @@ public sealed class GardenBasket : IReadOnlyCollection<GardenDeck>
             return Sort(new List<GardenDeck>(folder), sort);
         }
 
-        List<GardenDeck> list = new(32);
+        List<GardenDeck> list = new(16);
 
-        if (match.MaxResults <= 0 || match.Subtext.Length == 0)
+        if (match.MaxResults <= 0 || match.Subtext == null)
         {
             return list;
         }
 
         foreach (var item in folder)
         {
-            if (item.SearchContent(match))
+            if (item.FindInContent(match))
             {
                 list.Add(item);
             }
@@ -274,14 +271,14 @@ public sealed class GardenBasket : IReadOnlyCollection<GardenDeck>
 
     /// <summary>
     /// Collates <see cref="GardenDeck"/> children on <see cref="GardenDeck.Folder"/>, while returning only those items
-    /// which match the given <see cref="SearchOptions"/>.
+    /// which match the given <see cref="FindOptions"/>.
     /// </summary>
     /// <remarks>
     /// A new instance is returned on each call. The result does not include children with no folder (root). In each
     /// entry, items are sorted according to "sort". If "match" is null, behaves as <see
     /// cref="CollateByFolder(GardenSort)"/>.
     /// </remarks>
-    public Dictionary<string, List<GardenDeck>> CollateByFolder(SearchOptions? match, GardenSort sort = GardenSort.Default)
+    public Dictionary<string, List<GardenDeck>> CollateByFolder(FindOptions? match, GardenSort sort = GardenSort.Default)
     {
         int count = 0;
         var dict = new Dictionary<string, List<GardenDeck>>(_folders.Count);
@@ -296,7 +293,7 @@ public sealed class GardenBasket : IReadOnlyCollection<GardenDeck>
             return dict;
         }
 
-        if (match.MaxResults <= 0 || match.Subtext.Length == 0)
+        if (match.MaxResults <= 0 || match.Subtext == null)
         {
             return dict;
         }
@@ -307,7 +304,7 @@ public sealed class GardenBasket : IReadOnlyCollection<GardenDeck>
 
             foreach (var deck in item.Value)
             {
-                if (deck.SearchContent(match))
+                if (deck.FindInContent(match))
                 {
                     list ??= new(8);
                     list.Add(deck);
@@ -429,15 +426,15 @@ public sealed class GardenBasket : IReadOnlyCollection<GardenDeck>
     /// Moves items folder to another basket and returns true if changed.
     /// </summary>
     /// <remarks>
-    /// Where and item folder pre-exists in the destination basket, items are merged. The result false if "destination"
-    /// equals <see cref="Kind"/>.
+    /// Where and item folder pre-exists in the destination basket, items are merged. The result false if "dest" equals
+    /// <see cref="Kind"/>.
     /// </remarks>
-    public bool MoveBasket(string? folderName, BasketKind destination)
+    public bool MoveBasket(string? folderName, BasketKind dest)
     {
         const string NSpace = $"{nameof(GardenBasket)}.{nameof(MoveBasket)}";
-        ConditionalDebug.WriteLine(NSpace, $"MOVE FOLDER: {Kind}, {folderName}, {destination}");
+        ConditionalDebug.WriteLine(NSpace, $"MOVE FOLDER: {Kind}, {folderName}, {dest}");
 
-        if (IsEmpty || Kind == destination || Garden.Gardener == null)
+        if (IsEmpty || Kind == dest || Garden.Gardener == null)
         {
             return false;
         }
@@ -457,8 +454,9 @@ public sealed class GardenBasket : IReadOnlyCollection<GardenDeck>
 
             foreach (var item in folder.ToArray())
             {
+                // IMPORTANT
                 // This will call back on this class instance for the remove
-                item.SetBasketNoRaise(con, destination);
+                item.SetBasketNoRaise(con, dest);
             }
 
             // Ensure this now empty
@@ -471,7 +469,7 @@ public sealed class GardenBasket : IReadOnlyCollection<GardenDeck>
             }
 
             OnChangedInternal(true);
-            Garden.GetBasket(destination).OnChangedInternal(true);
+            Garden.GetBasket(dest).OnChangedInternal(true);
             return true;
         }
 
@@ -515,6 +513,7 @@ public sealed class GardenBasket : IReadOnlyCollection<GardenDeck>
 
             foreach (var item in folder.ToArray())
             {
+                // IMPORTANT
                 // This will call back on this class instance for the remove
                 if (item.SetBasketNoRaise(con, item.Origin))
                 {
@@ -578,10 +577,18 @@ public sealed class GardenBasket : IReadOnlyCollection<GardenDeck>
                 // Safe to iterate on folder provided "remove" below is false
                 foreach (var item in folder)
                 {
+                    if (item == Recent)
+                    {
+                        // IMPORTANT
+                        // Needed here as we are not calling RemoveCache()
+                        Recent = null;
+                    }
+
                     _master.Remove(item);
                     item.DeleteDb(con);
                 }
 
+                // Clear folder directly
                 folder.Clear();
 
                 if (folderName != null)
@@ -702,7 +709,7 @@ public sealed class GardenBasket : IReadOnlyCollection<GardenDeck>
                     item.SetBasketNoRaise(con, BasketKind.Waste);
                 }
 
-                if (!item.IsCurrent && used >= alloc)
+                if (!item.IsFocused && used >= alloc)
                 {
                     // Free memory
                     item.TryUnload();
@@ -753,6 +760,12 @@ public sealed class GardenBasket : IReadOnlyCollection<GardenDeck>
         return null;
     }
 
+    internal void SetRecentInternal(GardenDeck? obj)
+    {
+        ConditionalDebug.ThrowIfTrue(obj != null && obj.Basket != Kind);
+        Recent = obj;
+    }
+
     internal void OnChangedInternal(bool raise)
     {
         if (raise)
@@ -762,7 +775,7 @@ public sealed class GardenBasket : IReadOnlyCollection<GardenDeck>
     }
 
     /// <summary>
-    /// Insert in cache, but does not touch database.
+    /// Insert "obj" into cache, but does not touch database.
     /// </summary>
     internal bool InsertCache(GardenDeck obj, bool raise)
     {
@@ -773,6 +786,12 @@ public sealed class GardenBasket : IReadOnlyCollection<GardenDeck>
         if (_master.Insert(obj) > -1)
         {
             AddToFolderCache(obj.Folder, obj);
+
+            if (obj.IsFocused)
+            {
+                Recent = obj;
+            }
+
             OnChangedInternal(raise);
             return true;
         }
@@ -791,6 +810,12 @@ public sealed class GardenBasket : IReadOnlyCollection<GardenDeck>
         if (_master.Remove(obj))
         {
             ConditionalDebug.WriteLine(NSpace, "Removed from master");
+
+            if (obj == Recent)
+            {
+                Recent = null;
+            }
+
             RemoveFromFolderCache(obj.Folder, obj, false);
             OnChangedInternal(raise);
             return true;
@@ -806,6 +831,8 @@ public sealed class GardenBasket : IReadOnlyCollection<GardenDeck>
     {
         const string NSpace = $"{nameof(GardenBasket)}.{nameof(ClearCache)}";
         ConditionalDebug.WriteLine(NSpace, $"Clear on: {Kind}");
+
+        Recent = null;
 
         if (!IsEmpty)
         {

@@ -27,47 +27,79 @@ namespace KuiperZone.Marklet.Tooling.Markdown;
 public enum MarkOptions
 {
     /// <summary>
-    /// Indicates the content has already been sanitized and that the sanitization step can be omitted.
+    /// None.
     /// </summary>
-    Presan = 0x00000001,
+    None = 0x00000000,
 
     /// <summary>
-    /// Ignore inline markdown and HTML elements.
+    /// Content should be pre-sanitized prior to parsing.
     /// </summary>
     /// <remarks>
-    /// When specified, markdown is, in effect, partially processed. The use case is for processing user input where
-    /// text is to preserved verbatim where possible, while still handling fenced code and other specialized regions.
-    /// Plain texts links are still detected provided <see cref="IgnorePlainLinks"/> is false.
+    /// Substitutes most control characters, removes private and other ranges, and Unicode FORM-C normalizes.
     /// </remarks>
-    IgnoreInline = 0x00000002,
+    Sanitize = 0x00000001,
 
     /// <summary>
-    /// Do not detect plain unadorned URIs.
+    /// Parse block elements.
     /// </summary>
     /// <remarks>
-    /// If omitted, the text "http://example.com" (without "[]()" surrounding brackets) will be detected as a link by
-    /// default. If given, only links expressed in markdown form will be detected.
+    /// If not specified, content is treated, not a markdown, but as raw text. Invariably both <see cref="Blocks"/> and
+    /// <see cref="Inlines"/> should be specified.
     /// </remarks>
-    IgnorePlainLinks = 0x00000004,
+    Blocks = 0x00000002,
+
+    /// <summary>
+    /// Parse inline elements.
+    /// </summary>
+    /// <remarks>
+    /// If not specified, inline content is ignored. It does nothing unless <see cref="Blocks"/> is given. The case for
+    /// omitting it is to process preserve content verbatim where possible, while still handling fenced code and other
+    /// specialized regions. Plain texts links are still detected provided <see cref="PlainLinks"/> is given. Invariably
+    /// both <see cref="Blocks"/> and <see cref="Inlines"/> should be specified.
+    /// </remarks>
+    Inlines = 0x00000004,
+
+    /// <summary>
+    /// Combines blocks and elements of matching kinds and styles where possible in order to minimize UI controls.
+    /// </summary>
+    /// <remarks>
+    /// The option is ignored if <see cref="Blocks"/> is omitted.
+    /// </remarks>
+    Coalesce = 0x00000008,
+
+    /// <summary>
+    /// Detect plain unadorned URIs.
+    /// </summary>
+    /// <remarks>
+    /// If given, the text "http://example.com" (without "[]()" surrounding brackets) will be detected as a link. If
+    /// omitted, only links expressed in markdown form will be detected. It is ignored if <see cref="Blocks"/> is
+    /// omitted.
+    /// </remarks>
+    PlainLinks = 0x00000010,
 
     /// <summary>
     /// Treat inline HTML tags as code elements.
     /// </summary>
     /// <remarks>
-    /// The option is ignored if <see cref="IgnoreInline"/> is given.
+    /// The option is ignored unless both <see cref="Blocks"/> and <see cref="Inlines"/> are given.
     /// </remarks>
-    InlineHtmlAsCode = 0x00000008,
+    InlineHtmlAsCode = 0x00000020,
 
     /// <summary>
     /// Treat "![]()" images as text links.
     /// </summary>
-    ImageAsLink = 0x00000010,
+    ImageAsLink = 0x00000040,
 
     /// <summary>
     /// Indicates that the content is chunking and is unfinished.
     /// </summary>
     /// <remarks>
-    /// The final update should not set this flag.
+    /// The final update should not set this flag. Not currently used, but may be in future.
     /// </remarks>
-    Chunking = 0x00000020,
+    Chunking = 0x00000080,
+
+    /// <summary>
+    /// Composite of options for regular markdown without <see cref="Sanitize"/>.
+    /// </summary>
+    Markdown = Blocks | Inlines | PlainLinks
 }

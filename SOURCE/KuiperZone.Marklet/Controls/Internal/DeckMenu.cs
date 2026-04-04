@@ -21,6 +21,7 @@
 using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Interactivity;
+using Avalonia.LogicalTree;
 using KuiperZone.Marklet.PixieChrome;
 using KuiperZone.Marklet.PixieChrome.Controls;
 using KuiperZone.Marklet.Tooling;
@@ -69,7 +70,7 @@ public static class DeckMenu
         ConditionalDebug.WriteLine(NSpace, "Opened menu");
 
         // First menu is Copy
-        var parent = Global.GetParentOf<DeckLeaf>();
+        var parent = Global.FindLogicalAncestorOfType<DeckLeaf>();
         ((MenuItem)Global.Items[0]!).IsEnabled = parent?.Tracker.SelectionCount > 0;
     }
 
@@ -79,7 +80,7 @@ public static class DeckMenu
         ConditionalDebug.WriteLine(NSpace, "Copy text");
 
         e.Handled = true;
-        Global.GetParentOf<DeckLeaf>()?.Tracker.CopyText(WhatText.SelectedOrNull);
+        Global.FindLogicalAncestorOfType<DeckLeaf>()?.Tracker.CopyText(WhatText.SelectedOrNull);
     }
 
     private static void SelectAllHandler(object? _, RoutedEventArgs e)
@@ -88,7 +89,7 @@ public static class DeckMenu
         ConditionalDebug.WriteLine(NSpace, "Select all");
 
         e.Handled = true;
-        Global.GetParentOf<DeckLeaf>()?.SelectAll();
+        Global.FindLogicalAncestorOfType<DeckLeaf>()?.SelectAll();
     }
 
     private static void SelectMessageHandler(object? _, RoutedEventArgs e)
@@ -97,6 +98,6 @@ public static class DeckMenu
         ConditionalDebug.WriteLine(NSpace, "Select all");
 
         e.Handled = true;
-        Global.GetParentOf<DeckLeaf>()?.SelectBlock();
+        Global.FindLogicalAncestorOfType<DeckLeaf>()?.SelectBlock();
     }
 }

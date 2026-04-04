@@ -31,7 +31,7 @@ public sealed class GroupChildRenamingEventArgs : SubmittedEventArgs
     /// Constructor.
     /// </summary>
     public GroupChildRenamingEventArgs(RoutedEvent routedEvent, PixieCard? card, SubmittedEventArgs e)
-        : base(routedEvent, e.Source, e.OldText, e.NewText)
+        : base(routedEvent, e.Source, e.StartText, e.CurrentText)
     {
         Card = card;
     }

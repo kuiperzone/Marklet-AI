@@ -18,17 +18,19 @@
 // You should have received a copy of the GNU Affero General Public License along
 // with Marklet. If not, see <https://www.gnu.org/licenses/>.
 
+using Avalonia.Media.Immutable;
+using KuiperZone.Marklet.PixieChrome.Shared;
 using KuiperZone.Marklet.Tooling.Markdown;
 
 namespace KuiperZone.Marklet.PixieChrome.Controls.Internal;
 
 internal sealed class MarkRun : CrossRun
 {
-    private readonly MarkView _owner;
+    private readonly MarkShim _shim;
 
-    public MarkRun(MarkView owner, BlockKind parent, MarkElement element)
+    public MarkRun(MarkShim shim, BlockKind parent, MarkElement element)
     {
-        _owner = owner;
+        _shim = shim;
         ParentKind = parent;
         Update(element);
     }
@@ -64,22 +66,29 @@ internal sealed class MarkRun : CrossRun
         }
 
         var s = Styling;
+        var owner = _shim.Owner;
         this.SetFontStyle(s);
         this.SetFontWeight(s);
-        this.SetBaseline(s, _owner.ScaledFontSize);
+        this.SetBaseline(s, _shim.FontSize);
         TextDecorations = s.ToXamlTextDecorations();
 
         bool hasFamily = false;
         bool hasForeground = false;
         bool hasBackground = false;
 
-        if (s.HasFlag(InlineStyling.Mark) || s.HasFlag(InlineStyling.Keyword))
+        if (s.HasFlag(InlineStyling.Keyword))
         {
-            if (!hasBackground)
-            {
-                hasBackground = true;
-                this.SetBackground(MarkControl.MarkBackgroundBrush);
-            }
+            hasBackground = true;
+            this.SetBackground(MarkControl.KeywordBackgroundBrush);
+
+            hasForeground = true;
+            ClearValue(ForegroundProperty);
+        }
+        else
+        if (s.HasFlag(InlineStyling.Mark))
+        {
+            hasBackground = true;
+            this.SetBackground(MarkControl.MarkBackgroundBrush);
         }
 
         if (s.HasFlag(InlineStyling.Code))
@@ -87,7 +96,13 @@ internal sealed class MarkRun : CrossRun
             if (!hasFamily)
             {
                 hasFamily = true;
-                FontFamily = _owner.MonoFamily;
+                FontFamily = owner.MonoFamily;
+            }
+
+            if (!hasForeground)
+            {
+                hasForeground = true;
+                this.SetForeground(MarkControl.DefaultCodeForeground);
             }
 
             if (!hasBackground)
@@ -112,7 +127,7 @@ internal sealed class MarkRun : CrossRun
             if (!hasFamily)
             {
                 hasFamily = true;
-                FontFamily = _owner.MonoFamily;
+                FontFamily = owner.MonoFamily;
             }
         }
 
@@ -121,7 +136,7 @@ internal sealed class MarkRun : CrossRun
             if (!hasForeground)
             {
                 hasForeground = true;
-                this.SetForeground(_owner.LinkForeground);
+                this.SetForeground(owner.LinkForeground);
             }
         }
 

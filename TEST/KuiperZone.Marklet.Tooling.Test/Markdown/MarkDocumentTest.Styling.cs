@@ -81,7 +81,7 @@ public partial class MarkDocumentTest : BaseTest
     [Fact]
     public void Update_Styled_DefaultOpts()
     {
-        var obj = UpdateWriteOut(StyledSource);
+        var obj = NewObj(StyledSource);
 
         // **Strong1** *Em1* **Strong2** *Em2* `Inline Code` **Bold** *Italic* <del>Strike</del> <ins>Underline</ins> <samp>Samp</samp> <sup>Sup</sup><sub>Sub</sub> <mark>Mark</mark>***Mixed***
         Assert.Equal(BlockKind.Para, obj[0].Kind);
@@ -144,14 +144,14 @@ public partial class MarkDocumentTest : BaseTest
     }
 
     [Fact]
-    public void Update_Styled_IgnoreInline()
+    public void Update_Styled_NoInlines()
     {
         // **Strong1** *Em1* __Strong2__ _Em2_ `Inline Code`
         // <b>Bold</b> <i>Italic</i> <s>Strike</s> <u>Underline</u> <samp>Samp</samp>
         // <small>Small</SMALL> <BIG>Big</big> <sup>Sup</Sup><sub>Sub</sub> <mark>Mark</mark>
         // **<em>Mixed</em>**
         // <Invalid1></Invalid2><Invalid2></Invalid1>";
-        var obj = UpdateWriteOut(StyledSource, MarkOptions.IgnoreInline);
+        var obj = NewObj(StyledSource, MarkOptions.Markdown & ~MarkOptions.Inlines);
 
         // **Strong1** *Em1* __Strong2__ _Em2_ `Inline Code`\\\n<b>Bold</b> <i>Italic</i> <s>Strike</s> <u>Underline</u> <samp>Samp</samp>\\\n<sup>Sup</Sup><sub>Sub</sub> <mark>Mark</mark>**<em>Mixed</em>**\\\n<Invalid1></Invalid2><Invalid2></Invalid1>
         Assert.Equal(BlockKind.Para, obj[0].Kind);

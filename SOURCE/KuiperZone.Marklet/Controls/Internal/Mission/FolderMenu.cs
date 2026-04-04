@@ -24,6 +24,7 @@ using KuiperZone.Marklet.PixieChrome.Windows;
 using KuiperZone.Marklet.PixieChrome;
 using KuiperZone.Marklet.Tooling;
 using KuiperZone.Marklet.Shared;
+using Avalonia.LogicalTree;
 
 namespace KuiperZone.Marklet.Controls.Internal.Mission;
 
@@ -197,7 +198,7 @@ internal abstract class FolderMenu : ContextMenu
     private void OpenedHandler(object? _, EventArgs __)
     {
         Basket = null;
-        Caller = this.GetParentOf<FolderView>();
+        Caller = this.FindLogicalAncestorOfType<FolderView>();
         ConditionalDebug.ThrowIfNotEqual(Kind, Caller?.Owner.Kind);
 
         if (Caller?.Owner is BasketView view)
@@ -224,7 +225,7 @@ internal abstract class FolderMenu : ContextMenu
         if (Caller != null && Basket != null)
         {
             var item = new GardenDeck(DeckKind.Chat, Kind);
-            item.IsCurrent = true;
+            item.IsFocused = true;
             item.Folder = Caller.FolderName;
             item.VisualSignals = SignalFlags.OpenFolder;
             Basket.Garden.Insert(item);
@@ -236,7 +237,7 @@ internal abstract class FolderMenu : ContextMenu
         if (Caller != null && Basket != null)
         {
             var item = new GardenDeck(DeckKind.Note, Kind);
-            item.IsCurrent = true;
+            item.IsFocused = true;
             item.Folder = Caller.FolderName;
             item.VisualSignals = SignalFlags.OpenFolder;
             Basket.Garden.Insert(item);

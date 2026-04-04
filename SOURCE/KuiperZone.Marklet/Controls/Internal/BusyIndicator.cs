@@ -23,6 +23,8 @@ using Avalonia;
 using KuiperZone.Marklet.PixieChrome;
 using Avalonia.Controls.Shapes;
 using Avalonia.Threading;
+using Avalonia.Media;
+using Avalonia.VisualTree;
 
 namespace KuiperZone.Marklet.Controls.Internal;
 
@@ -31,18 +33,15 @@ namespace KuiperZone.Marklet.Controls.Internal;
 /// </summary>
 internal sealed class BusyIndicator : Border
 {
-    private const int IndicatorCount = 3;
+    private const int IndicatorCount = 4;
     private static readonly ChromeStyling Styling = ChromeStyling.Global;
-    private static readonly TimeSpan Delay0 = TimeSpan.FromMilliseconds(150);
-    private static readonly TimeSpan Delay1 = TimeSpan.FromMilliseconds(50);
 
     private readonly Ellipse[] _indicators = new Ellipse[IndicatorCount];
     private readonly Grid _grid = new();
     private readonly StackPanel _panel = new();
     private readonly TextBlock _message = new();
     private readonly DispatcherTimer _timer = new();
-    private int _counter = 0;
-    private bool _overlap;
+    private int _counter = -IndicatorCount;
 
     /// <summary>
     /// Default constructor.
@@ -62,14 +61,14 @@ internal sealed class BusyIndicator : Border
         _message.FontSize = ChromeFonts.SmallFontSize;
         _message.Margin = new(0.0, ChromeSizes.OneCh, 0.0, 0.0);
         _message.Foreground = ChromeStyling.GrayForeground;
-        _message.TextWrapping = Avalonia.Media.TextWrapping.Wrap;
-        _message.TextTrimming = Avalonia.Media.TextTrimming.CharacterEllipsis;
-        Message = "Doing stuff...";
+        _message.TextWrapping = TextWrapping.Wrap;
+        _message.TextTrimming = TextTrimming.CharacterEllipsis;
+        Message = "Thinking…";
         Grid.SetRow(_message, 1);
         _grid.Children.Add(_message);
 
-        var size = ChromeFonts.DefaultFontSize;
-        _panel.Spacing = 2.0 * size / 3.0;
+        var size = ChromeFonts.DefaultFontSize * 0.6;
+        _panel.Spacing = size;
 
         for (int n = 0; n < IndicatorCount; ++n)
         {
@@ -82,6 +81,7 @@ internal sealed class BusyIndicator : Border
         }
 
         _timer.Tick += TimerTickHandler;
+        _timer.Interval = TimeSpan.FromMilliseconds(100);
     }
 
     /// <summary>
@@ -104,9 +104,7 @@ internal sealed class BusyIndicator : Border
     protected override void OnAttachedToVisualTree(VisualTreeAttachmentEventArgs e)
     {
         base.OnAttachedToVisualTree(e);
-
         Reset();
-        _timer.Start();
     }
 
     /// <summary>
@@ -118,46 +116,50 @@ internal sealed class BusyIndicator : Border
         _timer.Stop();
     }
 
+    protected override void OnPropertyChanged(AvaloniaPropertyChangedEventArgs change)
+    {
+        base.OnPropertyChanged(change);
+
+        if (change.Property == IsVisibleProperty)
+        {
+            Reset();
+        }
+    }
+
     private void Reset()
     {
-        _counter = 0;
-        _overlap = false;
-        _timer.Interval = Delay0;
+        _counter = -IndicatorCount;
 
         foreach (var item in _indicators)
         {
             item.Fill = ChromeStyling.GrayForeground;
         }
+
+        _timer.IsEnabled = IsEffectivelyVisible;
     }
 
     private void TimerTickHandler(object? _, EventArgs __)
     {
-        if (_overlap)
-        {
-            _overlap = false;
-            _timer.Interval = Delay0;
-        }
-        else
-        {
-            _overlap = true;
-            _timer.Interval = Delay1;
+        int x0 = Math.Abs(_counter);
+        int x = IndicatorCount - x0;
+        var b0 = Styling.Accent50;
+        var b1 = ChromeStyling.GrayForeground;
 
-            if (++_counter > IndicatorCount)
-            {
-                Reset();
-                return;
-            }
+        if (_counter++ > 0)
+        {
+            x = x0;
+            b0 = ChromeStyling.GrayForeground;
+            b1 = Styling.Accent50;
         }
 
-        for (int n = 0; n < _counter; ++n)
+        for (int n = 0; n < IndicatorCount; ++n)
         {
-            if (n == _counter - 1 || (_overlap && n == _counter - 2))
-            {
-                _indicators[n].Fill = Styling.AccentBrush;
-                continue;
-            }
+            _indicators[n].Fill = n < x ? b0 : b1;
+        }
 
-            _indicators[n].Fill = ChromeStyling.GrayForeground;
+        if (_counter > IndicatorCount)
+        {
+            _counter = -IndicatorCount;
         }
     }
 }

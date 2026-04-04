@@ -136,9 +136,9 @@ public sealed class MarkElement : IEquatable<MarkElement>
     /// This variant will return a maximum of two items.
     /// </remarks>
     /// <exception cref="ArgumentOutOfRangeException">index or length</exception>
-    public MarkElement[] Split(int index, InlineStyling styling, bool preserveLink = true)
+    public MarkElement[] Split(int index, InlineStyling midStyling, bool preserveLink = true)
     {
-        return Split(index, Text.Length - index, styling, preserveLink);
+        return Split(index, Text.Length - index, midStyling, preserveLink);
     }
 
     /// <summary>
@@ -168,13 +168,14 @@ public sealed class MarkElement : IEquatable<MarkElement>
         var link = preserveLink ? Link : null;
 
         int count = 1;
+        int indexN = length + index;
 
         if (index > 0)
         {
             count += 1;
         }
 
-        if (length < Text.Length)
+        if (indexN < Text.Length)
         {
             count += 1;
         }
@@ -196,9 +197,9 @@ public sealed class MarkElement : IEquatable<MarkElement>
 
         array[count++] = new MarkElement(Text.Substring(index, length), midStyling, link);
 
-        if (length < Text.Length)
+        if (indexN < Text.Length)
         {
-            array[count] = new MarkElement(Text.Substring(length), Styling, link);
+            array[count] = new MarkElement(Text.Substring(indexN), Styling, link);
         }
 
         return array;

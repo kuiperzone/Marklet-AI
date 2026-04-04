@@ -26,23 +26,31 @@ internal sealed class PixieSelectablePage : PixiePageBase
 {
     public PixieSelectablePage()
     {
-        Title = nameof(PixieSelectable);
+        Title = nameof(PixieSelectableText);
         Symbol = Symbols.TextFields;
 
-        var group = NewGroup(nameof(PixieSelectable));
+        var group = NewGroup(nameof(PixieSelectableText));
 
-        NewControl<PixieSelectable>(group);
+        var control = NewControl<PixieSelectableText>(group);
+        control.Title = "Title:";
+        control.Text = "Multiline\nTitle\nMultiline\nTitle";
 
-        var control = NewControl<PixieSelectable>(group);
-        control.Title = "Multiline\nTitle\nMultiline\nTitle";
-        AddAccoutrements(control);
+        control = NewControl<PixieSelectableText>(group);
+        control.Text = "Text";
 
-        control = NewControl<PixieSelectable>(group);
-        AddAccoutrements(control);
-        control.LeftButton.Content = "Left";
+        control = NewControl<PixieSelectableText>(group);
+        control.Title = "Title:";
+        control.Text = "Text";
+        control.TextAlignment = Avalonia.Media.TextAlignment.Right;
 
-        control = NewControl<PixieSelectable>(group, false);
-        AddAccoutrements(control);
-        control.RightButton.Content = "Right";
+        control = NewControl<PixieSelectableText>(group);
+        control.Title = "Title:";
+        control.Text = "Long text, Long text, Long text, Long text";
+        control.TextAlignment = Avalonia.Media.TextAlignment.Right;
+
+        control = NewControl<PixieSelectableText>(group);
+        control.Title = "Title:";
+        control.Text = "Long text no wrap, Long text no wrap, Long text no wrap";
+        control.TextAlignment = Avalonia.Media.TextAlignment.Right;
     }
 }

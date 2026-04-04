@@ -21,6 +21,7 @@
 using System.Text;
 using Avalonia.Layout;
 using Avalonia.Media;
+using KuiperZone.Marklet.PixieChrome.Shared;
 using KuiperZone.Marklet.Tooling;
 using KuiperZone.Marklet.Tooling.Markdown;
 
@@ -31,8 +32,8 @@ namespace KuiperZone.Marklet.PixieChrome.Controls.Internal;
 /// </summary>
 internal class MarkTextHost : MarkBlockHost
 {
-    public MarkTextHost(MarkView owner, IReadOnlyMarkBlock source)
-        : base(owner, source)
+    public MarkTextHost(MarkShim shim, IReadOnlyMarkBlock source)
+        : base(shim, source)
     {
         const string NSpace = $"{nameof(MarkTextHost)}.{nameof(MarkTextHost)}";
 
@@ -40,7 +41,7 @@ internal class MarkTextHost : MarkBlockHost
         ConditionalDebug.ThrowIfEqual(BlockKind.Rule, Kind);
 
         CrossText = new CrossTextBlock(null); // <- null intentional (parent has menu)
-        CrossText.Tracker = Owner.Tracker;
+        CrossText.Tracker = shim.Owner.Tracker;
         Control = CrossText;
         Track0 = CrossText;
         Track1 = CrossText;
@@ -124,26 +125,28 @@ internal class MarkTextHost : MarkBlockHost
         double kindScale = Kind.ToXamlFontScale();
         child.FontWeight = Kind.ToXamlFontWeight();
 
-        child.SelectionBrush = Owner.SelectionBrush;
-        child.LinkHoverBrush = Owner.LinkHoverBrush;
-        child.LinkHoverUnderline = Owner.LinkHoverUnderline;
+        var owner = Shim.Owner;
+        var foreground = Shim.ActualForeground;
+        child.SelectionBrush = owner.SelectionBrush;
+        child.LinkHoverBrush = owner.LinkHoverBrush;
+        child.LinkHoverUnderline = owner.LinkHoverUnderline;
 
         bool hasStyle = false;
         bool hasFamily = false;
         bool hasForeground = false;
         bool hasLineHeight = false;
         bool hasLetterSpacing = false;
-        double scaledSize = Owner.ScaledFontSize * kindScale;
+        double fontSize = Shim.FontSize * kindScale;
 
         if (Kind.IsHeading())
         {
             ConditionalDebug.WriteLine(NSpace, "Is Heading");
             hasForeground = true;
-            child.SetForeground(Owner.HeadingForeground);
+            child.SetForeground(owner.HeadingForeground ?? foreground);
 
             hasFamily = true;
-            child.FontFamily = Owner.HeadingFamily;
-            child.FontSize = scaledSize * Owner.HeadingSizeCorrection;
+            child.FontFamily = owner.HeadingFamily;
+            child.FontSize = fontSize * owner.HeadingSizeCorrection;
 
             // Slightly smaller for this
             hasLineHeight = true;
@@ -154,8 +157,8 @@ internal class MarkTextHost : MarkBlockHost
         {
             ConditionalDebug.WriteLine(NSpace, "Is code");
             hasFamily = true;
-            child.FontFamily = Owner.MonoFamily;
-            child.FontSize = scaledSize * Owner.MonoSizeCorrection;
+            child.FontFamily = owner.MonoFamily;
+            child.FontSize = fontSize * owner.MonoSizeCorrection;
 
             if (Kind == BlockKind.TableCode)
             {
@@ -173,17 +176,17 @@ internal class MarkTextHost : MarkBlockHost
         {
             ConditionalDebug.WriteLine(NSpace, "Has quote level");
 
-            if (Owner.QuoteItalic)
+            if (owner.QuoteItalic)
             {
                 hasStyle = true;
                 child.FontStyle = FontStyle.Italic;
             }
 
-            if (Owner.QuoteFamily != null)
+            if (owner.QuoteFamily != null)
             {
                 hasFamily = true;
-                child.FontFamily = Owner.QuoteFamily;
-                child.FontSize = scaledSize * Owner.QuoteSizeCorrection;
+                child.FontFamily = owner.QuoteFamily;
+                child.FontSize = fontSize * owner.QuoteSizeCorrection;
             }
         }
 
@@ -194,23 +197,23 @@ internal class MarkTextHost : MarkBlockHost
 
         if (!hasFamily)
         {
-            child.FontFamily = Owner.FontFamily;
-            child.FontSize = scaledSize * Owner.FontSizeCorrection;
+            child.FontFamily = owner.FontFamily;
+            child.FontSize = fontSize * owner.FontSizeCorrection;
         }
 
         if (!hasLineHeight)
         {
-            child.LineHeight = Owner.ScaledLineHeight * kindScale;
+            child.LineHeight = Shim.LineHeight * kindScale;
         }
 
         if (!hasLetterSpacing)
         {
-            child.LetterSpacing = Owner.ScaledLetterSpacing * kindScale;
+            child.LetterSpacing = Shim.LetterSpacing * kindScale;
         }
 
         if (!hasForeground)
         {
-            child.SetForeground(Owner.Foreground);
+            child.SetForeground(foreground);
         }
 
         ConditionalDebug.WriteLine(NSpace, "Done ok");
@@ -243,7 +246,7 @@ internal class MarkTextHost : MarkBlockHost
 
         for (int n = 0; n < elemCount; ++n)
         {
-            inlines.Add(new MarkRun(Owner, Kind, elements[n]));
+            inlines.Add(new MarkRun(Shim, Kind, elements[n]));
         }
     }
 

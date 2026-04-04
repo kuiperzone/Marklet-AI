@@ -121,6 +121,16 @@ public static class Symbols
     public const string ArrowCircleUp = "\uf182";
 
     /// <summary>
+    /// arrow_downward
+    /// </summary>
+    public const string ArrowDownward = "\ue5db";
+
+    /// <summary>
+    /// arrow_downward_alt
+    /// </summary>
+    public const string ArrowDownwardAlt = "\ue984";
+
+    /// <summary>
     /// arrow_drop_down
     /// </summary>
     public const string ArrowDropDown = "\ue5c5";
@@ -134,6 +144,31 @@ public static class Symbols
     /// arrow_forward
     /// </summary>
     public const string ArrowForward = "\ue5c8";
+
+    /// <summary>
+    /// arrow_left_alt
+    /// </summary>
+    public const string ArrowLeftAlt = "\uef7d";
+
+    /// <summary>
+    /// arrow_outward
+    /// </summary>
+    public const string ArrowOutward = "\uf8ce";
+
+    /// <summary>
+    /// arrow_right_alt
+    /// </summary>
+    public const string ArrowRightAlt = "\ue941";
+
+    /// <summary>
+    /// arrow_upward
+    /// </summary>
+    public const string ArrowUpward = "\ue5d8";
+
+    /// <summary>
+    /// arrow_upward_alt
+    /// </summary>
+    public const string ArrowUpwardAlt = "\ue986";
 
     /// <summary>
     /// arrow_warm_up
@@ -746,6 +781,16 @@ public static class Symbols
     public const string Home = "\ue88a";
 
     /// <summary>
+    /// horizontal_align_left
+    /// </summary>
+    public const string HorizontalAlignLeft = "\ufff9b";
+
+    /// <summary>
+    /// horizontal_align_right
+    /// </summary>
+    public const string HorizontalAlignRight = "\ufff9a";
+
+    /// <summary>
     /// hourglass
     /// </summary>
     public const string Hourglass = "\uebff";
@@ -1299,6 +1344,16 @@ public static class Symbols
     /// user_attributes
     /// </summary>
     public const string UserAttributes = "\ue708";
+
+    /// <summary>
+    /// vertical_align_bottom
+    /// </summary>
+    public const string VerticalAlignBottom = "\ue258";
+
+    /// <summary>
+    /// vertical_align_top
+    /// </summary>
+    public const string VerticalAlignTop = "\ue25a";
 
     /// <summary>
     /// visibility

@@ -26,7 +26,7 @@ using Avalonia.Input;
 namespace KuiperZone.Marklet.Controls;
 
 /// <summary>
-/// Subclass of <see cref="MarkView"/> for use by <see cref="DeckViewer"/>.
+/// Inner prompt input control.
 /// </summary>
 public sealed class PromptBar : Border
 {
@@ -40,7 +40,7 @@ public sealed class PromptBar : Border
     public PromptBar()
     {
         const int BarColumn = 0;
-        // const int AttachColumn = 1;
+        // const int AttachColumn = 1; TBD
         const int SubmitColumn = 2;
 
         Child = _grid;

@@ -85,9 +85,9 @@ public interface IReadOnlyMarkBlock : IReadOnlyStyledContainer,
     /// </summary>
     /// <remarks>
     /// When <see cref="Table"/> is not null, <see cref="Kind"/> is expected to equal <see cref="BlockKind.TableCode"/>.
-    /// Where <see cref="Table"/> was created by <see cref="MarkDocument.Update"/>, <see
-    /// cref="StyledContainer.Elements"/> will also be populated with a plain text variant of the table which should be
-    /// displayed in monospace. The <see cref="Table"/> instance is not considered in equality or hash codes.
+    /// Where <see cref="Table"/> was created by <see cref="MarkDocument"/>, <see cref="StyledContainer.Elements"/> will
+    /// also be populated with a plain text variant of the table which should be displayed in monospace. The <see
+    /// cref="Table"/> instance is not considered in equality or hash codes.
     /// </remarks>
     MarkTable? Table { get; }
 

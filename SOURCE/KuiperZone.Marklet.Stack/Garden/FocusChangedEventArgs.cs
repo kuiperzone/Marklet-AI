@@ -21,20 +21,26 @@
 namespace KuiperZone.Marklet.Stack.Garden;
 
 /// <summary>
-/// Event arguments for <see cref="MemoryGarden.CurrentUpdated"/>.
+/// Event arguments for <see cref="MemoryGarden.FocusChanged"/>.
 /// </summary>
-public sealed class CurrentDeckUpdatedEventArgs : EventArgs
+public sealed class FocusChangedEventArgs : EventArgs
 {
     /// <summary>
     /// Constructor.
     /// </summary>
-    public CurrentDeckUpdatedEventArgs(GardenDeck current)
+    public FocusChangedEventArgs(GardenDeck? current, GardenDeck? previous)
     {
         Current = current;
+        Previous = previous;
     }
 
     /// <summary>
-    /// Gets the selected instance which has been updated.
+    /// Gets the newly current instance which may be null (none).
     /// </summary>
-    public GardenDeck Current { get; }
+    public GardenDeck? Current { get; }
+
+    /// <summary>
+    /// Gets the previous instance which may be null (none), or an instance that has been removed.
+    /// </summary>
+    public GardenDeck? Previous { get; }
 }

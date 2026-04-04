@@ -18,7 +18,9 @@
 // You should have received a copy of the GNU Affero General Public License along
 // with Marklet. If not, see <https://www.gnu.org/licenses/>.
 
+using KuiperZone.Marklet.PixieChrome.Controls;
 using KuiperZone.Marklet.PixieChrome.Controls.Internal;
+using KuiperZone.Marklet.PixieChrome.Shared;
 using KuiperZone.Marklet.Tooling.Markdown;
 using Xunit.Abstractions;
 
@@ -79,7 +81,7 @@ public class MarkRuleHostTest
         _out.WriteLine(obj.ToString());
 
         var exp = "Control=CrossTextBlock, QuoteLevel=0, ListLevel=0, Kind=H1, Control.Margin=0,30.099999999999998,0,7, CrossText.Background=Transparent, " +
-        "CrossText.TextWrapping=Wrap, CrossText.VerticalAlignment=Top, CrossText.FontFamily=$Default, CrossText.FontSize=23.099999999999998, "+
+        "CrossText.TextWrapping=Wrap, CrossText.VerticalAlignment=Top, CrossText.FontFamily=$Default, CrossText.FontSize=23.099999999999998, " +
         "CrossText.FontWeight=Bold, CrossText.LineHeight=NaN, CrossText.LetterSpacing=2.145, CrossText.Foreground=Black, CrossText.Text=change";
 
         Assert.Equal(exp, obj.ToString());
@@ -119,12 +121,12 @@ public class MarkRuleHostTest
         Assert.Equal(exp, obj.ToString());
     }
 
-    private MarkBlockHost Assert_New_ConsumeUpdates(int blockIndex, Type expectType)
+    private static MarkBlockHost Assert_New_ConsumeUpdates(int blockIndex, Type expectType)
     {
         var doc = NewDoc();
 
         int index = blockIndex;
-        var obj = MarkBlockHost.New(new(), doc, ref index);
+        var obj = MarkBlockHost.New(new MarkShim(new MarkControl()), doc, ref index);
         Assert.IsType(expectType, obj);
 
         // Again
@@ -151,7 +153,7 @@ public class MarkRuleHostTest
         return obj;
     }
 
-    private MarkDocument NewDoc(string value = "value")
+    private static MarkDocument NewDoc(string value = "value")
     {
         // Block 0: rule
         // Block 1: para

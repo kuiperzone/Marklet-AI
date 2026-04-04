@@ -387,9 +387,9 @@ a10   a11";
     }
 
     [Fact]
-    public void Update_Basic_IgnoreInline()
+    public void Constructor_Basic_NoInlines()
     {
-        var obj = UpdateWriteOut(BasicSource, MarkOptions.IgnoreInline);
+        var obj = NewObj(BasicSource, MarkOptions.Markdown & ~MarkOptions.Inlines);
 
         // # Heading `Code` 1\\\\\n## Heading 2 **Bold** ##\\\\\nBody [Link]([http://uri.com](http://uri.com) 'title')
         Assert.Equal(BlockKind.Para, obj[0].Kind);
@@ -573,9 +573,9 @@ a10   a11";
     }
 
     [Fact]
-    public void Update_Basic_DefaultOpts()
+    public void Constructor_Basic_DefaultOpts()
     {
-        var obj = UpdateWriteOut(BasicSource);
+        var obj = NewObj(BasicSource);
         //
         // # Heading `Code` 1\\
         Assert.Equal(BlockKind.H1, obj[0].Kind);
@@ -889,7 +889,7 @@ a10   a11";
     }
 
     [Fact]
-    public void Update_Basic_DefaultOpts_Roundtrip()
+    public void Constructor_Basic_DefaultOpts_Roundtrip()
     {
         var obj0 = new MarkDocument(BasicSource);
         var mark0 = obj0.ToString(TextFormat.Markdown);

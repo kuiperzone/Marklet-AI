@@ -151,10 +151,9 @@ public class BaseTest
         return nameof(InlineStyling) + "." + flags.ToString().Replace(", ", " | " + nameof(InlineStyling) + ".");
     }
 
-    protected static MarkDocument UpdateWriteOut(string? content, MarkOptions opts = default)
+    protected static MarkDocument NewObj(string? content, MarkOptions opts = MarkOptions.Markdown)
     {
-        var obj = new MarkDocument();
-        obj.Update(content, opts);
+        var obj = new MarkDocument(content, opts);
         WriteTestCode(obj);
         return obj;
     }

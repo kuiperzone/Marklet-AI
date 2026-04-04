@@ -85,7 +85,7 @@ public enum InlineStyling
     Math = 0x00000200,
 
     /// <summary>
-    /// Behaves as <see cref="Mark"/>, but treated as disctinct and no way to specify in text.
+    /// Behaves as <see cref="Mark"/>, but treated as disctinct with no way to specify in source markdown text.
     /// </summary>
     /// <remarks>
     /// Has no markdown equivalent and does not export to HTML.

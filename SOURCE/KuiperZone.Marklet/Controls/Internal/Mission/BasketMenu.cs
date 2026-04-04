@@ -22,8 +22,6 @@ using Avalonia.Controls;
 using KuiperZone.Marklet.Stack.Garden;
 using KuiperZone.Marklet.Tooling;
 using KuiperZone.Marklet.Shared;
-using Avalonia.Input;
-using Avalonia.Interactivity;
 using KuiperZone.Marklet.PixieChrome;
 
 namespace KuiperZone.Marklet.Controls.Internal.Mission;
@@ -33,29 +31,28 @@ namespace KuiperZone.Marklet.Controls.Internal.Mission;
 /// </summary>
 internal sealed class BasketMenu : ContextMenu
 {
-    private readonly BasketCase _bcase;
+    private readonly BasketView _view;
     private readonly MoreBar _folderMore;
     private readonly MoreBar _historyMore;
 
     /// <summary>
     /// Constructor.
     /// </summary>
-    public BasketMenu(BasketCase bcase)
+    public BasketMenu(BasketToolbar toolbar)
     {
-        _bcase = bcase;
-        _folderMore = bcase.FolderMore;
+        _view = toolbar.View;
+        _folderMore = _view.FolderMore;
         ConditionalDebug.ThrowIfNull(_folderMore);
 
-        _historyMore = bcase.HistoryMore;
+        _historyMore = toolbar.View.HistoryMore;
         ConditionalDebug.ThrowIfNull(_historyMore);
 
-        Kind = bcase.Kind;
-        var deckKind = Kind.DefaultDeck();
+        var kind = toolbar.Kind;
+        var deckKind = kind.DefaultDeck();
 
-        var main = bcase.Mission;
-        var view = bcase.View;
+        var main = _view.Mission;
 
-        if (Kind.CanInstigateNew())
+        if (kind.CanInstigateNew())
         {
             var menu = new MenuItem();
             menu.Header = ChromeFonts.NewRunBlock($"{Symbols.EditSquare} New {deckKind.DisplayName(DisplayKind.Default)}");
@@ -65,7 +62,7 @@ internal sealed class BasketMenu : ContextMenu
             Items.Add(menu);
             menu.Click += (_, __) => main.OnNewClicked();
 
-            if (Kind == BasketKind.Recent)
+            if (kind == BasketKind.Recent)
             {
                 // Special entry for this
                 menu = new MenuItem();
@@ -88,12 +85,12 @@ internal sealed class BasketMenu : ContextMenu
         PinTopItem.InputGesture = BasketKeys.PinTopGesture;
         PinTopItem.ToggleType = MenuItemToggleType.CheckBox;
         PinTopItem.IsChecked = true; // <- leave initial space (will be reset)
-        PinTopItem.Click += (_, __) => view.IsPinTop = !view.IsPinTop;
+        PinTopItem.Click += (_, __) => _view.IsPinTop = !_view.IsPinTop;
         Items.Add(PinTopItem);
 
         Items.Add(new Separator());
 
-        if (Kind != BasketKind.Waste)
+        if (kind != BasketKind.Waste)
         {
             NewFolderItem.Header = ChromeFonts.NewRunBlock($"{Symbols.CreateNewFolder} New Folder\u2026");
             NewFolderItem.InputGesture = BasketKeys.FolderGesture;
@@ -102,31 +99,29 @@ internal sealed class BasketMenu : ContextMenu
 
         ExpandFoldersItem.Header = ChromeFonts.NewRunBlock($"{Symbols.FolderOpen} Expand Folders");
         ExpandFoldersItem.InputGesture = BasketKeys.ExpandGesture;
-        ExpandFoldersItem.Click += (_, __) => view.ExpandFolders();
+        ExpandFoldersItem.Click += (_, __) => _view.ExpandFolders();
         Items.Add(ExpandFoldersItem);
 
         CloseFoldersItem.Header = ChromeFonts.NewRunBlock($"{Symbols.Folder} Close Folders");
         CloseFoldersItem.InputGesture = BasketKeys.CloseGesture;
-        CloseFoldersItem.Click += (_, __) => view.CloseFolders();
+        CloseFoldersItem.Click += (_, __) => _view.CloseFolders();
         Items.Add(CloseFoldersItem);
 
         Items.Add(new Separator());
 
-        if (Kind != BasketKind.Waste)
+        if (kind != BasketKind.Waste)
         {
-            PruneItem.Header = ChromeFonts.NewRunBlock($"{Symbols.Delete} Prune {Kind.DisplayName()}\u2026");
+            PruneItem.Header = ChromeFonts.NewRunBlock($"{Symbols.Delete} Prune {kind.DisplayName()}\u2026");
             Items.Add(PruneItem);
         }
         else
         {
-            EmptyItem.Header = ChromeFonts.NewRunBlock($"{Symbols.DeleteForever} Empty {Kind.DisplayName()}\u2026");
+            EmptyItem.Header = ChromeFonts.NewRunBlock($"{Symbols.DeleteForever} Empty {kind.DisplayName()}\u2026");
             Items.Add(EmptyItem);
         }
 
         Opened += OpenedHandler;
     }
-
-    public BasketKind Kind { get; }
 
     public MenuItem SearchItem { get; } = new();
     public MenuItem PinTopItem { get; } = new();
@@ -144,10 +139,10 @@ internal sealed class BasketMenu : ContextMenu
     private void OpenedHandler(object? _, EventArgs __)
     {
         Focus();
-        SearchItem.IsChecked = _bcase.IsSearching;
-        PinTopItem.IsChecked = _bcase.View.IsPinTop;
-        ExpandFoldersItem.IsEnabled = _bcase.FolderHeader.Count > 0;
-        CloseFoldersItem.IsEnabled = _bcase.FolderHeader.Count > 0;
+        SearchItem.IsChecked = _view.IsSearching;
+        PinTopItem.IsChecked = _view.IsPinTop;
+        ExpandFoldersItem.IsEnabled = _view.FolderHeader.Count > 0;
+        CloseFoldersItem.IsEnabled = _view.FolderHeader.Count > 0;
     }
 
 }

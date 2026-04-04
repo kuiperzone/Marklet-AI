@@ -349,9 +349,9 @@ public class StyledContainer : IReadOnlyStyledContainer, IEquatable<IReadOnlySty
         }
 
         bool wantImages = !opts.HasFlag(MarkOptions.ImageAsLink);
-        bool ignoreInline = opts.HasFlag(MarkOptions.IgnoreInline);
-        bool ignorePlainLinks = opts.HasFlag(MarkOptions.IgnorePlainLinks);
-        bool htmlAsCode = opts.HasFlag(MarkOptions.InlineHtmlAsCode) && !ignoreInline;
+        bool inlines = opts.HasFlag(MarkOptions.Inlines);
+        bool plainLinks = opts.HasFlag(MarkOptions.PlainLinks);
+        bool htmlAsCode = opts.HasFlag(MarkOptions.InlineHtmlAsCode) && inlines;
 
         bool isHtmlLinkOpen = false;
         List<string>? htmlTags = null;
@@ -373,15 +373,15 @@ public class StyledContainer : IReadOnlyStyledContainer, IEquatable<IReadOnlySty
                         continue;
                     }
 
-                    if (ignoreInline)
+                    if (inlines)
                     {
-                        ConditionalDebug.WriteLine(nameof(StyledContainer), $"{nameof(ignoreInline)} is true");
-                        Elements.Add(new(content, styling, info));
+                        ConditionalDebug.WriteLine(nameof(StyledContainer), $"{nameof(inlines)} is true");
+                        Elements.Add(new(content.Replace("\n", " "), styling, info));
                         continue;
                     }
 
-                    ConditionalDebug.WriteLine(nameof(StyledContainer), $"{nameof(ignoreInline)} is false");
-                    Elements.Add(new(content.Replace("\n", " "), styling, info));
+                    ConditionalDebug.WriteLine(nameof(StyledContainer), $"{nameof(inlines)} is false");
+                    Elements.Add(new(content, styling, info));
                     continue;
                 case EmphasisInline em:
                     var es = em.DelimiterCount == 2 ? InlineStyling.Strong : InlineStyling.Emphasis;
@@ -412,14 +412,14 @@ public class StyledContainer : IReadOnlyStyledContainer, IEquatable<IReadOnlySty
                     {
                         ConditionalDebug.ThrowIfNull(link.Url);
 
-                        if (!ignorePlainLinks)
+                        if (plainLinks)
                         {
                             ConditionalDebug.WriteLine(nameof(StyledContainer), "Plain text link");
                             Elements.Add(new(link.Url ?? "", styling, new(link.Url)));
                             continue;
                         }
 
-                        ConditionalDebug.WriteLine(nameof(StyledContainer), $"{nameof(ignorePlainLinks)} is true");
+                        ConditionalDebug.WriteLine(nameof(StyledContainer), $"{nameof(plainLinks)} is false");
                         Elements.Add(new(link.Url ?? "", styling));
                         continue;
                     }
@@ -434,7 +434,7 @@ public class StyledContainer : IReadOnlyStyledContainer, IEquatable<IReadOnlySty
                 case LineBreakInline brk:
                     ConditionalDebug.WriteLine(nameof(StyledContainer), "+ " +nameof(LineBreakInline));
 
-                    if ((ignoreInline || brk.IsHard) && !styling.HasFlag(InlineStyling.Code))
+                    if ((!inlines || brk.IsHard) && !styling.HasFlag(InlineStyling.Code))
                     {
                         ConditionalDebug.WriteLine(nameof(StyledContainer), "Hard link");
                         Elements.Add(MarkElement.Newline);
@@ -452,10 +452,10 @@ public class StyledContainer : IReadOnlyStyledContainer, IEquatable<IReadOnlySty
                 case HtmlInline html:
                     ConditionalDebug.WriteLine(nameof(StyledContainer), $"+ {nameof(HtmlInline)} tag: {html.Tag}");
 
-                    if (ignoreInline)
+                    if (!inlines)
                     {
                         // The HtmlInline seems to still be firing even if pipe is built with inline parser?
-                        ConditionalDebug.WriteLine(nameof(StyledContainer), $"{nameof(ignoreInline)} is true");
+                        ConditionalDebug.WriteLine(nameof(StyledContainer), $"{nameof(inlines)} is false");
                         Elements.Add(new(html.Tag, styling, info));
                         continue;
                     }

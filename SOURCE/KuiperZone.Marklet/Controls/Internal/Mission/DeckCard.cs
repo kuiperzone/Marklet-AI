@@ -26,6 +26,7 @@ using KuiperZone.Marklet.Shared;
 using KuiperZone.Marklet.Windows;
 using Avalonia.Input;
 using Avalonia.Controls;
+using Avalonia.LogicalTree;
 
 namespace KuiperZone.Marklet.Controls.Internal.Mission;
 
@@ -57,7 +58,7 @@ internal sealed class DeckCard : PixieCard
         RightButton.DropMenu = CardMenu.Get(this);
         IsHoverButton = true;
 
-        Click += (_, __) => Source.IsCurrent = true;
+        Click += (_, __) => Source.IsFocused = true;
         DoubleTapped += (_, __) => ShowPropertiesWindow();
     }
 
@@ -194,7 +195,6 @@ internal sealed class DeckCard : PixieCard
             ConditionalDebug.WriteLine(NSpace, "Capture released");
             e.Handled = true;
             e.Pointer.Capture(null);
-            Cursor = null;
             target?.AcceptDrop(Source);
         }
     }
@@ -205,6 +205,11 @@ internal sealed class DeckCard : PixieCard
 
         _dropTarget = null;
         target?.CancelDrop();
+
+        if (target != null)
+        {
+            Cursor = null;
+        }
 
         return target;
     }
@@ -217,7 +222,7 @@ internal sealed class DeckCard : PixieCard
         if (top != null && top.InputHitTest(e.GetPosition(top)) is Control control)
         {
             ConditionalDebug.WriteLine(NSpace, "Control: " + control);
-            return control.GetThisOrParentOf<IDeckDrop>();
+            return control.FindLogicalAncestorOfType<IDeckDrop>(true);
         }
 
         return null;

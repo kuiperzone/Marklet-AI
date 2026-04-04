@@ -32,8 +32,8 @@ public class SubmittedEventArgs : RoutedEventArgs
     /// </summary>
     public SubmittedEventArgs(string? oldText, string? newText)
     {
-        OldText = oldText;
-        NewText = newText;
+        StartText = oldText;
+        CurrentText = newText;
     }
 
     /// <summary>
@@ -42,8 +42,8 @@ public class SubmittedEventArgs : RoutedEventArgs
     public SubmittedEventArgs(RoutedEvent routedEvent, object? source, string? oldText, string? newText)
         : base(routedEvent, source)
     {
-        OldText = oldText;
-        NewText = newText;
+        StartText = oldText;
+        CurrentText = newText;
     }
 
     /// <summary>
@@ -52,12 +52,12 @@ public class SubmittedEventArgs : RoutedEventArgs
     /// <remarks>
     /// This is the "Text" value of <see cref="TextEditor"/> at the moment it is added to the visual tree.
     /// </remarks>
-    public string? OldText { get; }
+    public string? StartText { get; }
 
     /// <summary>
     /// Gets the submitted Text value.
     /// </summary>
-    public string? NewText { get; }
+    public string? CurrentText { get; }
 
     /// <summary>
     /// Gets or sets whether the submit is to be rejected.

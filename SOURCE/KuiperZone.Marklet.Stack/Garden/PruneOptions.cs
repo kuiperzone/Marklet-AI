@@ -72,6 +72,6 @@ public class PruneOptions
         return DateTime.UtcNow - obj.Updated > Period &&
             (RemovePinned || !obj.IsPinned) &&
             (RemoveFolderItems || obj.Folder == null) && // TBD project info
-            (!IgnoreCurrent || !obj.IsCurrent);
+            (!IgnoreCurrent || !obj.IsFocused);
     }
 }

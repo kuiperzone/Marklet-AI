@@ -20,6 +20,7 @@
 
 using System.Text;
 using Avalonia.Controls;
+using KuiperZone.Marklet.PixieChrome.Shared;
 using KuiperZone.Marklet.Tooling.Markdown;
 
 namespace KuiperZone.Marklet.PixieChrome.Controls.Internal;
@@ -29,8 +30,8 @@ namespace KuiperZone.Marklet.PixieChrome.Controls.Internal;
 /// </summary>
 internal abstract class MarkBlockHost : MarkVisualHost
 {
-    protected MarkBlockHost(MarkView owner, IReadOnlyMarkBlock source)
-        : base(owner)
+    protected MarkBlockHost(MarkShim shim, IReadOnlyMarkBlock source)
+        : base(shim)
     {
         Source = source;
         Kind = source.Kind;
@@ -62,7 +63,7 @@ internal abstract class MarkBlockHost : MarkVisualHost
     /// <remarks>
     /// Always consumes exactly one block.
     /// </remarks>
-    public new static MarkBlockHost New(MarkView owner, IReadOnlyList<IReadOnlyMarkBlock> sequence, ref int index)
+    public new static MarkBlockHost New(MarkShim shim, IReadOnlyList<IReadOnlyMarkBlock> sequence, ref int index)
     {
         int orig = index;
         var source = sequence[index];
@@ -70,7 +71,7 @@ internal abstract class MarkBlockHost : MarkVisualHost
 
         if (source.Kind.IsCode())
         {
-            host = new MarkCodeHost(owner, source);
+            host = new MarkCodeHost(shim, source);
 
             if (host.ConsumeUpdates(sequence, ref index) != MarkConsumed.Changed)
             {
@@ -84,7 +85,7 @@ internal abstract class MarkBlockHost : MarkVisualHost
 
         if (source.Kind == BlockKind.Rule)
         {
-            host = new MarkRuleHost(owner, source);
+            host = new MarkRuleHost(shim, source);
 
             if (host.ConsumeUpdates(sequence, ref index) != MarkConsumed.Changed)
             {
@@ -95,7 +96,7 @@ internal abstract class MarkBlockHost : MarkVisualHost
             return host;
         }
 
-        host = new MarkTextHost(owner, source);
+        host = new MarkTextHost(shim, source);
 
         if (host.ConsumeUpdates(sequence, ref index) != MarkConsumed.Changed)
         {
@@ -165,7 +166,7 @@ internal abstract class MarkBlockHost : MarkVisualHost
     protected virtual void SetChildMargin(bool isFirst, bool isLast)
     {
         double topPx = 0.0;
-        double fsize = Owner.ScaledFontSize;
+        double fsize = Shim.FontSize;
 
         // Key of font size
         double spacePx = fsize * 0.5;

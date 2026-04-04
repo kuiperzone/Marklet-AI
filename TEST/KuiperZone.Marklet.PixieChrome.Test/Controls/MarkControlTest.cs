@@ -28,7 +28,7 @@ public class MarkControlTest : ControlTestBase
     [Fact]
     public void DirectProperties_ChangeCorrectly()
     {
-        var obj = new MarkTestControl();
+        var obj = new MarkControl();
 
         // Initially null
         Assert.Null(obj.ContextMenu);
@@ -56,13 +56,6 @@ public class MarkControlTest : ControlTestBase
         AssertDirect(obj, MarkControl.FencedBorderProperty, new(0xFF808080), ChromeBrushes.RedAccent);
         AssertDirect(obj, MarkControl.FencedCornerRadiusProperty, default, new CornerRadius(87));
         AssertDirect(obj, MarkControl.DefaultWrappingProperty, false, true);
-    }
-
-    private class MarkTestControl : MarkControl
-    {
-        protected override void ImmediateRefresh()
-        {
-        }
     }
 
 }

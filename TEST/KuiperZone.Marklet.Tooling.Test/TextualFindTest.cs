@@ -18,55 +18,53 @@
 // You should have received a copy of the GNU Affero General Public License along
 // with Marklet. If not, see <https://www.gnu.org/licenses/>.
 
-using Xunit.Abstractions;
-
 namespace KuiperZone.Marklet.Tooling.Test;
 
 /// <summary>
-/// These test were written by AI as way of experimentation. Suspect things will lead to brittle test that are poorly
-/// understood in the future.
+/// These test were written by AI as way of experimentation. Suspect doing this more will lead to brittle tests that are
+/// poorly understood in the future.
 /// </summary>
-public class TextualSearchTest
+public class TextualFindTest
 {
 
     [Theory]
-    [InlineData("hello world this is a test", "world", SearchFlags.None, 6)]
-    [InlineData("Hello World hello again", "hello", SearchFlags.IgnoreCase, 0)]
-    [InlineData("The quick brown fox jumps", "quick", SearchFlags.IgnoreCase, 4)]
-    public void Search_Finds_First_Occurrence(string text, string sub, SearchFlags flags, int expected)
+    [InlineData("hello world this is a test", "world", FindFlags.None, 6)]
+    [InlineData("Hello World hello again", "hello", FindFlags.IgnoreCase, 0)]
+    [InlineData("The quick brown fox jumps", "quick", FindFlags.IgnoreCase, 4)]
+    public void Search_FindsFirstOccurrence(string text, string sub, FindFlags flags, int expected)
     {
-        int result = text.Search(sub, flags);
+        int result = text.Find(sub, flags);
         Assert.Equal(expected, result);
     }
 
     [Fact]
-    public void Search_WholeWord_Respects_Boundaries()
+    public void Find_WholeWordRespectsBoundaries()
     {
         string text = "cat dog catalog scatter category cat.";
-        Assert.Equal(0, text.Search("cat", SearchFlags.Word));
+        Assert.Equal(0, text.Find("cat", FindFlags.Word));
     }
 
     [Theory]
     [InlineData("One two three four five six.", "three", 40, "two three four five six.")]
     [InlineData("Hello world. This is a nice sentence here.", "nice", 45, "This is a nice sentence here.")]
     [InlineData("Short. Very short. Target is here now.", "Target", 35, "Target is here now.")]
-    public void PrettySearch_Snaps_Back_To_Sentence_Start_When_Possible(
+    public void PrettyFind_SnapsBackToSentenceStartWhenPossible(
         string text,
         string sub,
         int maxLength,
         string expectedSubstring)
     {
-        var snippet = text.PrettySearch(sub, maxLength, SearchFlags.None);
+        var snippet = text.PrettyFind(sub, maxLength, FindFlags.None);
         Assert.NotNull(snippet);
         Assert.Contains(expectedSubstring, snippet);
         Assert.True(snippet.Length <= maxLength);
     }
 
     [Fact]
-    public void PrettySearch_At_Beginning_Returns_From_Index_Zero()
+    public void PrettyFind_AtBeginningReturnsFromIndexZero()
     {
         string text = "Target starts right at the beginning of the text.";
-        var snippet = text.PrettySearch("Target", 60, SearchFlags.None);
+        var snippet = text.PrettyFind("Target", 60, FindFlags.None);
 
         Assert.NotNull(snippet);
         Assert.StartsWith("Target starts right", snippet);
@@ -74,24 +72,24 @@ public class TextualSearchTest
     }
 
     [Fact]
-    public void PrettyStart_Returns_Zero_When_No_Break_Found_Before_Index()
+    public void PrettyFind_ReturnsZeroWhenNoBreakFoundBeforeIndex()
     {
         // No punctuation or line breaks in the look-back window → should start from 0
         string text = "ThisIsAVeryLongContinuousStringWithoutAnyBreaksBeforeTheTargetHereAndThenSomeMoreTextAfter";
-        var snippet = text.PrettySearch("Target", 50, SearchFlags.None);
+        var snippet = text.PrettyFind("Target", 50, FindFlags.None);
 
         Assert.NotNull(snippet);
         Assert.Equal("TargetHereAndThenSomeMoreTextAfter", snippet);
     }
 
     [Fact]
-    public void PrettySearch_Uses_Limited_Lookback_MaxBack_24()
+    public void PrettyFind_UsesLimitedLookbackMaxBack()
     {
         // More than 24 chars of non-breaking text before the match
-        string prefix = new string('a', 30);           // > MaxBack
+        string prefix = new('a', 30);           // > MaxBack
         string text = prefix + " some words target here after";
 
-        var snippet = text.PrettySearch("target", 60, SearchFlags.None);
+        var snippet = text.PrettyFind("target", 60, FindFlags.None);
 
         // Should **not** go all the way back to index 0 — limited by MaxBack
         Assert.NotNull(snippet);
@@ -102,33 +100,33 @@ public class TextualSearchTest
     [Theory]
     [InlineData("Line one. Line two.  Line three with target inside.", "target", "Line three with target inside.")]
     [InlineData("Hello!\n\nAnother paragraph. Target appears here.", "Target", "Target appears here.")]
-    public void PrettySearch_Prefers_Sentence_Boundary_After_Space(
+    public void PrettyFind_PrefersSentenceBoundaryAfterSpace(
         string text,
         string sub,
         string expectedContains)
     {
-        var snippet = text.PrettySearch(sub, 70, SearchFlags.None);
+        var snippet = text.PrettyFind(sub, 70, FindFlags.None);
         Assert.NotNull(snippet);
         Assert.Contains(expectedContains, snippet);
     }
 
     [Fact]
-    public void PrettySearch_Returns_Null_On_No_Match()
+    public void PrettyFind_ReturnsNullOnNoMatch()
     {
-        Assert.Null("Nothing to see here.".PrettySearch("missingterm", 50, SearchFlags.None));
-        Assert.Null("".PrettySearch("x", 20, SearchFlags.None));
+        Assert.Null("Nothing to see here.".PrettyFind("missingterm", 50, FindFlags.None));
+        Assert.Null("".PrettyFind("x", 20, FindFlags.None));
     }
 
     [Fact]
-    public void PrettySearch_Index_And_Snippet_Agree()
+    public void PrettyFind_IndexAndSnippetAgree()
     {
         string text = "Mary had a little lamb, little lamb, little lamb.";
         string sub = "little";
 
-        int idx = text.Search(sub, SearchFlags.Word);
+        int idx = text.Find(sub, FindFlags.Word);
         Assert.Equal(11, idx);
 
-        var snippet = text.PrettySearch(sub, 50, SearchFlags.Word);
+        var snippet = text.PrettyFind(sub, 50, FindFlags.Word);
         Assert.NotNull(snippet);
         Assert.Contains("little lamb", snippet);
     }

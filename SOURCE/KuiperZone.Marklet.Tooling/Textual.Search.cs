@@ -21,10 +21,10 @@
 namespace KuiperZone.Marklet.Tooling;
 
 /// <summary>
-/// Search options flags.
+/// Find option flags.
 /// </summary>
 [Flags]
-public enum SearchFlags
+public enum FindFlags
 {
     /// <summary>
     /// Simple case sensitive.
@@ -51,11 +51,11 @@ public static partial class Textual
     /// Returns the first index of "subtext" string from the given "startIndex" according to flags, or -1 if not found.
     /// </summary>
     /// <remarks>
-    /// The "maxScan" givens the maximum number of positions to examine from "startIndex". It may exceed the length of
+    /// This is an extended "IndexOf" routine. The "scanLimit" givens the maximum number of positions to examine from "startIndex". It may exceed the length of
     /// "src", but cannot be negative. The "scanLimit" may be used to limit the length searched.
     /// </remarks>
     /// <exception cref="ArgumentOutOfRangeException">startIndex, or negative scanLimit</exception>
-    public static int Search(this string src, string? subtext, int startIndex, SearchFlags flags, int scanLimit = int.MaxValue)
+    public static int Find(this string src, string? subtext, int startIndex, FindFlags flags, int scanLimit = int.MaxValue)
     {
         ArgumentOutOfRangeException.ThrowIfGreaterThan(startIndex, src.Length, nameof(startIndex));
         ArgumentOutOfRangeException.ThrowIfNegative(scanLimit, nameof(scanLimit));
@@ -67,11 +67,11 @@ public static partial class Textual
             return -1;
         }
 
-        var comp = flags.HasFlag(SearchFlags.IgnoreCase) ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal;
+        var comp = flags.HasFlag(FindFlags.IgnoreCase) ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal;
 
         while ((startIndex = src.IndexOf(subtext, startIndex, scanLimit, comp)) > -1)
         {
-            if (!flags.HasFlag(SearchFlags.Word) ||
+            if (!flags.HasFlag(FindFlags.Word) ||
                 (IsWordBoundaryAt(src, startIndex - 1) &&
                 IsWordBoundaryAt(src, startIndex + subtext.Length)))
             {
@@ -86,16 +86,17 @@ public static partial class Textual
     }
 
     /// <summary>
-    /// Returns the first index of "subtext" string according to flags, or -1 if not found.
+    /// Returns the first index of "subtext" string according to "flags", or -1 if not found.
     /// </summary>
     /// <remarks>
-    /// The "maxScan" givens the maximum number of positions to examine from "startIndex". It may exceed the length of
-    /// "src", but cannot be negative. The "scanLimit" may be used to limit the length searched.
+    /// This is an extended "IndexOf" routine. The "scanLimit" givens the maximum number of positions to examine from
+    /// "startIndex". It may exceed the length of "src", but cannot be negative. The "scanLimit" may be used to limit
+    /// the length searched.
     /// </remarks>
     /// <exception cref="ArgumentOutOfRangeException">startIndex, or negative scanLimit</exception>
-    public static int Search(this string src, string? subtext, SearchFlags flags, int scanLimit = int.MaxValue)
+    public static int Find(this string src, string? subtext, FindFlags flags, int scanLimit = int.MaxValue)
     {
-        return Search(src, subtext, 0, flags, scanLimit);
+        return Find(src, subtext, 0, flags, scanLimit);
     }
 
     /// <summary>
@@ -107,9 +108,9 @@ public static partial class Textual
     /// searched.
     /// </remarks>
     /// <exception cref="ArgumentOutOfRangeException">negative scanLimit</exception>
-    public static string? PrettySearch(this string src, string? subtext, int maxLength, SearchFlags flags, int scanLimit = int.MaxValue)
+    public static string? PrettyFind(this string src, string? subtext, int maxLength, FindFlags flags, int scanLimit = int.MaxValue)
     {
-        var index = Search(src, subtext, 0, flags, scanLimit);
+        var index = Find(src, subtext, 0, flags, scanLimit);
 
         if (index < 0)
         {

@@ -252,4 +252,8 @@ public static class ChromeBrushes
     /// </summary>
     public static readonly ImmutableSolidColorBrush CriticalHover = new(CriticalBrush.Color, 0.15);
 
+    /// <summary>
+    /// Gets a semi transparent grey color which works as a highlight across different themes.
+    /// </summary>
+    public static readonly ImmutableSolidColorBrush Highlight = new(0x206F8396); // <- use opac or alpha?
 }
