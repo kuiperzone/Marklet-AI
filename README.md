@@ -1,18 +1,24 @@
 # MARKLET ALT-AI CLIENT
 
 **Marklet** is an open source alt-AI client primarily intended for use with local models (i.e. in conjunction with Ollama or a
-similar runner). Its primary purpose is to do this simply and to do it well. Marklet is a native desktop application and provides
-a near out-of-box experience, comprising everything except the runner and models. It prioritises the individual, and the use of AI
-for analysis rather than content generation. It is personal in the way a PC was once personal.
+similar runner). Its primary purpose is to do this simply and to do it well.
+
+Marklet is a native desktop application and provides a near out-of-box experience, comprising everything except the
+runner and models. It is clean, principled and designed for those who do not want bloat or web-UIs. It prioritises the
+individual, and the use of AI for analysis rather than content generation. It is personal in the way a PC was once
+personal.
 
 <img src="SCREENSHOTS/README1.png" style="max-width:1920px;margin-bottom:2em;"/>
 
 Above, early version 0.4 in dark mode.
 
-### PREVIEW RELEASE
+## PREVIEW RELEASE
 
-This is an early preview release encompassing the primary aspects of the user interface and database. It does not currently
-contain the code needed to connect it to a model. There is no actual "AI" in this release. It is coming. Click `Watch` for updates.
+<mark>UNDER ACTIVE DEVELOPMENT 2026</mark>
+
+This is an preview release encompassing the primary aspects of the user interface and database. It does not currently
+contain the code needed to connect it to a model. There is no actual "AI" in this release. It is coming. Click
+<mark>Watch</mark> for updates.
 
 That being said, you should find the user interface very polished. You can download and run it, and it will generate stub response
 messages intended to exercise the user interface.
@@ -24,18 +30,15 @@ It initially supports:
 
 [Downloads](https://github.com/kuiperzone/Marklet/releases/latest)<br>
 
-Runable Linux AppImage and simple Windows zip are provided only for this release. It should build and run on MacOS, but the
-means to test this is currently unavailable to the authors.
-
-## Background
-Marklet is not intended to be all things to all people. The design of the software prioritises personal use employing
-local models with local data. It may not be suited for use in enterprise environments or on mobile devices.
+Runable Linux AppImage and simple Windows zip are provided only for this release. It should build and run on *macOS*, but the
+means to test this is currently unavailable to the authors (feedback on this appreciated).
 
 <img src="SCREENSHOTS/README2.png" style="width:75%;max-width:1490px;margin-bottom:2em;"/>
 
-Marklet is an experiment in *sovereign AI* predicated on the idea that, while large AI services bring destruction,
-local AI will persist. Moreover, local AI will grant agency to those who can maintain their own autonomy in the
-face of convenience and automation. As such, Marklet is not itself *vibe-coded*, but created with native thought.
+Marklet is a *Sovereign AI* initiative predicated on the idea that, while large AI services bring a kind of creative
+destruction, local AI will persist into the future. Moreover, local AI will grant agency to those who can maintain their own
+autonomy in the face of convenience and automation that AI appears to offer. As such, Marklet is not itself *vibe-coded*, but
+created with native thought. The intention is for it to be something a little different and go against trends as needed.
 
 
 ### Roadmap
