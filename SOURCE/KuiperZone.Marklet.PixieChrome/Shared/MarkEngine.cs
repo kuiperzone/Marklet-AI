@@ -18,10 +18,8 @@
 // You should have received a copy of the GNU Affero General Public License along
 // with Marklet. If not, see <https://www.gnu.org/licenses/>.
 
-using Avalonia;
 using Avalonia.Collections;
 using Avalonia.Controls;
-using Avalonia.Input;
 using KuiperZone.Marklet.PixieChrome.Controls;
 using KuiperZone.Marklet.PixieChrome.Controls.Internal;
 using KuiperZone.Marklet.Tooling;
@@ -125,7 +123,7 @@ public sealed class MarkEngine : ICrossTrackOwner
     public void Rebuild(MarkDocument document, Control? header = null, Control? footer = null)
     {
         const string NSpace = $"{nameof(MarkEngine)}.{nameof(Rebuild)}";
-        ConditionalDebug.WriteLine(NSpace, "UPDATE PROCESSSING");
+        Diag.WriteLine(NSpace, "UPDATE PROCESSSING");
 
         int index = 0;
         int cacheN = 0;
@@ -181,7 +179,7 @@ public sealed class MarkEngine : ICrossTrackOwner
 
         _cache.TrimCapacity();
         _children.TrimCapacity();
-        ConditionalDebug.WriteLine(NSpace, "END OF UPDATE");
+        Diag.WriteLine(NSpace, "END OF UPDATE");
     }
 
     /// <summary>

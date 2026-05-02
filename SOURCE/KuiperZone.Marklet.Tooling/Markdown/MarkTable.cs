@@ -75,7 +75,7 @@ public sealed class MarkTable : IReadOnlyMarkTable
         {
             if (table[y] is TableRow row)
             {
-                ConditionalDebug.WriteLine(nameof(MarkTable), $"Row {RowCount} columns: {row.Count}");
+                Diag.WriteLine(nameof(MarkTable), $"Row {RowCount} columns: {row.Count}");
                 RowCount += 1;
 
                 for (int x = 0; x < row.Count; ++x)
@@ -97,8 +97,8 @@ public sealed class MarkTable : IReadOnlyMarkTable
             }
         }
 
-        ConditionalDebug.WriteLine(nameof(MarkTable), $"RowCount: {table.Count}");
-        ConditionalDebug.WriteLine(nameof(MarkTable), $"ColCount: {ColCount}");
+        Diag.WriteLine(nameof(MarkTable), $"RowCount: {table.Count}");
+        Diag.WriteLine(nameof(MarkTable), $"ColCount: {ColCount}");
 
         _aligns = new(ColCount);
         Aligns = _aligns;
@@ -459,7 +459,7 @@ public sealed class MarkTable : IReadOnlyMarkTable
     private static MarkElement? GetPadLeft(ColAlign align, int width, int colWidth)
     {
         int delta = colWidth - width;
-        ConditionalDebug.ThrowIfNegative(delta);
+        Diag.ThrowIfNegative(delta);
 
         if (align == ColAlign.Right)
         {
@@ -487,7 +487,7 @@ public sealed class MarkTable : IReadOnlyMarkTable
     private static MarkElement? GetPadRight(ColAlign align, int width, int colWidth)
     {
         int delta = colWidth - width;
-        ConditionalDebug.ThrowIfNegative(delta);
+        Diag.ThrowIfNegative(delta);
 
         if (align == ColAlign.Left)
         {

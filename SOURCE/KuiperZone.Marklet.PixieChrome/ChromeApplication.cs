@@ -18,6 +18,7 @@
 // You should have received a copy of the GNU Affero General Public License along
 // with Marklet. If not, see <https://www.gnu.org/licenses/>.
 
+using System.Reflection;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.ApplicationLifetimes;
@@ -34,7 +35,7 @@ namespace KuiperZone.Marklet.PixieChrome;
 /// The <see cref="Initialize"/> method reads configuration from <see cref="ApplicationHost.ConfigDirectory"/> and
 /// initializes <see cref="ChromeStyling.Global"/>. Assumes IClassicDesktopStyleApplicationLifetime.
 /// </remarks>
-public class ChromeApplication : Application
+public abstract class ChromeApplication : Application
 {
     /// <summary>
     /// Subclass to provide "appId"in reverse DNS form, i.e. "zone.kuiper.marklet".
@@ -96,22 +97,6 @@ public class ChromeApplication : Application
     }
 
     /// <summary>
-    /// Gets the global <see cref="AppearanceSettings"/> instance.
-    /// </summary>
-    /// <remarks>
-    /// Data is valid on construction, but updated by <see cref="Initialize"/>.
-    /// </remarks>
-    public static readonly AppearanceSettings AppearanceSettings = AppearanceSettings.Global;
-
-    /// <summary>
-    /// Gets the global <see cref="WindowSettings"/> instance.
-    /// </summary>
-    /// <remarks>
-    /// Data is valid on construction, but updated by <see cref="Initialize"/>.
-    /// </remarks>
-    public static readonly WindowSettings WindowSettings = WindowSettings.Global;
-
-    /// <summary>
     /// Gets whether <see cref="Initialize"/> has been called.
     /// </summary>
     public static bool IsInitalized { get; private set; }
@@ -166,23 +151,23 @@ public class ChromeApplication : Application
     {
         const string NSpace = $"{nameof(ChromeApplication)}.{nameof(Initialize)}";
 
-        ConditionalDebug.WriteLine(NSpace, $"Initializing: {nameof(ApplicationHost)}");
+        Diag.WriteLine(NSpace, $"Initializing: {nameof(ApplicationHost)}");
         Host.Initialize();
 
         // CONFIGURATION
-        ConditionalDebug.WriteLine(NSpace, $"Reading: {nameof(AppearanceSettings)}");
-        AppearanceSettings.Read(Path.Combine(Host.ConfigDirectory, "appearance-settings.json"));
+        Diag.WriteLine(NSpace, $"Reading: {nameof(AppearanceSettings)}");
+        AppearanceSettings.Global.Read(Path.Combine(Host.ConfigDirectory, "appearance-settings.json"));
 
-        ConditionalDebug.WriteLine(NSpace, $"Reading: {nameof(WindowSettings)}");
-        WindowSettings.Read(Path.Combine(Host.ConfigDirectory, "window-settings.json"));
+        Diag.WriteLine(NSpace, $"Reading: {nameof(WindowSettings)}");
+        WindowSettings.Global.Read(Path.Combine(Host.ConfigDirectory, "window-settings.json"));
 
         // Expect config directory to exist in test
-        ConditionalDebug.ThrowIfNull(AppearanceSettings.SettingsPath);
-        ConditionalDebug.ThrowIfNull(WindowSettings.SettingsPath);
+        Diag.ThrowIfNull(AppearanceSettings.Global.SettingsPath);
+        Diag.ThrowIfNull(WindowSettings.Global.SettingsPath);
 
         // STYLING
-        ConditionalDebug.WriteLine(NSpace, $"Initializing: {nameof(ChromeStyling)}");
-        ChromeStyling.Global.Initialize(this, AppearanceSettings);
+        Diag.WriteLine(NSpace, $"Initializing: {nameof(ChromeStyling)}");
+        ChromeStyling.Global.Initialize(this, AppearanceSettings.Global);
 
         IsInitalized = true;
     }

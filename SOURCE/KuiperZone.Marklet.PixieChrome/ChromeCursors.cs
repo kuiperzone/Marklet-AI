@@ -37,126 +37,126 @@ public static class ChromeCursors
     /// <summary>
     /// Gets a <see cref="StandardCursorType.None"/> instance.
     /// </summary>
-    public static readonly Cursor? None = NewStandard(StandardCursorType.None);
+    public static readonly Cursor? None = GetStandardCursor(StandardCursorType.None);
 
     /// <summary>
     /// Gets an <see cref="StandardCursorType.Arrow"/> instance.
     /// </summary>
-    public static readonly Cursor? Arrow = NewStandard(StandardCursorType.Arrow);
+    public static readonly Cursor? Arrow = GetStandardCursor(StandardCursorType.Arrow);
 
     /// <summary>
     /// Gets a <see cref="StandardCursorType.Hand"/> instance.
     /// </summary>
-    public static readonly Cursor? Hand = NewStandard(StandardCursorType.Hand);
+    public static readonly Cursor? Hand = GetStandardCursor(StandardCursorType.Hand);
 
     /// <summary>
     /// Gets an <see cref="StandardCursorType.Ibeam"/> instance.
     /// </summary>
-    public static readonly Cursor? IBeam = NewStandard(StandardCursorType.Ibeam);
+    public static readonly Cursor? IBeam = GetStandardCursor(StandardCursorType.Ibeam);
 
     /// <summary>
     /// Gets a <see cref="StandardCursorType.Wait"/> instance.
     /// </summary>
-    public static readonly Cursor? Wait = NewStandard(StandardCursorType.Wait);
+    public static readonly Cursor? Wait = GetStandardCursor(StandardCursorType.Wait);
 
     /// <summary>
     /// Gets a <see cref="StandardCursorType.No"/> instance.
     /// </summary>
-    public static readonly Cursor? No = NewStandard(StandardCursorType.No);
+    public static readonly Cursor? No = GetStandardCursor(StandardCursorType.No);
 
     /// <summary>
     /// Gets a <see cref="StandardCursorType.SizeNorthSouth"/> instance.
     /// </summary>
-    public static readonly Cursor? SizeNorthSouth = NewStandard(StandardCursorType.SizeNorthSouth);
+    public static readonly Cursor? SizeNorthSouth = GetStandardCursor(StandardCursorType.SizeNorthSouth);
 
     /// <summary>
     /// Gets a <see cref="StandardCursorType.SizeWestEast"/> instance.
     /// </summary>
-    public static readonly Cursor? SizeWestEast = NewStandard(StandardCursorType.SizeWestEast);
+    public static readonly Cursor? SizeWestEast = GetStandardCursor(StandardCursorType.SizeWestEast);
 
     /// <summary>
     /// Gets a <see cref="StandardCursorType.TopLeftCorner"/> instance.
     /// </summary>
-    public static readonly Cursor? TopLeftCorner = NewStandard(StandardCursorType.TopLeftCorner);
+    public static readonly Cursor? TopLeftCorner = GetStandardCursor(StandardCursorType.TopLeftCorner);
 
     /// <summary>
     /// Gets a <see cref="StandardCursorType.TopRightCorner"/> instance.
     /// </summary>
-    public static readonly Cursor? TopRightCorner = NewStandard(StandardCursorType.TopRightCorner);
+    public static readonly Cursor? TopRightCorner = GetStandardCursor(StandardCursorType.TopRightCorner);
 
     /// <summary>
     /// Gets a <see cref="StandardCursorType.BottomLeftCorner"/> instance.
     /// </summary>
-    public static readonly Cursor? BottomLeftCorner = NewStandard(StandardCursorType.BottomLeftCorner);
+    public static readonly Cursor? BottomLeftCorner = GetStandardCursor(StandardCursorType.BottomLeftCorner);
 
     /// <summary>
     /// Gets a <see cref="StandardCursorType.BottomRightCorner"/> instance.
     /// </summary>
-    public static readonly Cursor? BottomRightCorner = NewStandard(StandardCursorType.BottomRightCorner);
+    public static readonly Cursor? BottomRightCorner = GetStandardCursor(StandardCursorType.BottomRightCorner);
 
     /// <summary>
     /// Gets a generic "folder" cursor of 24x24px.
     /// </summary>
-    public static readonly Cursor? FolderLight24 = NewAsset("folder.light.24.png");
+    public static readonly Cursor? FolderLight24 = GetAssetCursor("folder.light.24.png");
 
     /// <summary>
     /// Gets a generic "folder" cursor of 24x24px.
     /// </summary>
-    public static readonly Cursor? FolderDark24 = NewAsset("folder.dark.24.png");
+    public static readonly Cursor? FolderDark24 = GetAssetCursor("folder.dark.24.png");
 
     /// <summary>
     /// Gets a generic "folder" cursor of 48x48px.
     /// </summary>
-    public static readonly Cursor? FolderLight48 = NewAsset("folder.light.48.png");
+    public static readonly Cursor? FolderLight48 = GetAssetCursor("folder.light.48.png");
 
     /// <summary>
     /// Gets a generic "folder" cursor of 48x48px.
     /// </summary>
-    public static readonly Cursor? FolderDark48 = NewAsset("folder.dark.48.png");
+    public static readonly Cursor? FolderDark48 = GetAssetCursor("folder.dark.48.png");
 
     /// <summary>
     /// Gets a generic "document" cursor of 24x24px.
     /// </summary>
-    public static readonly Cursor? DocumentLight24 = NewAsset("document.light.24.png");
+    public static readonly Cursor? DocumentLight24 = GetAssetCursor("document.light.24.png");
 
     /// <summary>
     /// Gets a generic "document" cursor of 24x24px.
     /// </summary>
-    public static readonly Cursor? DocumentDark24 = NewAsset("document.dark.24.png");
+    public static readonly Cursor? DocumentDark24 = GetAssetCursor("document.dark.24.png");
 
     /// <summary>
     /// Gets a generic "document" cursor of 48x48px.
     /// </summary>
-    public static readonly Cursor? DocumentLight48 = NewAsset("document.light.48.png");
+    public static readonly Cursor? DocumentLight48 = GetAssetCursor("document.light.48.png");
 
     /// <summary>
     /// Gets a generic "document" cursor of 48x48px.
     /// </summary>
-    public static readonly Cursor? DocumentDark48 = NewAsset("document.dark.48.png");
+    public static readonly Cursor? DocumentDark48 = GetAssetCursor("document.dark.48.png");
 
     /// <summary>
     /// Gets a generic "image" cursor of 24x24px.
     /// </summary>
-    public static readonly Cursor? ImageLight24 = NewAsset("image.light.24.png");
+    public static readonly Cursor? ImageLight24 = GetAssetCursor("image.light.24.png");
 
     /// <summary>
     /// Gets a generic "image" cursor of 24x24px.
     /// </summary>
-    public static readonly Cursor? ImageDark24 = NewAsset("image.dark.24.png");
+    public static readonly Cursor? ImageDark24 = GetAssetCursor("image.dark.24.png");
 
     /// <summary>
     /// Gets a generic "image" cursor of 48x48px.
     /// </summary>
-    public static readonly Cursor? ImageLight48 = NewAsset("image.light.48.png");
+    public static readonly Cursor? ImageLight48 = GetAssetCursor("image.light.48.png");
 
     /// <summary>
     /// Gets a generic "image" cursor of 48x48px.
     /// </summary>
-    public static readonly Cursor? ImageDark48 = NewAsset("image.dark.48.png");
+    public static readonly Cursor? ImageDark48 = GetAssetCursor("image.dark.48.png");
 
-    private static Cursor? NewStandard(StandardCursorType type)
+    private static Cursor? GetStandardCursor(StandardCursorType type)
     {
-        const string NSpace = $"{nameof(ChromeCursors)}.{nameof(NewStandard)}";
+        const string NSpace = $"{nameof(ChromeCursors)}.{nameof(GetStandardCursor)}";
 
         try
         {
@@ -165,17 +165,17 @@ public static class ChromeCursors
         catch (Exception e)
         {
             // Expected to throw in unit test
-            ConditionalDebug.WriteLine(e.Message);
+            Diag.WriteLine(e.Message);
             return null;
         }
     }
 
-    private static Cursor? NewAsset(string name)
+    private static Cursor? GetAssetCursor(string name)
     {
-        return NewAsset(name, new(8, 8));
+        return GetAssetCursor(name, new(8, 8));
     }
 
-    private static Cursor? NewAsset(string name, PixelPoint point)
+    private static Cursor? GetAssetCursor(string name, PixelPoint point)
     {
         try
         {
@@ -186,7 +186,7 @@ public static class ChromeCursors
         catch (Exception e)
         {
             // Expected to throw in unit test
-            ConditionalDebug.WriteLine(e.Message);
+            Diag.WriteLine(e.Message);
             return null;
         }
     }

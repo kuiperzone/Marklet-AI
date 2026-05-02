@@ -68,11 +68,11 @@ public class ChromeApplication<T> : ChromeApplication where T : Window, new()
 
         base.Initialize();
 
-        ConditionalDebug.WriteLine(NSpace, $"Reading: {nameof(MainPersistence)}");
+        Diag.WriteLine(NSpace, $"Reading: {nameof(MainPersistence)}");
         MainPersistence.Read(Path.Combine(Host.ConfigDirectory, "main-window.json"));
 
         // Expect config directory to exist in test
-        ConditionalDebug.ThrowIfNull(MainPersistence.SettingsPath);
+        Diag.ThrowIfNull(MainPersistence.SettingsPath);
     }
 
     /// <summary>
@@ -84,7 +84,7 @@ public class ChromeApplication<T> : ChromeApplication where T : Window, new()
 
         if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
         {
-            ConditionalDebug.WriteLine(NSpace, "Application is desktop");
+            Diag.WriteLine(NSpace, "Application is desktop");
             _mainWindow = new();
 
             desktop.MainWindow = _mainWindow;
@@ -119,7 +119,7 @@ public class ChromeApplication<T> : ChromeApplication where T : Window, new()
         {
             if (IsMainWindowPersistenceEnabled && _sizedChanged && _mainWindow != null)
             {
-                ConditionalDebug.WriteLine(NSpace, $"Writing persistence to: {MainPersistence.SettingsPath}");
+                Diag.WriteLine(NSpace, $"Writing persistence to: {MainPersistence.SettingsPath}");
                 MainPersistence.CopyFrom(_mainWindow);
                 MainPersistence.Write();
             }

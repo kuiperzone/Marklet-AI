@@ -41,25 +41,25 @@ internal abstract class FolderMenu : ContextMenu
         Kind = kind;
         Opened += OpenedHandler;
 
-        RenameItem.Header = ChromeFonts.NewRunBlock($"{Symbols.Edit} Rename Folder");
+        RenameItem.Header = ChromeFonts.CreateRunBlock($"{Symbols.Edit} Rename Folder");
         RenameItem.Click += RenameHandler;
 
-        NewChatItem.Header = ChromeFonts.NewRunBlock($"{Symbols.Chat} New {DeckKind.Chat.DisplayName(DisplayKind.Default)} Here");
+        NewChatItem.Header = ChromeFonts.CreateRunBlock($"{Symbols.Chat} New {DeckFormat.Chat.DisplayName(DisplayStyle.Default)} Here");
         NewChatItem.Click += NewChatHandler;
 
-        NewNoteItem.Header = ChromeFonts.NewRunBlock($"{Symbols.EditNote} New {DeckKind.Note.DisplayName(DisplayKind.Default)} Here");
+        NewNoteItem.Header = ChromeFonts.CreateRunBlock($"{Symbols.EditNote} New {DeckFormat.Note.DisplayName(DisplayStyle.Default)} Here");
         NewNoteItem.Click += NewNoteHandler;
 
-        ArchiveItem.Header = ChromeFonts.NewRunBlock($"{Symbols.Archive} Move to {BasketKind.Archive.DisplayName()}");
+        ArchiveItem.Header = ChromeFonts.CreateRunBlock($"{Symbols.Archive} Move to {BasketKind.Archive.DisplayName()}");
         ArchiveItem.Click += ArchiveHandler;
 
-        WasteItem.Header = ChromeFonts.NewRunBlock($"{Symbols.Delete} Move to {BasketKind.Waste.DisplayName()}");
+        WasteItem.Header = ChromeFonts.CreateRunBlock($"{Symbols.Delete} Move to {BasketKind.Waste.DisplayName()}");
         WasteItem.Click += WasteHandler;
 
-        RestoreItem.Header = ChromeFonts.NewRunBlock($"{Symbols.RestorePage} Restore Folder");
+        RestoreItem.Header = ChromeFonts.CreateRunBlock($"{Symbols.RestorePage} Restore Folder");
         RestoreItem.Click += RestoreHandler;
 
-        DeleteItem.Header = ChromeFonts.NewRunBlock($"{Symbols.DeleteForever} Delete Permanently");
+        DeleteItem.Header = ChromeFonts.CreateRunBlock($"{Symbols.DeleteForever} Delete Permanently");
         DeleteItem.Click += DeleteHandler;
     }
 
@@ -199,7 +199,7 @@ internal abstract class FolderMenu : ContextMenu
     {
         Basket = null;
         Caller = this.FindLogicalAncestorOfType<FolderView>();
-        ConditionalDebug.ThrowIfNotEqual(Kind, Caller?.Owner.Kind);
+        Diag.ThrowIfNotEqual(Kind, Caller?.Owner.Kind);
 
         if (Caller?.Owner is BasketView view)
         {
@@ -224,7 +224,7 @@ internal abstract class FolderMenu : ContextMenu
     {
         if (Caller != null && Basket != null)
         {
-            var item = new GardenDeck(DeckKind.Chat, Kind);
+            var item = new GardenDeck(DeckFormat.Chat, Kind);
             item.IsFocused = true;
             item.Folder = Caller.FolderName;
             item.VisualSignals = SignalFlags.OpenFolder;
@@ -236,7 +236,7 @@ internal abstract class FolderMenu : ContextMenu
     {
         if (Caller != null && Basket != null)
         {
-            var item = new GardenDeck(DeckKind.Note, Kind);
+            var item = new GardenDeck(DeckFormat.Note, Kind);
             item.IsFocused = true;
             item.Folder = Caller.FolderName;
             item.VisualSignals = SignalFlags.OpenFolder;

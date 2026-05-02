@@ -36,13 +36,13 @@ internal sealed class MarkRuleHost : MarkBlockHost
     public MarkRuleHost(MarkShim shim, IReadOnlyMarkBlock source)
         : base(shim, source)
     {
-        ConditionalDebug.ThrowIfNotEqual(Kind, BlockKind.Rule);
+        Diag.ThrowIfNotEqual(Kind, BlockKind.Rule);
         Control = _rule;
     }
 
     public override void Refresh(bool isFirst, bool isLast)
     {
-        ConditionalDebug.ThrowIfTrue(IsPending);
+        Diag.ThrowIfTrue(IsPending);
         SetChildMargin(isFirst, isLast);
         RefreshInternal();
     }

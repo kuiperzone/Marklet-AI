@@ -111,7 +111,7 @@ public abstract class SettingsBase : IEquatable<SettingsBase>
     {
         const string NSpace = $"{nameof(SettingsBase)}.{nameof(Read)}";
 
-        ConditionalDebug.WriteLine(NSpace, $"Path: {path}");
+        Diag.WriteLine(NSpace, $"Path: {path}");
         ArgumentException.ThrowIfNullOrWhiteSpace(path, nameof(path));
 
         if (File.Exists(path))
@@ -127,11 +127,11 @@ public abstract class SettingsBase : IEquatable<SettingsBase>
             catch (Exception e)
             {
                 // None critical
-                ConditionalDebug.WriteLine(NSpace, e);
+                Diag.WriteLine(NSpace, e);
             }
         }
 
-        ConditionalDebug.WriteLine(NSpace, "Not exist");
+        Diag.WriteLine(NSpace, "Not exist");
 
         if (Directory.Exists(Path.GetDirectoryName(path)))
         {
@@ -163,7 +163,7 @@ public abstract class SettingsBase : IEquatable<SettingsBase>
         const string NSpace = $"{nameof(SettingsBase)}.{nameof(Write)}";
 
         path ??= SettingsPath;
-        ConditionalDebug.WriteLine(NSpace, $"Path: {path}");
+        Diag.WriteLine(NSpace, $"Path: {path}");
 
         if (!string.IsNullOrEmpty(path))
         {
@@ -179,7 +179,7 @@ public abstract class SettingsBase : IEquatable<SettingsBase>
             }
             catch (Exception e)
             {
-                ConditionalDebug.WriteLine(NSpace, e);
+                Diag.WriteLine(NSpace, e);
             }
         }
 

@@ -78,6 +78,8 @@ public class PixieColorPicker : PixieControl
         _grid.HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Left;
         _defaultCircle = new(this, default, default);
         _defaultCircle.SetGridPos(EditorRow, DefaultColorColumn);
+
+        ClipToBounds = true;
         VerticalContentOffset = _defaultCircle.TotalSize.Height / 3.0;
 
         _defaultHintBlock.Text = _defaultColorLabel;
@@ -398,7 +400,7 @@ public class PixieColorPicker : PixieControl
             var item = _circles[n];
             int col = n % MaxPaletteColors;
             int row = n / MaxPaletteColors;
-            ConditionalDebug.ThrowIfGreaterThanOrEqual(row, PaletteRowCount);
+            Diag.ThrowIfGreaterThanOrEqual(row, PaletteRowCount);
 
             item.SetGridPos(row, col);
             item.Refresh(!empty && item.Color == chosen);

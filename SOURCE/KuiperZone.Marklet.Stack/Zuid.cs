@@ -22,7 +22,7 @@ using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Security.Cryptography;
 
-namespace KuiperZone.Marklet.Stack.Garden;
+namespace KuiperZone.Marklet.Stack;
 
 /// <summary>
 /// Provides a 64-bit timestamped, sortable, local system unique identifier.
@@ -37,11 +37,11 @@ public readonly struct Zuid : IComparable<Zuid>, IEquatable<Zuid>
     // We loose a bit to avoid negative values.
     // We cannot change these values once software is in the wild.
     private const int SignBits = 1;
-    private const int TimeBits = 44;  // <- 19 bits of counter
+    private const int TimeBits = 44;  // <- 19 bits of counter with max year 2527
     private const int TimeShift = 64 - SignBits - TimeBits;
     private const long SequenceMask = (long)(ulong.MaxValue >> (64 - TimeShift));
     private const long MaxMilliseconds = (long)(ulong.MaxValue >> (64 - TimeBits));
-    private static long s_sequence = BitConverter.ToInt64(RandomNumberGenerator.GetBytes(8));
+    private static long s_sequence = BitConverter.ToInt64(RandomNumberGenerator.GetBytes(8)) & 0x000000000001FFFFL;
 
     /// <summary>
     /// Gets the number sequence bits for information purposes.
@@ -61,19 +61,19 @@ public readonly struct Zuid : IComparable<Zuid>, IEquatable<Zuid>
 
     private Zuid(DateTime utc)
     {
-        long t = (long)ClampTime(utc).Subtract(ZeroTime).TotalMilliseconds << TimeShift;
+        long t = (long)ClampTime(utc).Subtract(MinTime).TotalMilliseconds << TimeShift;
         Value = t | (Interlocked.Increment(ref s_sequence) & SequenceMask);
     }
 
     /// <summary>
     /// Gets the minimum possible time value.
     /// </summary>
-    public static readonly DateTime ZeroTime = new(1970, 01, 01, 0, 0, 0, DateTimeKind.Utc);
+    public static readonly DateTime MinTime = new(1970, 01, 01, 0, 0, 0, DateTimeKind.Utc);
 
     /// <summary>
     /// Gets the maximum possible time value.
     /// </summary>
-    public static readonly DateTime MaxTime = ZeroTime.AddMilliseconds(MaxMilliseconds);
+    public static readonly DateTime MaxTime = MinTime.AddMilliseconds(MaxMilliseconds);
 
     /// <summary>
     /// Zero or default empty value.
@@ -93,11 +93,11 @@ public readonly struct Zuid : IComparable<Zuid>, IEquatable<Zuid>
     /// </summary>
     /// <remarks>
     /// The default instance of <see cref="Zuid"/> has a <see cref="Timestamp"/> value of <see
-    /// cref="ZeroTime"/>.
+    /// cref="MinTime"/>.
     /// </remarks>
     public DateTime Timestamp
     {
-        get { return ZeroTime.AddMilliseconds(Value >> TimeShift); }
+        get { return MinTime.AddMilliseconds(Value >> TimeShift); }
     }
 
     /// <summary>
@@ -151,14 +151,11 @@ public readonly struct Zuid : IComparable<Zuid>, IEquatable<Zuid>
     }
 
     /// <summary>
-    /// Gets whether system clock is within valid range.
+    /// Creates a new instance with the same time but different <see cref="Value"/>.
     /// </summary>
-    public static bool IsClockValid()
+    public Zuid CloneUnique()
     {
-        // This should not fail.
-        // Range was chosen to accommodate systems with seriously erroneous clocks.
-        var now = DateTime.UtcNow;
-        return now > ZeroTime && now < MaxTime;
+        return New(Timestamp);
     }
 
     /// <summary>
@@ -171,22 +168,6 @@ public readonly struct Zuid : IComparable<Zuid>, IEquatable<Zuid>
         {
             throw new InvalidOperationException($"Invalid {nameof(Zuid)}");
         }
-    }
-
-    /// <summary>
-    /// Creates a new instance with the same time but different <see cref="Value"/>.
-    /// </summary>
-    public Zuid CloneTime()
-    {
-        var z = New(Timestamp);
-
-        if (z.Value != Value)
-        {
-            return z;
-        }
-
-        // Unlikely
-        return New(Timestamp);
     }
 
     /// <summary>
@@ -247,9 +228,9 @@ public readonly struct Zuid : IComparable<Zuid>, IEquatable<Zuid>
     {
         // Out of range unexpected, but we will still function.
         // We will be relying on counter bits for uniqueness.
-        if (utc < ZeroTime)
+        if (utc < MinTime)
         {
-            return ZeroTime;
+            return MinTime;
         }
 
         if (utc > MaxTime)

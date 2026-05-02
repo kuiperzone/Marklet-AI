@@ -3,7 +3,6 @@
     <PropertyGroup>
         <IsPackable>false</IsPackable>
         <GeneratePackageOnBuild>false</GeneratePackageOnBuild>
-        <GenerateDocumentationFile>true</GenerateDocumentationFile>
     </PropertyGroup>
 
     <ItemGroup>
@@ -22,6 +21,7 @@
         <PackageReference Include="Avalonia.Themes.Fluent" />
         <PackageReference Include="Avalonia.Fonts.Inter" />
         <PackageReference Include="ReactiveUI.Avalonia" />
+
     </ItemGroup>
 
     <ItemGroup Condition="'$(Configuration)' == 'Debug'">

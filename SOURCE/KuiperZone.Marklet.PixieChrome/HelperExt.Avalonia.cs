@@ -23,8 +23,8 @@ using Avalonia.Collections;
 using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Interactivity;
-using Avalonia.LogicalTree;
 using Avalonia.Media;
+using Avalonia.Platform.Storage;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
 using KuiperZone.Marklet.Tooling;
@@ -211,11 +211,14 @@ public static partial class HelperExt
     /// <summary>
     /// Copies text to clipboard and returns true on success.
     /// </summary>
-    public static bool CopyToClipboard(this Visual? visual, string? text)
+    /// <remarks>
+    /// It does nothing if the <see cref="Visual"/> source has no <see cref="TopLevel"/> window or clipboard.
+    /// </remarks>
+    public static bool CopyToClipboard(this Visual? src, string? text)
     {
         if (!string.IsNullOrEmpty(text))
         {
-            var clipboard = TopLevel.GetTopLevel(visual)?.Clipboard;
+            var clipboard = TopLevel.GetTopLevel(src)?.Clipboard;
 
             if (clipboard != null)
             {
@@ -225,6 +228,16 @@ public static partial class HelperExt
         }
 
         return false;
+    }
+
+    /// <summary>
+    /// Gets the <see cref="IStorageProvider"/> using any <see cref="Visual"/> with a <see cref="TopLevel"/> parent.
+    /// </summary>
+    /// <exception cref="InvalidOperationException">Visual has no TopLevel Window or StorageProvider</exception>
+    public static IStorageProvider GetStorageProvider(this Visual src)
+    {
+        return TopLevel.GetTopLevel(src)?.StorageProvider ??
+            throw new InvalidOperationException("Visual has no TopLevel Window or StorageProvider");
     }
 
     /// <summary>
@@ -270,7 +283,7 @@ public static partial class HelperExt
                 {
                     if (m.InputGesture?.Matches(e) == true)
                     {
-                        ConditionalDebug.WriteLine(NSpace, $"Key {e.Key}, {e.KeyModifiers} matched");
+                        Diag.WriteLine(NSpace, $"Key {e.Key}, {e.KeyModifiers} matched");
 
                         if (m.Command?.CanExecute(m.CommandParameter) == true)
                         {
@@ -283,7 +296,7 @@ public static partial class HelperExt
                         }
 
                         e.Handled = true;
-                        ConditionalDebug.WriteLine(NSpace, "Event raised");
+                        Diag.WriteLine(NSpace, "Event raised");
                         return true;
                     }
 
@@ -296,7 +309,7 @@ public static partial class HelperExt
         }
         catch (Exception ex)
         {
-            ConditionalDebug.WriteLine(NSpace, ex);
+            Diag.WriteLine(NSpace, ex);
         }
 
         return false;

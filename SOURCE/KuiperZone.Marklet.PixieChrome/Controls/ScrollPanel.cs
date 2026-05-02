@@ -70,8 +70,8 @@ public class ScrollPanel : ScrollViewer
         _contentPanel.VerticalAlignment = Avalonia.Layout.VerticalAlignment.Top;
 
         // Stretch not center
-        ConditionalDebug.ThrowIfNotEqual(ScrollBarVisibility.Auto, VerticalScrollBarVisibility);
-        ConditionalDebug.ThrowIfNotEqual(Avalonia.Layout.HorizontalAlignment.Stretch, _contentPanel.HorizontalAlignment);
+        Diag.ThrowIfNotEqual(ScrollBarVisibility.Auto, VerticalScrollBarVisibility);
+        Diag.ThrowIfNotEqual(Avalonia.Layout.HorizontalAlignment.Stretch, _contentPanel.HorizontalAlignment);
 
         _coalescer.Posted += NormYPostedHandler;
         _scrollTimer.Tick += ScrollTimerTickHandler;

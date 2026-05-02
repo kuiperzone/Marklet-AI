@@ -286,7 +286,7 @@ Final line QL0";
     {
         // MARKDIG IS INCORRECT 0.41.3
         // This test can only act as regression
-        var obj = NewObj(QuotedSource);
+        var obj = CreateObj(QuotedSource);
         //
         // > > # Heading `Code` 1 QL2\\
         Assert.Equal(BlockKind.H1, obj[0].Kind);

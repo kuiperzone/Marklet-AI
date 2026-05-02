@@ -192,24 +192,24 @@ public sealed class PromptWindow : ChromeWindow
         _context.Opened += ContextOpeningHandler;
         _context.Closed += ContextClosedHandler;
 
-        _incrementMenu.Header = ChromeFonts.NewRunBlock(Symbols.AddCircle + " Increment Scale");
+        _incrementMenu.Header = ChromeFonts.CreateRunBlock(Symbols.AddCircle + " Increment Scale");
         _incrementMenu.InputGesture = new(Key.Add, KeyModifiers.Control);
         _incrementMenu.Click += IncrementClickHandler;
         _context.Items.Add(_incrementMenu);
 
-        _decrementMenu.Header = ChromeFonts.NewRunBlock(Symbols.DoNotDisturbOn + " Decrement Scale");
+        _decrementMenu.Header = ChromeFonts.CreateRunBlock(Symbols.DoNotDisturbOn + " Decrement Scale");
         _decrementMenu.InputGesture = new(Key.Subtract, KeyModifiers.Control);
         _decrementMenu.Click += DecrementClickHandler;
         _context.Items.Add(_decrementMenu);
 
-        _resetMenu.Header = ChromeFonts.NewRunBlock(Symbols.ViewRealSize + " Reset Scale");
+        _resetMenu.Header = ChromeFonts.CreateRunBlock(Symbols.ViewRealSize + " Reset Scale");
         _resetMenu.InputGesture = new(Key.D0, KeyModifiers.Control);
         _resetMenu.Click += ResetClickHandler;
         _context.Items.Add(_resetMenu);
 
         _context.Items.Add(new Separator());
 
-        _monoMenu.Header = ChromeFonts.NewRunBlock("Monospace");
+        _monoMenu.Header = ChromeFonts.CreateRunBlock("Monospace");
         _monoMenu.ToggleType = MenuItemToggleType.CheckBox;
         _monoMenu.InputGesture = _bar.Monospace.Gesture;
         _monoMenu.Click += MonospaceClickHandler;
@@ -217,17 +217,17 @@ public sealed class PromptWindow : ChromeWindow
 
         _context.Items.Add(new Separator());
 
-        _clearMenu.Header = ChromeFonts.NewRunBlock("Clear");
+        _clearMenu.Header = ChromeFonts.CreateRunBlock("Clear");
         _clearMenu.Click += ClearClickHandler;
         _context.Items.Add(_clearMenu);
 
-        _attachMenu.Header = ChromeFonts.NewRunBlock("Add Attachment");
+        _attachMenu.Header = ChromeFonts.CreateRunBlock("Add Attachment");
         _attachMenu.IsEnabled = false;
         _attachMenu.InputGesture = _bar.Attach.Gesture;
         _attachMenu.Click += AttachClickHandler;
         _context.Items.Add(_attachMenu);
 
-        _submitMenu.Header = ChromeFonts.NewRunBlock("Submit");
+        _submitMenu.Header = ChromeFonts.CreateRunBlock("Submit");
         _submitMenu.InputGesture = _bar.Submit.Gesture;
         _submitMenu.Click += SubmitHandler;
         _context.Items.Add(_submitMenu);

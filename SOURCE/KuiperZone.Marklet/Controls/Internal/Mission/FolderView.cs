@@ -38,7 +38,7 @@ namespace KuiperZone.Marklet.Controls.Internal.Mission;
 /// </summary>
 internal sealed class FolderView : Border, IDeckDrop
 {
-    private static readonly MemoryGarden Garden = GardenGrounds.Global;
+    private static readonly MemoryGarden Garden = GlobalGarden.Global;
     private readonly ChromeStyling Styling = ChromeStyling.Global;
     private readonly PixieGroup _group = new();
     private List<GardenDeck>? _source;
@@ -75,7 +75,7 @@ internal sealed class FolderView : Border, IDeckDrop
         : this(owner, false)
     {
         const string NSpace = $"{nameof(FolderView)}.constructor";
-        ConditionalDebug.WriteLine(NSpace, folderName);
+        Diag.WriteLine(NSpace, folderName);
 
         _group.CollapseTitle = folderName;
         _group.IsCollapsible = true;
@@ -135,7 +135,7 @@ internal sealed class FolderView : Border, IDeckDrop
 
         set
         {
-            ConditionalDebug.ThrowIfTrue(IsRootFolder && !value);
+            Diag.ThrowIfTrue(IsRootFolder && !value);
             _group.IsOpen = value;
         }
     }
@@ -197,8 +197,8 @@ internal sealed class FolderView : Border, IDeckDrop
     /// </summary>
     public bool Contains(DeckCard? obj)
     {
-        ConditionalDebug.ThrowIfTrue(obj?.Group == _group && !_group.Children.Contains(obj));
-        ConditionalDebug.ThrowIfTrue(obj != null && obj.Group == null && _group.Children.Contains(obj));
+        Diag.ThrowIfTrue(obj?.Group == _group && !_group.Children.Contains(obj));
+        Diag.ThrowIfTrue(obj != null && obj.Group == null && _group.Children.Contains(obj));
         return obj?.Group == _group;
     }
 
@@ -207,7 +207,7 @@ internal sealed class FolderView : Border, IDeckDrop
     /// </summary>
     public bool StartRename()
     {
-        ConditionalDebug.ThrowIfTrue(IsRootFolder);
+        Diag.ThrowIfTrue(IsRootFolder);
         return _group.StartRename(MemoryGarden.MaxMetaLength);
     }
 
@@ -216,6 +216,11 @@ internal sealed class FolderView : Border, IDeckDrop
     /// </summary>
     public void StartRebuild(List<GardenDeck> source, bool isSearching)
     {
+        const string NSpace = $"{nameof(FolderView)}.{nameof(StartRebuild)}";
+        Diag.WriteLine(NSpace, $"ROOT FOLDER: {IsRootFolder}");
+        Diag.WriteLine(NSpace, $"Source count: {source.Count}");
+
+        _source = null;
         _isSearching = isSearching;
 
         if (source.Count != 0)
@@ -228,10 +233,7 @@ internal sealed class FolderView : Border, IDeckDrop
                 Updated = source[0].Updated;
             }
 
-            return;
         }
-
-        _source = null;
     }
 
     /// <summary>
@@ -240,6 +242,7 @@ internal sealed class FolderView : Border, IDeckDrop
     public GardenDeck? FinishRebuild()
     {
         const string NSpace = $"{nameof(FolderView)}.{nameof(FinishRebuild)}";
+        Diag.WriteLine(NSpace, $"ROOT FOLDER: {IsRootFolder}");
 
         var source = _source;
         _source = null;
@@ -248,7 +251,7 @@ internal sealed class FolderView : Border, IDeckDrop
         var folderFlags = SignalFlags.None;
 
         GardenDeck? result = null;
-        GardenDeck? recent = Owner.Basket.Recent;
+        GardenDeck? recent = Owner.Basket.RecentFocused;
 
         var count = source?.Count ?? 0;
         var buffer = new List<Control>(count);
@@ -256,11 +259,12 @@ internal sealed class FolderView : Border, IDeckDrop
         for(int n = 0; n < count; ++n)
         {
             var item = source![n];
+            Diag.WriteLine(NSpace, $"CARD TITLE: {item.Title}");
 
             // If Owner is null, it means we have stale copy that
             // has been removed from the database. It shouldn't happen.
             var garden = item.Garden;
-            ConditionalDebug.ThrowIfNull(garden);
+            Diag.ThrowIfNull(garden);
 
             if (garden == null)
             {
@@ -276,7 +280,7 @@ internal sealed class FolderView : Border, IDeckDrop
             if (item.VisualComponent is DeckCard exist && exist.Group == _group)
             {
                 // This is already ours.
-                ConditionalDebug.WriteLine(NSpace, $"Refresh: {item.Title}");
+                Diag.WriteLine(NSpace, $"Refresh: {item.Title}");
                 buffer.Add(exist);
                 exist.RefreshVisual(_isSearching);
 
@@ -292,8 +296,7 @@ internal sealed class FolderView : Border, IDeckDrop
                 continue;
             }
 
-            ConditionalDebug.WriteLine(NSpace, $"NEW CARD: {item.Title}");
-
+            Diag.WriteLine(NSpace, "NEW CARD");
             newCard = new DeckCard(item, IsRootFolder);
             newCard.RefreshVisual(_isSearching);
             buffer.Add(newCard);
@@ -307,9 +310,9 @@ internal sealed class FolderView : Border, IDeckDrop
         // This should be efficient where references are unchanged.
         // It will avoid pulling things in or out of the tree where possible.
         _group.Children.Replace(buffer);
-        ConditionalDebug.WriteLine(NSpace, $"Buffer count: {buffer.Count}");
-        ConditionalDebug.WriteLine(NSpace, $"Children count: {_group.Children.Count}");
-        ConditionalDebug.ThrowIfNotEqual(_group.Children.Count, buffer.Count);
+        Diag.WriteLine(NSpace, $"Buffer count: {buffer.Count}");
+        Diag.WriteLine(NSpace, $"Children count: {_group.Children.Count}");
+        Diag.ThrowIfNotEqual(_group.Children.Count, buffer.Count);
 
         if (!IsRootFolder)
         {
@@ -410,7 +413,7 @@ internal sealed class FolderView : Border, IDeckDrop
 
             if (props.IsLeftButtonPressed && e.Pointer.Captured is not DeckCard)
             {
-                ConditionalDebug.WriteLine(NSpace, "Capture");
+                Diag.WriteLine(NSpace, "Capture");
                 e.Pointer.Capture(this);
                 Cursor = Styling.IsActualThemeDark ? ChromeCursors.FolderDark48 : ChromeCursors.FolderLight48;
             }
@@ -426,13 +429,13 @@ internal sealed class FolderView : Border, IDeckDrop
 
         if (captured == this)
         {
-            ConditionalDebug.WriteLine(NSpace, "Is captured");
+            Diag.WriteLine(NSpace, "Is captured");
             var target = GetTarget(e);
 
             // Ensure foreign folder and not self
             if (target != _dropTarget)
             {
-                ConditionalDebug.WriteLine(NSpace, "Drag target");
+                Diag.WriteLine(NSpace, "Drag target");
                 CancelTarget();
                 _dropTarget = target;
                 target?.StartDrop(this);
@@ -454,7 +457,7 @@ internal sealed class FolderView : Border, IDeckDrop
 
         if (e.Pointer.Captured == this)
         {
-            ConditionalDebug.WriteLine(NSpace, "Capture released");
+            Diag.WriteLine(NSpace, "Capture released");
             e.Handled = true;
             e.Pointer.Capture(null);
             target?.AcceptDrop(this);
@@ -465,7 +468,7 @@ internal sealed class FolderView : Border, IDeckDrop
     {
         if (obj is GardenDeck deck)
         {
-            if (deck.Folder != FolderName && deck.Basket == Owner.Kind)
+            if (deck.Folder != FolderName && deck.CurrentBasket == Owner.Kind)
             {
                 return deck;
             }
@@ -477,7 +480,7 @@ internal sealed class FolderView : Border, IDeckDrop
         {
             deck = card.Source;
 
-            if (deck.Folder != FolderName && deck.Basket == Owner.Kind)
+            if (deck.Folder != FolderName && deck.CurrentBasket == Owner.Kind)
             {
                 return deck;
             }
@@ -508,7 +511,7 @@ internal sealed class FolderView : Border, IDeckDrop
 
         if (top != null && top.InputHitTest(e.GetPosition(top)) is Control control)
         {
-            ConditionalDebug.WriteLine(NSpace, "Control: " + control);
+            Diag.WriteLine(NSpace, "Control: " + control);
             return control.FindLogicalAncestorOfType<IDeckDrop>(true);
         }
 
@@ -569,8 +572,8 @@ internal sealed class FolderView : Border, IDeckDrop
     private void ChildRenamingHandler(object? _, GroupChildRenamingEventArgs e)
     {
         const string NSpace = $"{nameof(FolderView)}.{nameof(ChildRenamingHandler)}";
-        ConditionalDebug.WriteLine(NSpace, "Old name: " + e.StartText);
-        ConditionalDebug.WriteLine(NSpace, "New text: " + e.CurrentText);
+        Diag.WriteLine(NSpace, "Old name: " + e.StartText);
+        Diag.WriteLine(NSpace, "New text: " + e.CurrentText);
         var src = ((DeckCard)e.Card!).Source;
         src.Title = e.CurrentText;
     }
@@ -578,13 +581,13 @@ internal sealed class FolderView : Border, IDeckDrop
     private void GroupRenamingHandler(object? _, GroupChildRenamingEventArgs e)
     {
         const string NSpace = $"{nameof(FolderView)}.{nameof(GroupRenamingHandler)}";
-        ConditionalDebug.WriteLine(NSpace, "Old name: " + e.StartText);
-        ConditionalDebug.WriteLine(NSpace, "New text: " + e.CurrentText);
+        Diag.WriteLine(NSpace, "Old name: " + e.StartText);
+        Diag.WriteLine(NSpace, "New text: " + e.CurrentText);
 
         if (Owner is not BasketView view || e.StartText == e.CurrentText)
         {
             // Either inside Search (not allowed or possible), or same as old
-            ConditionalDebug.WriteLine(NSpace, "Do nothing");
+            Diag.WriteLine(NSpace, "Do nothing");
             return;
         }
 
@@ -598,7 +601,7 @@ internal sealed class FolderView : Border, IDeckDrop
                 if (item is DeckCard card)
                 {
                     firstOpen = card.Source;
-                    ConditionalDebug.WriteLine(NSpace, "A child was found");
+                    Diag.WriteLine(NSpace, "A child was found");
 
                     // Only one needed
                     break;
@@ -607,9 +610,9 @@ internal sealed class FolderView : Border, IDeckDrop
         }
 
         // Rename
-        if (view.Basket.RenameFolders(e.StartText, e.CurrentText))
+        if (view.Basket.RenameFolder(e.StartText, e.CurrentText))
         {
-            ConditionalDebug.WriteLine(NSpace, "Rename accepted");
+            Diag.WriteLine(NSpace, "Rename accepted");
 
             if (IsOpen)
             {
@@ -622,7 +625,7 @@ internal sealed class FolderView : Border, IDeckDrop
         {
             e.Handled = true;
             e.IsRejected = true;
-            ConditionalDebug.WriteLine(NSpace, "RENAME REJECTED");
+            Diag.WriteLine(NSpace, "RENAME REJECTED");
         }
     }
 }

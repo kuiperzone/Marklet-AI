@@ -37,8 +37,8 @@ internal class MarkTextHost : MarkBlockHost
     {
         const string NSpace = $"{nameof(MarkTextHost)}.{nameof(MarkTextHost)}";
 
-        ConditionalDebug.WriteLine(NSpace, $"Constructor: {source.Kind}");
-        ConditionalDebug.ThrowIfEqual(BlockKind.Rule, Kind);
+        Diag.WriteLine(NSpace, $"Constructor: {source.Kind}");
+        Diag.ThrowIfEqual(BlockKind.Rule, Kind);
 
         CrossText = new CrossTextBlock(null); // <- null intentional (parent has menu)
         CrossText.Tracker = shim.Owner.Tracker;
@@ -50,14 +50,14 @@ internal class MarkTextHost : MarkBlockHost
         CrossText.TextWrapping = TextWrapping.Wrap;
         CrossText.VerticalAlignment = VerticalAlignment.Top;
 
-        ConditionalDebug.WriteLine(NSpace, $"Done ok");
+        Diag.WriteLine(NSpace, $"Done ok");
     }
 
     public CrossTextBlock CrossText { get; }
 
     public override void Refresh(bool isFirst, bool isLast)
     {
-        ConditionalDebug.ThrowIfTrue(IsPending);
+        Diag.ThrowIfTrue(IsPending);
         SetChildMargin(isFirst, isLast);
         RefreshInternal();
         RefreshInline();
@@ -72,11 +72,11 @@ internal class MarkTextHost : MarkBlockHost
 
         bool pending = IsPending;
         var rslt = base.ConsumeUpdates(sequence, ref index);
-        ConditionalDebug.WriteLine(NSpace, "Consuming " + index);
+        Diag.WriteLine(NSpace, "Consuming " + index);
 
         if (rslt == MarkConsumed.Changed)
         {
-            ConditionalDebug.WriteLine(NSpace, "Changed");
+            Diag.WriteLine(NSpace, "Changed");
 
             if (pending)
             {
@@ -86,7 +86,7 @@ internal class MarkTextHost : MarkBlockHost
             UpdateInline(Source.Elements);
         }
 
-        ConditionalDebug.WriteLine(NSpace, "Result: " + rslt);
+        Diag.WriteLine(NSpace, "Result: " + rslt);
         return rslt;
     }
 
@@ -117,7 +117,7 @@ internal class MarkTextHost : MarkBlockHost
     private void RefreshInternal()
     {
         const string NSpace = $"{nameof(MarkTextHost)}.{nameof(RefreshInternal)}";
-        ConditionalDebug.WriteLine(NSpace, "Refreshing");
+        Diag.WriteLine(NSpace, "Refreshing");
 
         var child = CrossText;
 
@@ -140,7 +140,7 @@ internal class MarkTextHost : MarkBlockHost
 
         if (Kind.IsHeading())
         {
-            ConditionalDebug.WriteLine(NSpace, "Is Heading");
+            Diag.WriteLine(NSpace, "Is Heading");
             hasForeground = true;
             child.SetForeground(owner.HeadingForeground ?? foreground);
 
@@ -155,7 +155,7 @@ internal class MarkTextHost : MarkBlockHost
         else
         if (Kind.IsCode())
         {
-            ConditionalDebug.WriteLine(NSpace, "Is code");
+            Diag.WriteLine(NSpace, "Is code");
             hasFamily = true;
             child.FontFamily = owner.MonoFamily;
             child.FontSize = fontSize * owner.MonoSizeCorrection;
@@ -174,7 +174,7 @@ internal class MarkTextHost : MarkBlockHost
         else
         if (Source.QuoteLevel > 0)
         {
-            ConditionalDebug.WriteLine(NSpace, "Has quote level");
+            Diag.WriteLine(NSpace, "Has quote level");
 
             if (owner.QuoteItalic)
             {
@@ -216,7 +216,7 @@ internal class MarkTextHost : MarkBlockHost
             child.SetForeground(foreground);
         }
 
-        ConditionalDebug.WriteLine(NSpace, "Done ok");
+        Diag.WriteLine(NSpace, "Done ok");
     }
 
     private void RefreshInline()

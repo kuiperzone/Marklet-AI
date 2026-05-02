@@ -70,7 +70,7 @@ public sealed class BufferBar : Border
     /// <summary>
     /// Occurs when <see cref="Basket"/> changes.
     /// </summary>
-    public event EventHandler<BasketChangedEventArgs>? BoxChanged;
+    public event EventHandler<EventArgs>? Changed;
 
     /// <summary>
     /// Gets or sets currently selected basket kind.
@@ -93,7 +93,7 @@ public sealed class BufferBar : Border
                     }
                 }
 
-                BoxChanged?.Invoke(this, new(value));
+                Changed?.Invoke(this, EventArgs.Empty);
             }
         }
     }

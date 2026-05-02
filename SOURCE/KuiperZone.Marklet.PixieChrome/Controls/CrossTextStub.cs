@@ -118,13 +118,13 @@ public class CrossTextStub : ICrossTrackable, ICrossTrackOwner
     public string? GetEffectiveText(WhatText what)
     {
         const string NSpace = $"{nameof(ICrossTrackable)}.{nameof(GetEffectiveText)}";
-        ConditionalDebug.WriteLine(NSpace, what);
+        Diag.WriteLine(NSpace, what);
 
         int length = TextLength;
 
         if (!GetNormalizedSelectedRange(out int start, out int end))
         {
-            ConditionalDebug.WriteLine(NSpace, "No selection");
+            Diag.WriteLine(NSpace, "No selection");
 
             if (what == WhatText.SelectedOrNull)
             {
@@ -141,7 +141,7 @@ public class CrossTextStub : ICrossTrackable, ICrossTrackOwner
             end = length;
         }
 
-        ConditionalDebug.WriteLine(NSpace, $"Plain range: [{start}, {end})");
+        Diag.WriteLine(NSpace, $"Plain range: [{start}, {end})");
         return Text?.Substring(start, end - start);
     }
 
@@ -163,7 +163,7 @@ public class CrossTextStub : ICrossTrackable, ICrossTrackOwner
         start = Math.Min(Math.Min(SelectionStart, SelectionEnd), TextLength);
         end = Math.Min(Math.Max(SelectionStart, SelectionEnd), TextLength);
 
-        ConditionalDebug.WriteLine(NSpace, $"[{start}, {end}), length: {TextLength}");
+        Diag.WriteLine(NSpace, $"[{start}, {end}), length: {TextLength}");
         return start < TextLength && start < end;
     }
 

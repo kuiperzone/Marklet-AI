@@ -97,7 +97,7 @@ public sealed class CrossTracker
     public bool Contains([NotNullWhen(true)] ICrossTrackable? obj)
     {
         // This is fast as it avoids lookup
-        ConditionalDebug.ThrowIfTrue(obj?.Tracker == this && !_children.Contains(obj));
+        Diag.ThrowIfTrue(obj?.Tracker == this && !_children.Contains(obj));
         return obj?.Tracker == this && _children.Count != 0;
     }
 
@@ -124,7 +124,7 @@ public sealed class CrossTracker
     public bool SelectNone()
     {
         const string NSpace = $"{nameof(CrossTracker)}.{nameof(SelectNone)}";
-        ConditionalDebug.WriteLine(NSpace, $"Clear selection count: {SelectionCount}");
+        Diag.WriteLine(NSpace, $"Clear selection count: {SelectionCount}");
 
         _anchorObj = null;
 
@@ -153,14 +153,14 @@ public sealed class CrossTracker
     public bool SelectSingle(ICrossTrackable obj, int start, int end)
     {
         const string NSpace = $"{nameof(CrossTracker)}.{nameof(SelectSingle)}";
-        ConditionalDebug.WriteLine(NSpace, $"SELECT: {obj.TrackKey}");
-        ConditionalDebug.ThrowIfFalse(_children.Contains(obj));
+        Diag.WriteLine(NSpace, $"SELECT: {obj.TrackKey}");
+        Diag.ThrowIfFalse(_children.Contains(obj));
 
         if (Contains(obj) && obj.SelectInternal(start, end))
         {
             _anchorObj = null;
 
-            ConditionalDebug.WriteLine(NSpace, "Rebuilding");
+            Diag.WriteLine(NSpace, "Rebuilding");
             RebuildSelection(obj, obj.SelectionStart, obj, obj.SelectionEnd);
             return true;
         }
@@ -181,14 +181,14 @@ public sealed class CrossTracker
     public int SelectRange(ICrossTrackable obj0, ICrossTrackable? obj1 = null)
     {
         const string NSpace = $"{nameof(CrossTracker)}.{nameof(SelectRange)}";
-        ConditionalDebug.WriteLine(NSpace, $"Select from children: {_children.Count}");
-        ConditionalDebug.WriteLine(NSpace, $"Keys: {obj0.TrackKey}, {obj1?.TrackKey}");
+        Diag.WriteLine(NSpace, $"Select from children: {_children.Count}");
+        Diag.WriteLine(NSpace, $"Keys: {obj0.TrackKey}, {obj1?.TrackKey}");
 
         obj1 ??= obj0;
 
         if (_children.Count == 0 || !Contains(obj0) || !Contains(obj1))
         {
-            ConditionalDebug.WriteLine(NSpace, $"Failed");
+            Diag.WriteLine(NSpace, $"Failed");
             return 0;
         }
 
@@ -202,7 +202,7 @@ public sealed class CrossTracker
     public bool SelectAll()
     {
         const string NSpace = $"{nameof(CrossTracker)}.{nameof(SelectAll)}";
-        ConditionalDebug.WriteLine(NSpace, $"Select all children: {_children.Count}");
+        Diag.WriteLine(NSpace, $"Select all children: {_children.Count}");
 
         if (_children.Count != 0)
         {
@@ -356,7 +356,7 @@ public sealed class CrossTracker
     internal void AddInternal(ICrossTrackable obj)
     {
         const string NSpace = $"{nameof(CrossTracker)}.{nameof(AddInternal)}";
-        ConditionalDebug.WriteLine(NSpace, "ADDING OBJECT");
+        Diag.WriteLine(NSpace, "ADDING OBJECT");
 
         if (obj.Tracker != this && obj.Tracker != null)
         {
@@ -374,7 +374,7 @@ public sealed class CrossTracker
             // This should efficient
             obj.SelectInternal(0, 0);
 
-            ConditionalDebug.WriteLine(NSpace, "Done ok");
+            Diag.WriteLine(NSpace, "Done ok");
             return;
         }
 
@@ -396,7 +396,7 @@ public sealed class CrossTracker
 
         if (_children.Remove(obj))
         {
-            ConditionalDebug.WriteLine(NSpace, "Removed");
+            Diag.WriteLine(NSpace, "Removed");
 
             if (obj == _anchorObj)
             {
@@ -414,7 +414,7 @@ public sealed class CrossTracker
             }
 
             _children.TrimCapacity(DefaultCapacity);
-            ConditionalDebug.WriteLine(NSpace, "Success OK");
+            Diag.WriteLine(NSpace, "Success OK");
             return true;
         }
 
@@ -551,13 +551,13 @@ public sealed class CrossTracker
 
         if (Container.GetVisualAt(info.Position) is ICrossTrackable target)
         {
-            ConditionalDebug.WriteLine(NSpace, "Has trackable");
+            Diag.WriteLine(NSpace, "Has trackable");
 
             if (target.Tracker == this && target.IsPointerSelectEnabled &&
                 target is Control control && e.Pointer.Captured != control)
             {
                 int pos = target.GetTextPosition(e.GetPosition(control));
-                ConditionalDebug.WriteLine(NSpace, $"Target pos: {pos}");
+                Diag.WriteLine(NSpace, $"Target pos: {pos}");
 
                 RebuildSelection(_anchorObj, _anchorPos, target, pos);
                 e.Pointer.Capture(control);

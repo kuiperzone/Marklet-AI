@@ -59,11 +59,11 @@ internal sealed class MarkCodeHost : MarkTextHost
     public MarkCodeHost(MarkShim shim, IReadOnlyMarkBlock source)
         : base(shim, source)
     {
-        ConditionalDebug.ThrowIfFalse(Kind.IsCode());
+        Diag.ThrowIfFalse(Kind.IsCode());
 
         // If these change, we want to know so we can adapt
-        ConditionalDebug.ThrowIfFalse(double.IsNaN(CrossText.Width));
-        ConditionalDebug.ThrowIfNotEqual(HorizontalAlignment.Stretch, CrossText.HorizontalAlignment);
+        Diag.ThrowIfFalse(double.IsNaN(CrossText.Width));
+        Diag.ThrowIfNotEqual(HorizontalAlignment.Stretch, CrossText.HorizontalAlignment);
 
         // COMMON CONTROLS
         _panel.Orientation = Orientation.Vertical;
@@ -403,7 +403,7 @@ internal sealed class MarkCodeHost : MarkTextHost
     private void CopyClickHandler(object? _, RoutedEventArgs __)
     {
         const string NSpace = $"{nameof(MarkCodeHost)}.{nameof(CopyClickHandler)}";
-        ConditionalDebug.WriteLine(NSpace, "Clicked");
+        Diag.WriteLine(NSpace, "Clicked");
         CrossText.CopyText(WhatText.SelectedOrAll);
     }
 }

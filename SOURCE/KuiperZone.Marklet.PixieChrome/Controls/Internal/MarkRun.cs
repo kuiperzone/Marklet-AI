@@ -18,7 +18,6 @@
 // You should have received a copy of the GNU Affero General Public License along
 // with Marklet. If not, see <https://www.gnu.org/licenses/>.
 
-using Avalonia.Media.Immutable;
 using KuiperZone.Marklet.PixieChrome.Shared;
 using KuiperZone.Marklet.Tooling.Markdown;
 
@@ -28,17 +27,17 @@ internal sealed class MarkRun : CrossRun
 {
     private readonly MarkShim _shim;
 
-    public MarkRun(MarkShim shim, BlockKind parent, MarkElement element)
+    public MarkRun(MarkShim shim, BlockKind owner, MarkElement element)
     {
         _shim = shim;
-        ParentKind = parent;
+        OwnerKind = owner;
         Update(element);
     }
 
     /// <summary>
     /// Gets the block kind this belongs to.
     /// </summary>
-    public BlockKind ParentKind { get; private set; }
+    public BlockKind OwnerKind { get; private set; }
 
     /// <summary>
     /// Gets the styling.

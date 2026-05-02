@@ -38,13 +38,15 @@ public static class AppFonts
         // Link to for convenience only
         DefaultFamily = ChromeFonts.DefaultFamily;
         MonospaceFamily = ChromeFonts.MonospaceFamily;
-        ConditionalDebug.WriteLine(NSpace, "LOADING FONTS");
+        Diag.WriteLine(NSpace, "LOADING FONTS");
 
         try
         {
+            var asm = typeof(AppFonts).Assembly.GetName().Name;
+
             var fc = new EmbeddedFontCollection(
                 new Uri(AssetPrefix, UriKind.Absolute),
-                new Uri("avares://KuiperZone.Marklet/Assets/Fonts", UriKind.Absolute));
+                new Uri($"avares://{asm}/Assets/Fonts", UriKind.Absolute));
 
             FontManager.Current.AddFontCollection(fc);
             SlabFamily = new($"{AssetPrefix}#Roboto Slab");
@@ -55,8 +57,8 @@ public static class AppFonts
         catch (Exception e)
         {
             // Expected to throw in unit test
-            ConditionalDebug.WriteLine(NSpace, "WARNING: Font load failed");
-            ConditionalDebug.WriteLine(NSpace, e.Message);
+            Diag.WriteLine(NSpace, "WARNING: Font load failed");
+            Diag.WriteLine(NSpace, e.Message);
             SlabFamily = DefaultFamily;
             VintageFamily = DefaultFamily;
             ArtisticFamily = DefaultFamily;

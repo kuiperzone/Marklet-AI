@@ -108,7 +108,7 @@ internal sealed class MarkLevelHost : MarkVisualHost
     public override void Refresh(bool isFirst, bool isLast)
     {
         // Order important
-        ConditionalDebug.ThrowIfTrue(IsPending);
+        Diag.ThrowIfTrue(IsPending);
 
         foreach (var item in _childHosts)
         {
@@ -127,7 +127,7 @@ internal sealed class MarkLevelHost : MarkVisualHost
         {
             // New instance
             IsPending = false;
-            ConditionalDebug.ThrowIfNotEqual(_childHosts.Count, 0);
+            Diag.ThrowIfNotEqual(_childHosts.Count, 0);
 
             while(index < sequence.Count)
             {
@@ -174,7 +174,7 @@ internal sealed class MarkLevelHost : MarkVisualHost
             }
 
             // If child compatible, the level itself must be compatible
-            ConditionalDebug.ThrowIfFalse(IsCompatible(sequence[n]));
+            Diag.ThrowIfFalse(IsCompatible(sequence[n]));
 
             if (++rowN == hostCount)
             {
@@ -193,7 +193,7 @@ internal sealed class MarkLevelHost : MarkVisualHost
             if (rslt == MarkConsumed.Incompatible)
             {
                 // The pre-check accepted this!
-                ConditionalDebug.Fail($"Invalid {nameof(MarkVisualHost.ConsumeUpdates)} result");
+                Diag.Fail($"Invalid {nameof(MarkVisualHost.ConsumeUpdates)} result");
                 return MarkConsumed.Incompatible;
             }
 
@@ -249,7 +249,7 @@ internal sealed class MarkLevelHost : MarkVisualHost
         // Start
         int colN = QuoteLevel;
         int rowN = _childHosts.Count;
-        ConditionalDebug.ThrowIfNotEqual(rowN, _grid.RowDefinitions.Count);
+        Diag.ThrowIfNotEqual(rowN, _grid.RowDefinitions.Count);
 
         _childHosts.Add(host);
         _grid.RowDefinitions.Add(new(GridLength.Auto));
@@ -274,16 +274,20 @@ internal sealed class MarkLevelHost : MarkVisualHost
         if (ListLevel > 0)
         {
             // LIST ITEMS
-            ConditionalDebug.ThrowIfEqual(ListKind.None, host.Source.GetListKind());
+            Diag.ThrowIfEqual(ListKind.None, host.Source.GetListKind());
 
             // PREFIX COLUMN
             var prefix = new CrossTextBlock();
+
             prefix.Tracker = host.Shim.Owner.Tracker;
             prefix.TrackPrefix = new('\t', ListLevel);
             prefix.VerticalAlignment = VerticalAlignment.Top;
             prefix.TextAlignment = Avalonia.Media.TextAlignment.Right;
-            prefix.Foreground = host.Shim.ActualForeground;
             prefix.Background = ChromeBrushes.Transparent;
+
+            // IMPORTANT. Must use extension setter
+            prefix.SetForeground(host.Shim.ActualForeground);
+
 
             // IMPORTANT
             // Link to associated host.
@@ -315,7 +319,7 @@ internal sealed class MarkLevelHost : MarkVisualHost
     {
         if (_quoteBars != null)
         {
-            ConditionalDebug.ThrowIfZero(QuoteLevel);
+            Diag.ThrowIfZero(QuoteLevel);
 
             for (int n = 0; n < QuoteLevel; ++n)
             {
@@ -334,7 +338,7 @@ internal sealed class MarkLevelHost : MarkVisualHost
 
         if (_prefixes != null)
         {
-            ConditionalDebug.ThrowIfZero(ListLevel);
+            Diag.ThrowIfZero(ListLevel);
 
             foreach (var item in _prefixes)
             {

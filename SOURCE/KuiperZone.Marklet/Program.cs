@@ -19,10 +19,8 @@
 // with Marklet. If not, see <https://www.gnu.org/licenses/>.
 
 using Avalonia;
-using KuiperZone.Marklet.Controls;
-using KuiperZone.Marklet.Controls.Internal.Mission;
 using KuiperZone.Marklet.PixieChrome;
-using KuiperZone.Marklet.PixieChrome.Controls;
+using KuiperZone.Marklet.PixieChrome.Windows;
 using KuiperZone.Marklet.Stack.Garden;
 using KuiperZone.Marklet.Tooling;
 using KuiperZone.Marklet.Windows;
@@ -39,34 +37,46 @@ class Program
     {
         // Selectively enable logging namespace
         // otherwise there is just too much!
-        ConditionalDebug.EnableNamespace("");
-        ConditionalDebug.EnableNamespace(nameof(App));
-        ConditionalDebug.EnableNamespace(nameof(ChromeApplication));
-        ConditionalDebug.EnableNamespace(nameof(MainWindow));
-        ConditionalDebug.EnableNamespace(nameof(MainMission));
-        ConditionalDebug.EnableNamespace(nameof(DeckViewer));
-        ConditionalDebug.EnableNamespace(nameof(BasketView));
-        ConditionalDebug.EnableNamespace(nameof(DeckCard));
-        ConditionalDebug.EnableNamespace(nameof(FolderView));
-        // ConditionalDebug.EnableNamespace(nameof(CardMenu));
-        // ConditionalDebug.EnableNamespace(nameof(MemoryGarden));
-        // ConditionalDebug.EnableNamespace(nameof(GardenDeck));
-        // ConditionalDebug.EnableNamespace(nameof(GardenLeaf));
-        // ConditionalDebug.EnableNamespace(nameof(GardenBasket));
-        // ConditionalDebug.EnableNamespace("GroupRenamer");
-        // ConditionalDebug.EnableNamespace(nameof(PixieCombo));
-        // ConditionalDebug.EnableNamespace(nameof(LightButton));
-        // ConditionalDebug.EnableNamespace(nameof(CardMenu));
-        // ConditionalDebug.EnableNamespace(nameof(PruneWindow));
-        // ConditionalDebug.EnableNamespace(nameof(SessionLeaf));
-        // ConditionalDebug.EnableNamespace(nameof(ChromeWindow));
-        // ConditionalDebug.EnableNamespace("CrossTracker");
-        // ConditionalDebug.EnableNamespace("CrossTextBlock");
-        // ConditionalDebug.EnableNamespace("MarkView");
-        // ConditionalDebug.EnableNamespace("MarkTextHost");
-        // ConditionalDebug.EnableNamespace("MarkDocument");
-        // ConditionalDebug.EnableNamespace("DispatchCoalescer");
-        // ConditionalDebug.EnableNamespace("StyledContainer");
+        Diag.EnableNamespace("");
+        Diag.EnableNamespace(nameof(App));
+        Diag.EnableNamespace(nameof(ChromeApplication));
+        Diag.EnableNamespace(nameof(MainWindow));
+
+        // Diag.EnableNamespace("MetaOps");
+        // Diag.EnableNamespace("DeckOps");
+        // Diag.EnableNamespace("LeafOps");
+        // Diag.EnableNamespace(nameof(MemoryGarden));
+        // Diag.EnableNamespace(nameof(SqliteProvider));
+        // Diag.EnableNamespace(nameof(GardenDeck));
+        // Diag.EnableNamespace(nameof(GardenLeaf));
+        // Diag.EnableNamespace(nameof(GardenBasket));
+
+        //ConditionalDebug.EnableNamespace(nameof(MainMission));
+        // Diag.EnableNamespace(nameof(CarouselControl));
+        // Diag.EnableNamespace(nameof(SettingsCarousel<>));
+        // Diag.EnableNamespace(nameof(DatabaseSettingsCarousel));
+        // Diag.EnableNamespace(nameof(DeckViewer));
+        // Diag.EnableNamespace(nameof(BasketView));
+        // Diag.EnableNamespace(nameof(DeckCard));
+        // Diag.EnableNamespace(nameof(FolderView));
+        // Diag.EnableNamespace(nameof(CardMenu));
+        // Diag.EnableNamespace("GroupRenamer");
+
+        // Diag.EnableNamespace(nameof(PixieCombo));
+        // Diag.EnableNamespace(nameof(LightButton));
+        // Diag.EnableNamespace(nameof(CardMenu));
+        // Diag.EnableNamespace(nameof(PruneWindow));
+        // Diag.EnableNamespace(nameof(SessionLeaf));
+        // Diag.EnableNamespace(nameof(ChromeWindow));
+
+        // Diag.EnableNamespace("CrossTracker");
+        // Diag.EnableNamespace("CrossTextBlock");
+        // Diag.EnableNamespace("MarkView");
+        // Diag.EnableNamespace("MarkTextHost");
+        // Diag.EnableNamespace("MarkDocument");
+        // Diag.EnableNamespace("StyledContainer");
+
+        // Diag.EnableNamespace("DispatchCoalescer");
 
         try
         {

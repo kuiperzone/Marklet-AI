@@ -19,7 +19,7 @@
 // with Marklet. If not, see <https://www.gnu.org/licenses/>.
 
 using Avalonia.Threading;
-using KuiperZone.Marklet.CarouselPages;
+using KuiperZone.Marklet.Carousels;
 using KuiperZone.Marklet.PixieChrome.Controls;
 using KuiperZone.Marklet.PixieChrome.Windows;
 
@@ -28,7 +28,7 @@ namespace KuiperZone.Marklet.Windows;
 /// <summary>
 /// Application about window.
 /// </summary>
-public sealed class AboutWindow : CarouselWindow
+public sealed class AboutWindow : CarouselDialog
 {
     private const int HomeIndex = 0;
     private const int LicenseIndex = 1;
@@ -50,14 +50,12 @@ public sealed class AboutWindow : CarouselWindow
         MinHeight = 400;
 
         ContentMaxWidth = 800;
-
-        PageClasses.Add("shade-background");
         BringContentIntoViewOnFocus = false;
 
-        Pages.Add(new AboutHomeCarouselPage(this));
-        Pages.Add(new AboutLicenseCarouselPage());
-        Pages.Add(new AboutMaximsCarouselPage());
-        Pages.Add(new AboutTechnicalCarouselPage());
+        Pages.Add(new AboutHomeCarousel(this));
+        Pages.Add(new AboutLicenseCarousel());
+        Pages.Add(new AboutMaximsCarousel());
+        Pages.Add(new AboutTechnicalCarousel());
     }
 
     internal void OnLink(Uri uri)

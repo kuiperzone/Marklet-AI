@@ -44,7 +44,7 @@ public static class ChromeFonts
         const string AssetPrefix = "fonts:ChromeFonts";
 
         DefaultFamily = FontFamily.Default;
-        ConditionalDebug.WriteLine(NSpace, "LOADING FONTS");
+        Diag.WriteLine(NSpace, "LOADING FONTS");
 
         try
         {
@@ -59,8 +59,8 @@ public static class ChromeFonts
         catch (Exception e)
         {
             // Unless we catch this, unit tests that don't need fonts will fail.
-            ConditionalDebug.WriteLine(NSpace, "WARNING: Font load failed");
-            ConditionalDebug.WriteLine(NSpace, e);
+            Diag.WriteLine(NSpace, "WARNING: Font load failed");
+            Diag.WriteLine(NSpace, e);
             MonospaceFamily = new("monospace");
             SymbolFamily = MonospaceFamily;
         }
@@ -166,7 +166,7 @@ public static class ChromeFonts
 
             if (n != 0 && symbol != lastSymbol)
             {
-                trail = NewRun(lastSymbol, fontSize, scale);
+                trail = CreateRun(lastSymbol, fontSize, scale);
                 trail.Text = text.Substring(n0, n - n0);
                 inlines.Add(trail);
                 n0 = n;
@@ -175,7 +175,7 @@ public static class ChromeFonts
             lastSymbol = symbol;
         }
 
-        trail = NewRun(lastSymbol, fontSize, scale);
+        trail = CreateRun(lastSymbol, fontSize, scale);
         trail.Text = text.Substring(n0, length - n0);
         inlines.Add(trail);
         return inlines;
@@ -184,14 +184,14 @@ public static class ChromeFonts
     /// <summary>
     /// Returns a new TextBlock containing mixed symbols and text.
     /// </summary>
-    public static TextBlock NewRunBlock(string text)
+    public static TextBlock CreateRunBlock(string text)
     {
         var block = new TextBlock();
         block.Inlines = GetRun(text);
         return block;
     }
 
-    private static Run NewRun(bool symbol, double fontSize, double fontScale)
+    private static Run CreateRun(bool symbol, double fontSize, double fontScale)
     {
         var run = new Run();
         run.BaselineAlignment = BaselineAlignment.Center;

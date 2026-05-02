@@ -41,6 +41,7 @@ public class PixieNumeric : PixieControl
     private const double DefaultMaxWidth = 200;
     private const decimal DefaultMaxValue = 10m;
     private const decimal DefaultIncrement = 1m;
+    private const int DefaultRepeatInterval = 100;
     private const bool DefaultAcceptFractionInput = true;
     private const bool DefaultCanEdit = true;
     private readonly StackPanel _itemPanel = new();
@@ -58,6 +59,7 @@ public class PixieNumeric : PixieControl
     private decimal _minValue;
     private decimal _maxValue = DefaultMaxValue;
     private decimal _increment = DefaultIncrement;
+    private int _repeatInterval = DefaultRepeatInterval;
     private bool _acceptFractionInput = DefaultAcceptFractionInput;
     private bool _alwaysShowBorder;
     private bool _canEdit = DefaultCanEdit;
@@ -101,7 +103,7 @@ public class PixieNumeric : PixieControl
 
         _resetButton.Margin = bm;
         _resetButton.VerticalAlignment = Avalonia.Layout.VerticalAlignment.Center;
-        _resetButton.Content = Symbols.SettingsBackupRestore;
+        _resetButton.Content = Symbols.Replay;
         _resetButton.IsVisible = false;
         _resetButton.Background = ChromeStyling.ButtonBrush;
         _resetButton.Click += ResetButtonClickHandler;
@@ -109,14 +111,14 @@ public class PixieNumeric : PixieControl
         _upButton.Margin = bm;
         _upButton.VerticalAlignment = Avalonia.Layout.VerticalAlignment.Center;
         _upButton.Content = Symbols.Add;
-        _upButton.IsRepeatable = true;
+        _upButton.RepeatInterval = 100;
         _upButton.Background = ChromeStyling.ButtonBrush;
         _upButton.Click += UpButtonClickHandler;
 
         _downButton.Margin = bm;
         _downButton.VerticalAlignment = Avalonia.Layout.VerticalAlignment.Center;
         _downButton.Content = Symbols.Remove;
-        _downButton.IsRepeatable = true;
+        _downButton.RepeatInterval = 100;
         _downButton.Background = ChromeStyling.ButtonBrush;
         _downButton.Click += DownButtonClickHandler;
 
@@ -160,6 +162,13 @@ public class PixieNumeric : PixieControl
     public static readonly DirectProperty<PixieNumeric, decimal> IncrementProperty =
         AvaloniaProperty.RegisterDirect<PixieNumeric, decimal>(nameof(Increment),
         o => o.Increment, (o, v) => o.Increment = v, DefaultIncrement);
+
+    /// <summary>
+    /// Defines the <see cref="RepeatInterval"/> property.
+    /// </summary>
+    public static readonly DirectProperty<PixieNumeric, int> RepeatIntervalProperty =
+        AvaloniaProperty.RegisterDirect<PixieNumeric, int>(nameof(RepeatInterval),
+        o => o.RepeatInterval, (o, v) => o.RepeatInterval = v, DefaultRepeatInterval);
 
     /// <summary>
     /// Defines the <see cref="AcceptFractionInput"/> property.
@@ -280,6 +289,19 @@ public class PixieNumeric : PixieControl
             ArgumentOutOfRangeException.ThrowIfNegativeOrZero(value, nameof(Increment));
             SetAndRaise(IncrementProperty, ref _increment, value);
         }
+    }
+
+    /// <summary>
+    /// Gets or sets the repeat interval of increment and decrement buttons in milliseconds.
+    /// </summary>
+    /// <remarks>
+    /// A positive value enable repeating, whereas 0 or negative disables. Suitable values are in the range [100, 500].
+    /// Default is 100.
+    /// </remarks>
+    public int RepeatInterval
+    {
+        get { return _repeatInterval; }
+        set { SetAndRaise(RepeatIntervalProperty, ref _repeatInterval, value); }
     }
 
     /// <summary>
@@ -454,6 +476,14 @@ public class PixieNumeric : PixieControl
             return;
         }
 
+        if (p == RepeatIntervalProperty)
+        {
+            var value = change.GetNewValue<int>();
+            _upButton.RepeatInterval = value;
+            _downButton.RepeatInterval = value;
+            return;
+        }
+
         if (p == FormatProperty)
         {
             try
@@ -526,7 +556,7 @@ public class PixieNumeric : PixieControl
 
     private void IncrementValue(decimal inc)
     {
-        ConditionalDebug.ThrowIfZero(inc);
+        Diag.ThrowIfZero(inc);
         var src = Value;
         var value = inc * decimal.Truncate(src / inc);
 

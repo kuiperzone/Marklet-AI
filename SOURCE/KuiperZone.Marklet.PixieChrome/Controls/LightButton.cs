@@ -76,7 +76,7 @@ public class LightButton : Border
     private string? _content;
     private TextAlignment _contentAlignment = DefaultAlignment;
     private FontWeight _fontWeight = FontWeight.Normal;
-    private bool _isRepeatable;
+    private int _repeatInterval;
     private bool _isChecked;
     private bool _canToggle;
     private ContextMenu? _dropMenu;
@@ -171,11 +171,11 @@ public class LightButton : Border
         o => o.FontWeight, (o, v) => o.FontWeight = v, FontWeight.Normal);
 
     /// <summary>
-    /// Defines the <see cref="IsRepeatable"/> property.
+    /// Defines the <see cref="RepeatInterval"/> property.
     /// </summary>
-    public static readonly DirectProperty<LightButton, bool> IsRepeatableProperty =
-        AvaloniaProperty.RegisterDirect<LightButton, bool>(nameof(IsRepeatable),
-        o => o.IsRepeatable, (o, v) => o.IsRepeatable = v);
+    public static readonly DirectProperty<LightButton, int> RepeatIntervalProperty =
+        AvaloniaProperty.RegisterDirect<LightButton, int>(nameof(RepeatInterval),
+        o => o.RepeatInterval, (o, v) => o.RepeatInterval = v);
 
     /// <summary>
     /// Defines the <see cref="IsChecked"/> property.
@@ -351,12 +351,15 @@ public class LightButton : Border
     }
 
     /// <summary>
-    /// Gets or sets whether the button is repeatable.
+    /// Gets or sets the repeat interval in milliseconds.
     /// </summary>
-    public bool IsRepeatable
+    /// <remarks>
+    /// A positive value enable repeating, whereas 0 or negative disables. Suitable values are in the range [100, 500].
+    /// </remarks>
+    public int RepeatInterval
     {
-        get { return _isRepeatable; }
-        set { SetAndRaise(IsRepeatableProperty, ref _isRepeatable, value); }
+        get { return _repeatInterval; }
+        set { SetAndRaise(RepeatIntervalProperty, ref _repeatInterval, value); }
     }
 
     /// <summary>
@@ -870,9 +873,11 @@ public class LightButton : Border
             return;
         }
 
-        if (p == IsRepeatableProperty)
+        if (p == RepeatIntervalProperty)
         {
-            if (change.GetNewValue<bool>())
+            var value = change.GetNewValue<int>();
+
+            if (value > 0)
             {
                 if (_repeatTimer == null)
                 {
@@ -1041,11 +1046,11 @@ public class LightButton : Border
 
     private void RepeatTimerTickHandler(object? _, EventArgs __)
     {
-        if (_repeatTimer != null)
+        if (_repeatTimer != null && _repeatInterval > 0)
         {
             if (_repeatTimer.Interval == RepeatInitialInterval)
             {
-                _repeatTimer.Interval = TimeSpan.FromMilliseconds(100);
+                _repeatTimer.Interval = TimeSpan.FromMilliseconds(_repeatInterval);
                 _repeatTimer.Restart();
             }
 

@@ -22,102 +22,102 @@ using KuiperZone.Marklet.Stack.Garden;
 
 namespace KuiperZone.Marklet.Stack.Test;
 
-public class GardenBasketTest : GardenTestBase
+public class GardenBasketTest : TestBase
 {
     [Fact]
-    public void GetSorted_CreationOldestFirst()
+    public void GetContents_CreationOldestFirst()
     {
-        var obj = OpenNew();
-        Populate(obj, DeckKind.Chat, BasketKind.Recent, 5);
+        var obj = new MemoryGarden(CreateMemoryProvider());
+        Populate(obj, DeckFormat.Chat, BasketKind.Recent, 5);
 
-        var first = obj.FindTitleExact("0");
+        var first = obj.FindOnTitle("0");
         Assert.NotNull(first);
 
-        var last = obj.FindTitleExact("4");
+        var last = obj.FindOnTitle("4");
         Assert.NotNull(last);
 
-        var basket = obj.GetBasket(BasketKind.Recent);
+        var basket = obj[BasketKind.Recent];
         var sorted = basket.GetContents(GardenSort.CreationOldestFirst);
         Assert.Same(first, sorted[0]);
         Assert.Same(last, sorted[^1]);
     }
 
     [Fact]
-    public void GetSorted_CreationNewestFirst()
+    public void GetContents_CreationNewestFirst()
     {
-        var obj = OpenNew();
-        Populate(obj, DeckKind.Chat, BasketKind.Recent, 5);
+        var obj = new MemoryGarden(CreateMemoryProvider());
+        Populate(obj, DeckFormat.Chat, BasketKind.Recent, 5);
 
-        var first = obj.FindTitleExact("0");
+        var first = obj.FindOnTitle("0");
         Assert.NotNull(first);
 
-        var last = obj.FindTitleExact("4");
+        var last = obj.FindOnTitle("4");
         Assert.NotNull(last);
 
-        var basket = obj.GetBasket(BasketKind.Recent);
+        var basket = obj[BasketKind.Recent];
         var sorted = basket.GetContents(GardenSort.CreationNewestFirst);
         Assert.Same(first, sorted[^1]);
         Assert.Same(last, sorted[0]);
     }
 
     [Fact]
-    public void GetSorted_UpdateOldestFirst()
+    public void GetContents_UpdateOldestFirst()
     {
-        var obj = OpenNew();
-        Populate(obj, DeckKind.Chat, BasketKind.Recent, 5);
+        var obj = new MemoryGarden(CreateMemoryProvider());
+        Populate(obj, DeckFormat.Chat, BasketKind.Recent, 5);
 
-        var first = obj.FindTitleExact("0");
+        var first = obj.FindOnTitle("0");
         Assert.NotNull(first);
 
-        var child = obj.FindTitleExact("2");
+        var child = obj.FindOnTitle("2");
         Assert.NotNull(child);
 
-        child.Append(LeafKind.User, "Update");
+        child.Append(LeafFormat.UserMessage, "Update");
 
-        var basket = obj.GetBasket(BasketKind.Recent);
+        var basket = obj[BasketKind.Recent];
         var sorted = basket.GetContents(GardenSort.UpdateOldestFirst);
         Assert.Same(first, sorted[0]);
         Assert.Same(child, sorted[^1]);
     }
 
     [Fact]
-    public void GetSorted_UpdateNewestFirst()
+    public void GetContents_UpdateNewestFirst()
     {
-        var obj = OpenNew();
-        Populate(obj, DeckKind.Chat, BasketKind.Recent, 5);
+        var obj = new MemoryGarden(CreateMemoryProvider());
+        Populate(obj, DeckFormat.Chat, BasketKind.Recent, 5);
 
-        var last = obj.FindTitleExact("0");
+        var last = obj.FindOnTitle("0");
         Assert.NotNull(last);
 
-        var childN = obj.FindTitleExact("2");
+        var childN = obj.FindOnTitle("2");
         Assert.NotNull(childN);
 
-        childN.Append(LeafKind.User, "Update");
+        childN.Append(LeafFormat.UserMessage, "Update");
 
-        var basket = obj.GetBasket(BasketKind.Recent);
+        var basket = obj[BasketKind.Recent];
         var sorted = basket.GetContents(GardenSort.UpdateNewestFirst);
         Assert.Same(childN, sorted[0]);
         Assert.Same(last, sorted[^1]);
     }
 
     [Fact]
-    public void GetSorted_UpdateNewestPinnedFirst()
+    public void GetContents_UpdateNewestPinnedFirst()
     {
-        var obj = OpenNew();
-        Populate(obj, DeckKind.Chat, BasketKind.Recent, 5);
+        var obj = new MemoryGarden(CreateMemoryProvider());
+        Populate(obj, DeckFormat.Chat, BasketKind.Recent, 5);
 
-        var last = obj.FindTitleExact("0");
+        var last = obj.FindOnTitle("0");
         Assert.NotNull(last);
 
-        var childN = obj.FindTitleExact("2");
+        var childN = obj.FindOnTitle("2");
         Assert.NotNull(childN);
-        childN.Append(LeafKind.User, "Update");
+        childN.Append(LeafFormat.UserMessage, "Update");
 
-        var childP = obj.FindTitleExact("3");
+        var childP = obj.FindOnTitle("3");
         Assert.NotNull(childP);
         childP.IsPinned = true;
 
-        var basket = obj.GetBasket(BasketKind.Recent);
+        var basket = obj[BasketKind.Recent];
         var sorted = basket.GetContents(GardenSort.UpdateNewestPinnedFirst);
         Assert.Same(childP, sorted[0]);
         Assert.Same(childN, sorted[1]);
@@ -125,93 +125,93 @@ public class GardenBasketTest : GardenTestBase
     }
 
     [Fact]
-    public void GetFolder_IsOrdered()
+    public void GetFolderNames_IsOrdered()
     {
-        var obj = OpenNew();
-        PopulateWithFolder(obj, DeckKind.Chat, BasketKind.Recent);
+        var obj = new MemoryGarden(CreateMemoryProvider());
+        PopulateWithFolder(obj, DeckFormat.Chat, BasketKind.Recent);
 
-        var basket = obj.GetBasket(BasketKind.Recent);
+        var basket = obj[BasketKind.Recent];
         Assert.Equal(["A", "B"], basket.GetFolderNames());
     }
 
     [Fact]
     public void RenameFolder_RenamesInvokesEvent()
     {
-        var obj = OpenNew();
-        PopulateWithFolder(obj, DeckKind.Chat, BasketKind.Recent);
+        var obj = new MemoryGarden(CreateMemoryProvider());
+        PopulateWithFolder(obj, DeckFormat.Chat, BasketKind.Recent);
 
-        var basket = obj.GetBasket(BasketKind.Recent);
+        var basket = obj[BasketKind.Recent];
         Assert.Equal(["A", "B"], basket.GetFolderNames());
 
         var receiver = new ChangeReceiver();
-        basket.Changed += receiver.BasketHandler;
+        obj.Changed += receiver.GardenChangedHandler;
 
-        Assert.True(basket.RenameFolders("B", "z"));
+        Assert.True(basket.RenameFolder("B", "z"));
         Assert.Equal(["A", "z"], basket.GetFolderNames());
-        Assert.Equal(1, receiver.BasketUpdatedCounter);
+        Assert.Equal(1, receiver.ChangedCounter);
 
-        Assert.True(basket.RenameFolders(null, "C"));
+        Assert.True(basket.RenameFolder(null, "C"));
         Assert.Equal(["A", "C", "z"], basket.GetFolderNames());
-        Assert.Equal(2, receiver.BasketUpdatedCounter);
+        Assert.Equal(2, receiver.ChangedCounter);
     }
 
     [Fact]
     public void RenameFolder_SetsNullAndInvokesEvent()
     {
-        var obj = OpenNew();
-        PopulateWithFolder(obj, DeckKind.Chat, BasketKind.Recent);
+        var obj = new MemoryGarden(CreateMemoryProvider());
+        PopulateWithFolder(obj, DeckFormat.Chat, BasketKind.Recent);
 
-        var basket = obj.GetBasket(BasketKind.Recent);
+        var basket = obj[BasketKind.Recent];
         Assert.Equal(["A", "B"], basket.GetFolderNames());
 
         var receiver = new ChangeReceiver();
-        basket.Changed += receiver.BasketHandler;
+        obj.Changed += receiver.GardenChangedHandler;
 
         // Not allowed without merge
-        Assert.False(basket.RenameFolders("A", null));
+        Assert.False(basket.RenameFolder("A", null));
 
         // Set with merge option
-        Assert.True(basket.RenameFolders("A", null, true));
+        Assert.True(basket.RenameFolder("A", null, true));
         Assert.Equal(["B"], basket.GetFolderNames());
-        Assert.Equal(1, receiver.BasketUpdatedCounter);
+        Assert.Equal(1, receiver.ChangedCounter);
 
-        Assert.True(basket.RenameFolders("B", null, true));
+        Assert.True(basket.RenameFolder("B", null, true));
         Assert.Empty(basket.GetFolderNames());
-        Assert.Equal(2, receiver.BasketUpdatedCounter);
+        Assert.Equal(2, receiver.ChangedCounter);
 
-        foreach (var item in obj)
+        foreach (var item in obj[BasketKind.Recent])
         {
             Assert.Null(item.Folder);
         }
     }
 
     [Fact]
-    public void RemoveFolders_Deletes()
+    public void RemoveFolder_Deletes()
     {
-        var obj = OpenNew();
-        PopulateWithFolder(obj, DeckKind.Chat, BasketKind.Recent);
+        var obj = new MemoryGarden(CreateMemoryProvider());
+        PopulateWithFolder(obj, DeckFormat.Chat, BasketKind.Recent);
 
-        var basket = obj.GetBasket(BasketKind.Recent);
+        var basket = obj[BasketKind.Recent];
         Assert.Equal(["A", "B"], basket.GetFolderNames());
 
         var receiver = new ChangeReceiver();
-        basket.Changed += receiver.BasketHandler;
+        obj.Changed += receiver.GardenChangedHandler;
 
         // Does nothing
         Assert.False(basket.DeleteFolder("not exist"));
-        Assert.Equal(0, receiver.BasketUpdatedCounter);
-        Assert.Equal(3, obj.Count);
+        Assert.Equal(0, receiver.ChangedCounter);
+        Assert.Equal(3, obj.PopulationCount);
 
         Assert.True(basket.DeleteFolder("B"));
-        Assert.Equal(1, receiver.BasketUpdatedCounter);
-        Assert.Equal(2, obj.Count);
+        Assert.Equal(1, receiver.ChangedCounter);
+        Assert.Equal(2, obj.PopulationCount);
 
         // Delete empty - same as null
         Assert.True(basket.DeleteFolder(""));
         Assert.Equal(["A"], basket.GetFolderNames());
-        Assert.Single(obj);
+        Assert.Equal(1, obj.PopulationCount);
 
-        Assert.Equal(2, receiver.BasketUpdatedCounter);
+        Assert.Equal(2, receiver.ChangedCounter);
         Assert.Single(basket);
         receiver.Reset();
     }
@@ -219,13 +219,15 @@ public class GardenBasketTest : GardenTestBase
     [Fact]
     public void Prune_RecentTimeout_MovesToWaste()
     {
-        var obj = OpenNew();
+        var obj = new MemoryGarden(CreateMemoryProvider());
 
-        var child = obj.Insert(new(DeckKind.Chat, BasketKind.Recent));
-        child.Append(LeafKind.User, "Hello world");
-        Assert.Equal(BasketKind.Recent, child.Basket);
+        var child = new GardenDeck(DeckFormat.Chat, BasketKind.Recent);
+        Assert.True(obj.Insert(child));
 
-        var basket = obj.GetBasket(BasketKind.Recent);
+        child.Append(LeafFormat.UserMessage, "Hello world");
+        Assert.Equal(BasketKind.Recent, child.CurrentBasket);
+
+        var basket = obj[BasketKind.Recent];
         Assert.Same(basket, child.GetBasket());
         Assert.True(basket.Contains(child));
 
@@ -235,26 +237,28 @@ public class GardenBasketTest : GardenTestBase
         opts.Period = TimeSpan.FromMicroseconds(1);
         Assert.Equal(1, basket.Prune(opts));
 
-        Assert.Equal(BasketKind.Waste, child.Basket);
+        Assert.Equal(BasketKind.Waste, child.CurrentBasket);
         Assert.False(basket.Contains(child));
 
-        Assert.True(obj.GetBasket(BasketKind.Waste).Contains(child));
+        Assert.True(obj[BasketKind.Waste].Contains(child));
     }
 
     [Fact]
     public void Prune_WasteTimeout_DeletesChild()
     {
-        var obj = OpenNew();
+        var obj = new MemoryGarden(CreateMemoryProvider());
 
-        var child = obj.Insert(new(DeckKind.Chat, BasketKind.Recent));
-        child.Append(LeafKind.User, "Hello world");
-        Assert.Equal(BasketKind.Recent, child.Basket);
-        Assert.True(child.IsPersistant);
+        var child = new GardenDeck(DeckFormat.Chat, BasketKind.Recent);
+        Assert.True(obj.Insert(child));
+
+        child.Append(LeafFormat.UserMessage, "Hello world");
+        Assert.Equal(BasketKind.Recent, child.CurrentBasket);
+        Assert.Equal(EphemeralStatus.Persistant, child.Ephemeral);
 
         child.Title = "DeletedTitle";
-        child.Basket = BasketKind.Waste;
+        child.CurrentBasket = BasketKind.Waste;
 
-        var basket = obj.GetBasket(BasketKind.Waste);
+        var basket = obj[BasketKind.Waste];
         Assert.Same(basket, child.GetBasket());
         Assert.True(basket.Contains(child));
 
@@ -264,29 +268,35 @@ public class GardenBasketTest : GardenTestBase
         Assert.Equal(1, basket.Prune(opts));
 
         Assert.Null(child.Garden);
-        Assert.False(child.IsPersistant);
-        Assert.False(obj.GetBasket(BasketKind.Waste).Contains(child));
+        Assert.Equal(EphemeralStatus.Implicit, child.Ephemeral);
+        Assert.False(obj[BasketKind.Waste].Contains(child));
 
         // Check has gone from database
         obj.Reload();
-        Assert.Null(obj.FindTitleExact("DeletedTitle"));
+        Assert.Null(obj.FindOnTitle("DeletedTitle"));
     }
 
-    private static void PopulateWithFolder(MemoryGarden obj, DeckKind kind, BasketKind origin)
+    private static void PopulateWithFolder(MemoryGarden obj, DeckFormat format, BasketKind origin)
     {
-        var child = obj.Insert(new(kind, origin));
+        var child = new GardenDeck(format, origin);
+        Assert.True(obj.Insert(child));
+
         child.Title = "0";
         child.Folder = " B ";
-        child.Append(LeafKind.User, "user1");
+        child.Append(LeafFormat.UserMessage, "user1");
 
-        child = obj.Insert(new(kind, origin));
+        child = new GardenDeck(format, origin);
+        Assert.True(obj.Insert(child));
+
         child.Title = "2";
-        child.Append(LeafKind.Assistant, "assistant");
+        child.Append(LeafFormat.AssistantMessage, "assistant");
 
-        child = obj.Insert(new(kind, origin));
+        child = new GardenDeck(format, origin);
+        Assert.True(obj.Insert(child));
+
         child.Title = "3";
         child.Folder = "A";
-        child.Append(LeafKind.User, "user2");
+        child.Append(LeafFormat.UserMessage, "user2");
     }
 
 }

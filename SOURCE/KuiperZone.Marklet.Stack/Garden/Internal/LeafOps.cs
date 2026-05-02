@@ -35,11 +35,6 @@ internal static class LeafOps
     public const string TableName = "leaf";
 
     /// <summary>
-    /// Gets the table version of message leaf data, where 1 is the first release.
-    /// </summary>
-    public const int TableVersion = 1;
-
-    /// <summary>
     /// Leaf column. Do not change.
     /// </summary>
     public const string IdField = "id";
@@ -47,12 +42,12 @@ internal static class LeafOps
     /// <summary>
     /// Leaf column. Do not change.
     /// </summary>
-    public const string ParentField = "parent_id";
+    public const string OwnerField = "owner_id";
 
     /// <summary>
     /// Leaf column. Do not change.
     /// </summary>
-    public const string KindField = "leaf_kind";
+    public const string FormatField = "format";
 
     /// <summary>
     /// Leaf column. Do not change.
@@ -65,14 +60,28 @@ internal static class LeafOps
     public const string ContentField = "content";
 
     // VERSION 1
-    private const string CreateSql = $@"CREATE TABLE IF NOT EXISTS {TableName} (
+    private const string CreateSql1 = $@"CREATE TABLE IF NOT EXISTS {TableName} (
 {IdField}           BIGINT NOT NULL PRIMARY KEY,
-{ParentField}       BIGINT NOT NULL,
-{KindField}         INTEGER NOT NULL,
+{OwnerField}        BIGINT NOT NULL,
+{FormatField}       INTEGER NOT NULL,
 {AssistantField}    VARCHAR(255),
-{ContentField}      TEXT NOT NULL,
-CONSTRAINT  fk_parent
-    FOREIGN KEY ({ParentField})
+{ContentField}      TEXT,
+CONSTRAINT  fk_owner
+    FOREIGN KEY ({OwnerField})
+    REFERENCES {DeckOps.TableName}({DeckOps.IdField})
+    ON DELETE CASCADE
+);";
+
+    // VERSION 2
+    // When this is changed, add to Upgrade()
+    private const string CreateSqlLatest = $@"CREATE TABLE IF NOT EXISTS {TableName} (
+{IdField}           BIGINT NOT NULL PRIMARY KEY,
+{OwnerField}        BIGINT NOT NULL,
+{FormatField}       INTEGER NOT NULL,
+{AssistantField}    VARCHAR(255),
+{ContentField}      TEXT,
+CONSTRAINT  fk_owner
+    FOREIGN KEY ({OwnerField})
     REFERENCES {DeckOps.TableName}({DeckOps.IdField})
     ON DELETE CASCADE
 );";
@@ -109,56 +118,64 @@ CONSTRAINT  fk_parent
     /// <summary>
     /// Gets a <see cref="GardenLeaf"/> reader command given a parent <see cref="GardenDeck"/>.
     /// </summary>
-    public static DbCommand GetReader(DbConnection con, GardenDeck parent)
+    public static DbCommand GetReader(DbConnection con, GardenDeck owner)
     {
         const string NSpace = $"{nameof(LeafOps)}.{nameof(GetReader)}";
 
-        const string Sql = $"SELECT * FROM {TableName} WHERE {ParentField} = @{ParentField} ORDER BY {IdField}";
-        ConditionalDebug.WriteLine(NSpace, Sql);
+        const string Sql = $"SELECT * FROM {TableName} WHERE {OwnerField} = @{OwnerField} ORDER BY {IdField}";
+        Diag.WriteLine(NSpace, Sql);
 
         using var cmd = con.CreateCommand();
         cmd.CommandText = Sql;
-        cmd.AddValue($"@{ParentField}", parent.Id.Value);
+        cmd.AddValue($"@{OwnerField}", owner.Id.Value);
 
         return cmd;
     }
 
     /// <summary>
-    /// Inserts the <see cref="GardenLeaf"/>.
+    /// Inserts <see cref="GardenLeaf"/> into the database and assigns <see cref="Garden"/> and return true on success.
     /// </summary>
+    /// <remark>
+    /// The result is false on unexpected <see cref="GardenLeaf.Id"/> conflict, otherwise it throws on failure.
+    /// </remark>
     /// <exception cref="ArgumentException">Id undefined</exception>
+    /// <exception cref="DbException">Database exception</exception>
     public static bool Insert(DbConnection con, GardenLeaf obj, DbTransaction? tran = null)
     {
+        const string NSpace = $"{nameof(LeafOps)}.{nameof(GetReader)}";
+
         const string Sql = $@"INSERT INTO {TableName}
-        ({IdField}, {ParentField}, {KindField}, {AssistantField}, {ContentField}) VALUES
-        (@{IdField}, @{ParentField}, @{KindField}, @{AssistantField}, @{ContentField});";
+        ({IdField}, {OwnerField}, {FormatField}, {AssistantField}, {ContentField}) VALUES
+        (@{IdField}, @{OwnerField}, @{FormatField}, @{AssistantField}, @{ContentField});";
 
         if (obj.Id.IsEmpty)
         {
             throw new ArgumentException($"{nameof(GardenLeaf)}.{nameof(obj.Id)} undefined", nameof(obj));
         }
 
-        if (obj.DeckOwner?.Id.IsEmpty != false)
+        if (obj.Owner?.Id.IsEmpty != false)
         {
-            throw new ArgumentException($"{nameof(obj.DeckOwner)}.{nameof(GardenDeck.Id)} undefined", nameof(obj));
+            throw new ArgumentException($"{nameof(obj.Owner)}.{nameof(GardenDeck.Id)} undefined", nameof(obj));
         }
 
-        ConditionalDebug.ThrowIfFalse(obj.Kind.IsLegal());
+        Diag.ThrowIfFalse(obj.Format.IsLegal());
 
         using var cmd = con.CreateCommand();
         cmd.CommandText = Sql;
         cmd.Transaction = tran;
 
         cmd.AddValue($"@{IdField}", obj.Id.Value);
-        cmd.AddValue($"@{ParentField}", obj.DeckOwner.Id.Value);
-        cmd.AddValue($"@{KindField}", (byte)obj.Kind);  // <- enum as byte
+        cmd.AddValue($"@{OwnerField}", obj.Owner.Id.Value);
+        cmd.AddValue($"@{FormatField}", (byte)obj.Format);  // <- enum as byte
         cmd.AddValue($"@{AssistantField}", obj.Assistant);
         cmd.AddValue($"@{ContentField}", obj.Content);
 
+        Diag.WriteLine(NSpace, cmd.CommandText);
+
         if (cmd.ExecuteNonQuery() != 1)
         {
-            // Not expected
-            ConditionalDebug.Fail($"Unexpected {nameof(GardenLeaf)} INSERT failure");
+            // Not expected here
+            Diag.Fail($"Possible {nameof(GardenLeaf)} primary key conflict");
             return false;
         }
 
@@ -174,7 +191,7 @@ CONSTRAINT  fk_parent
 
         if (mods == LeafMods.None)
         {
-            ConditionalDebug.Fail($"{nameof(LeafMods)} none");
+            Diag.Fail($"{nameof(LeafMods)} none");
             return false;
         }
 
@@ -214,7 +231,7 @@ CONSTRAINT  fk_parent
             }
         }
 
-        ConditionalDebug.ThrowIfFalse(i0);
+        Diag.ThrowIfFalse(i0);
         buffer.Append($" WHERE {IdField} = @{IdField};");
         cmd.CommandText = buffer.ToString();
         cmd.Transaction = tran;
@@ -222,7 +239,7 @@ CONSTRAINT  fk_parent
         if (cmd.ExecuteNonQuery() != 1)
         {
             // Not expected
-            ConditionalDebug.Fail($"Unexpected {nameof(GardenLeaf)} UPDATE failure");
+            Diag.Fail($"Unexpected {nameof(GardenLeaf)} UPDATE failure");
             return false;
         }
 
@@ -235,10 +252,10 @@ CONSTRAINT  fk_parent
     public static bool Delete(DbConnection con, Zuid id)
     {
         const string NSpace = $"{nameof(LeafOps)}.{nameof(Delete)}";
-        ConditionalDebug.WriteLine(NSpace, "ZUID: " + id);
+        Diag.WriteLine(NSpace, "ZUID: " + id);
 
         const string Sql = $"DELETE FROM {TableName} WHERE {IdField} = @{IdField};";
-        ConditionalDebug.WriteLine(NSpace, Sql);
+        Diag.WriteLine(NSpace, Sql);
 
         using var cmd = con.CreateCommand();
         cmd.CommandText = Sql;
@@ -247,30 +264,75 @@ CONSTRAINT  fk_parent
     }
 
     /// <summary>
-    /// Ensure table exists.
+    /// Test routine only.
     /// </summary>
-    public static void EnsureTable(DbConnection con, DbTransaction tran)
+    public static void CreateSchema1(DbConnection con, DbTransaction tran)
     {
-        const string NSpace = $"{nameof(LeafOps)}.{nameof(EnsureTable)}";
-        ConditionalDebug.WriteLine(NSpace, CreateSql);
-
-        using var cmd = con.CreateCommand();
-        cmd.CommandText = CreateSql;
-        cmd.Transaction = tran;
-        cmd.ExecuteNonQuery();
+        ExecuteNonQuery(con, tran, CreateSql1);
     }
 
-    public static void UpgradeTable(DbConnection _, DbTransaction __, int currentSchema)
+    /// <summary>
+    /// Ensure table schema.
+    /// </summary>
+    public static void CreateOrAlter(DbConnection con, DbTransaction tran, int currentVersion)
     {
-        // Future expansion.
-        const string NSpace = $"{nameof(LeafOps)}.{nameof(UpgradeTable)}";
+        const string NSpace = $"{nameof(DeckOps)}.{nameof(CreateOrAlter)}";
+        Diag.ThrowIfNegative(currentVersion);
 
-        // FOR FUTURE
+        if (currentVersion == 0)
+        {
+            ExecuteNonQuery(con, tran, CreateSqlLatest);
+            return;
+        }
+
+        if (currentVersion < MetaOps.SchemaVersion)
+        {
+            Diag.WriteLine(NSpace, $"UPGRADE TABLE: {TableName} from {currentVersion} to {MetaOps.SchemaVersion}");
+            while (UpgradeIteration(con, tran, ++currentVersion)) ;
+        }
+    }
+
+    private static bool UpgradeIteration(DbConnection con, DbTransaction tran, int currentVersion)
+    {
+        if (currentVersion > MetaOps.SchemaVersion)
+        {
+            return false;
+        }
+
         // I.e. ALTER TABLE message ADD COLUMN metadata TEXT DEFAULT '';
-        ConditionalDebug.WriteLine(NSpace, $"UPGRADE TABLE: {TableName} from {currentSchema} to {TableVersion}");
+        Diag.ThrowIfZero(currentVersion);
+        Diag.ThrowIfGreaterThan(currentVersion, MetaOps.MaxSchema);
 
-        // Not expected (would currently be an error)
-        throw new NotImplementedException($"{TableName} upgrade not implemented");
+        switch (currentVersion)
+        {
+            case 1:
+                // First;
+                return true;
+
+            case 2:
+                // Alter from 1 to 2
+                // ExecuteNonQuery(con, tran, "ALTER TABLE...");
+                return true;
+            default:
+                // Not expected
+                // We must account for all versions even if no change
+                throw new InvalidOperationException($"Unknown schema version {currentVersion}");
+        }
+    }
+
+    private static void ExecuteNonQuery(DbConnection con, DbTransaction? tran, string? sql)
+    {
+        const string NSpace = $"{nameof(LeafOps)}.{nameof(ExecuteNonQuery)}";
+
+        if (!string.IsNullOrEmpty(sql))
+        {
+            using var cmd = con.CreateCommand();
+            cmd.Transaction = tran;
+            cmd.CommandText = sql;
+
+            Diag.WriteLine(NSpace, cmd.CommandText);
+            cmd.ExecuteNonQuery();
+        }
     }
 
 }

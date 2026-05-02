@@ -533,7 +533,7 @@ public class PixieControl : Border
     public bool HandleKeyGesture(KeyEventArgs e)
     {
         const string NSpace = $"{nameof(PixieControl)}.{nameof(OnKeyDown)}";
-        ConditionalDebug.WriteLine(NSpace, $"Key: {e.Key}, {e.KeyModifiers}");
+        Diag.WriteLine(NSpace, $"Key: {e.Key}, {e.KeyModifiers}");
 
         if (_leftStack?.Button.HandleKeyGesture(e) == true)
         {
@@ -555,7 +555,7 @@ public class PixieControl : Border
     /// <remarks>
     /// The instance is appended to "results" if true. The return value is always false for null or empty strings.
     /// </remarks>
-    public virtual bool Find(string? keyword, List<PixieFinding>? findings)
+    public virtual bool Search(string? keyword, List<PixieFinding>? findings)
     {
         const StringComparison Comp = StringComparison.OrdinalIgnoreCase;
 
@@ -606,7 +606,7 @@ public class PixieControl : Border
     /// <exception cref="ArgumentException">Invalid fraction</exception>
     protected void SetSubject(Control child)
     {
-        ConditionalDebug.WriteLine($"{GetType().Name}.{nameof(SetSubject)}", $"Control: {child.GetType().Name}");
+        Diag.WriteLine($"{GetType().Name}.{nameof(SetSubject)}", $"Control: {child.GetType().Name}");
 
         if (_subject != null)
         {
@@ -773,13 +773,13 @@ public class PixieControl : Border
 
         if (p == HeaderProperty)
         {
-            NewOrUpdateBanner(ref _headerBlock, true, change.GetNewValue<string?>());
+            CreateOrUpdateBanner(ref _headerBlock, true, change.GetNewValue<string?>());
             return;
         }
 
         if (p == FooterProperty)
         {
-            NewOrUpdateBanner(ref _footerBlock, false, change.GetNewValue<string?>());
+            CreateOrUpdateBanner(ref _footerBlock, false, change.GetNewValue<string?>());
             return;
         }
 
@@ -941,7 +941,7 @@ public class PixieControl : Border
 
     private void UpdateTitleMaxWidth(double gridWidth)
     {
-        if (_isTitleVisible)
+        if (_isTitleVisible && HorizontalAlignment == HorizontalAlignment.Stretch && double.IsNaN(Width))
         {
             double sum = 0.0;
 
@@ -975,9 +975,9 @@ public class PixieControl : Border
         _titleBlock.MaxWidth = double.PositiveInfinity;
     }
 
-    private void NewOrUpdateBanner(ref TextBlock? current, bool top, string? text)
+    private void CreateOrUpdateBanner(ref TextBlock? current, bool top, string? text)
     {
-        if (string.IsNullOrEmpty(text))
+        if (text == null)
         {
             if (current != null)
             {

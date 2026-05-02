@@ -113,7 +113,7 @@ DoSomething()
     [Fact]
     public void SigText_Empty()
     {
-        Assert.Empty(Textual.SigText(""));
+        Assert.Null(Textual.SigText(""));
     }
 
     [Fact]

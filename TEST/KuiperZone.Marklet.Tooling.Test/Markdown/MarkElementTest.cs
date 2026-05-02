@@ -47,7 +47,7 @@ public class MarkElementTest
     {
         var obj = new MarkElement("Line1\nLine2 <> \"text\" & 'text'");
         var s = obj.ToString(TextFormat.Markdown);
-        ConditionalDebug.WriteLine(s);
+        Diag.WriteLine(s);
         Assert.Equal("Line1\\\nLine2 <> \"text\" & 'text'", s);
     }
 
@@ -58,9 +58,9 @@ public class MarkElementTest
 
         var obj = new MarkElement("Line1\nLine2 <> \"text\" & 'text'", style);
         var s = obj.ToString(TextFormat.Markdown);
-        ConditionalDebug.WriteLine(obj.Text);
-        ConditionalDebug.WriteLine("Parsed:");
-        ConditionalDebug.WriteLine(s);
+        Diag.WriteLine(obj.Text);
+        Diag.WriteLine("Parsed:");
+        Diag.WriteLine(s);
         Assert.Equal("***`<samp><ins><del><sub><sup><mark>$Line1\\\nLine2 <> \"text\" & 'text'$</mark></sup></sub></del></ins></samp>`***", s);
     }
 
@@ -72,8 +72,8 @@ public class MarkElementTest
         var link = new LinkInfo("http://local.com", "title \"&amp;\" ");
         var obj = new MarkElement("Line1\nLine2 <> \"text\" & 'text'", style, link);
         var s = obj.ToString(TextFormat.Markdown);
-        ConditionalDebug.WriteLine(obj.Text);
-        ConditionalDebug.WriteLine(s);
+        Diag.WriteLine(obj.Text);
+        Diag.WriteLine(s);
         Assert.Equal("[***`<samp><ins><del><sub><sup><mark>$Line1\\\nLine2 <> \"text\" & 'text'$</mark></sup></sub></del></ins></samp>`***](http://local.com \"title \"&amp;\" \")", s);
     }
 
@@ -82,8 +82,8 @@ public class MarkElementTest
     {
         var obj = new MarkElement("Line1\nLine2 <> \"text\" & 'text'");
         var s = obj.ToString(TextFormat.Html);
-        ConditionalDebug.WriteLine(obj.Text);
-        ConditionalDebug.WriteLine(s);
+        Diag.WriteLine(obj.Text);
+        Diag.WriteLine(s);
         Assert.Equal("Line1<br />Line2 &lt;&gt; &quot;text&quot; &amp; 'text'", s);
     }
 
@@ -94,7 +94,7 @@ public class MarkElementTest
 
         var obj = new MarkElement("Line1\nLine2 <> \"text\" & 'text'", style);
         var s = obj.ToString(TextFormat.Html);
-        ConditionalDebug.WriteLine(s);
+        Diag.WriteLine(s);
 
         // We have two "samp" because of Math styling
         Assert.Equal("<em><strong><code><samp><ins><del><sub><sup><mark><samp>Line1<br />Line2 &lt;&gt; &quot;text&quot; &amp; 'text'</samp></mark></sup></sub></del></ins></samp></code></strong></em>", s);
@@ -108,7 +108,7 @@ public class MarkElementTest
         var link = new LinkInfo("http://local.com", "title \"&amp;\" ");
         var obj = new MarkElement("Line1\nLine2 <> \"text\" & 'text'", style, link);
         var s = obj.ToString(TextFormat.Html);
-        ConditionalDebug.WriteLine(s);
+        Diag.WriteLine(s);
 
         // We have two "samp" because of Math styling
         Assert.Equal("<em><strong><code><samp><ins><del><sub><sup><mark><samp><a href=\"http://local.com\" title=\"title &quot;&amp;amp;&quot; \">Line1<br />Line2 &lt;&gt; &quot;text&quot; &amp; 'text'</a></samp></mark></sup></sub></del></ins></samp></code></strong></em>", s);

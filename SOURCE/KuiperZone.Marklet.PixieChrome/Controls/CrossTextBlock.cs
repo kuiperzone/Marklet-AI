@@ -86,7 +86,7 @@ public class CrossTextBlock : TextBlock, ICrossTrackable, ICrossTrackOwner
         }
 
         // Ensure off
-        ConditionalDebug.ThrowIfTrue(Focusable);
+        Diag.ThrowIfTrue(Focusable);
     }
 
     /// <summary>
@@ -282,7 +282,7 @@ public class CrossTextBlock : TextBlock, ICrossTrackable, ICrossTrackOwner
     public bool Select(int start, int end)
     {
         const string NSpace = $"{nameof(CrossTextBlock)}.{nameof(Select)}";
-        ConditionalDebug.WriteLine(NSpace, $"start: {start}, {SelectionStart}");
+        Diag.WriteLine(NSpace, $"start: {start}, {SelectionStart}");
 
         if (Tracker != null)
         {
@@ -319,11 +319,11 @@ public class CrossTextBlock : TextBlock, ICrossTrackable, ICrossTrackOwner
     public string? GetEffectiveText(WhatText what)
     {
         const string NSpace = $"{nameof(CrossTextBlock)}.{nameof(GetEffectiveText)}";
-        ConditionalDebug.WriteLine(NSpace, what);
+        Diag.WriteLine(NSpace, what);
 
         if (!GetNormalizedSelectedRange(out int start, out int end, out int length))
         {
-            ConditionalDebug.WriteLine(NSpace, "No selection");
+            Diag.WriteLine(NSpace, "No selection");
 
             if (what == WhatText.SelectedOrNull)
             {
@@ -340,7 +340,7 @@ public class CrossTextBlock : TextBlock, ICrossTrackable, ICrossTrackOwner
             end = length;
         }
 
-        ConditionalDebug.WriteLine(NSpace, $"{nameof(HasComplexContent)}: {HasComplexContent}");
+        Diag.WriteLine(NSpace, $"{nameof(HasComplexContent)}: {HasComplexContent}");
 
         if (HasComplexContent)
         {
@@ -348,7 +348,7 @@ public class CrossTextBlock : TextBlock, ICrossTrackable, ICrossTrackOwner
         }
 
         var text = Text;
-        ConditionalDebug.WriteLine(NSpace, $"Plain range: [{start}, {end})");
+        Diag.WriteLine(NSpace, $"Plain range: [{start}, {end})");
         return text?.Substring(start, end - start);
     }
 
@@ -441,15 +441,15 @@ public class CrossTextBlock : TextBlock, ICrossTrackable, ICrossTrackOwner
 
         if (IsPointerSelectEnabled)
         {
-            ConditionalDebug.WriteLine(NSpace, $"Left press for {nameof(TrackKey)}: {TrackKey}");
-            ConditionalDebug.WriteLine(NSpace, $"Input point: {info.Position}");
+            Diag.WriteLine(NSpace, $"Left press for {nameof(TrackKey)}: {TrackKey}");
+            Diag.WriteLine(NSpace, $"Input point: {info.Position}");
 
             // Important to get key
             // strokes if we are focusable
             Focus();
 
             var pos = GetTextPosition(info.Position);
-            ConditionalDebug.WriteLine(NSpace, $"Hit Pos: {pos}");
+            Diag.WriteLine(NSpace, $"Hit Pos: {pos}");
 
             // Order important.
             // Call public in order to force clear on tracker and set this instance.
@@ -592,7 +592,7 @@ public class CrossTextBlock : TextBlock, ICrossTrackable, ICrossTrackOwner
         {
             if (link != _hoverLink)
             {
-                ConditionalDebug.WriteLine(NSpace, "Hovering");
+                Diag.WriteLine(NSpace, "Hovering");
                 ResetHover();
 
                 // Hold
@@ -630,7 +630,7 @@ public class CrossTextBlock : TextBlock, ICrossTrackable, ICrossTrackOwner
 
         if (_hoverLink != null)
         {
-            ConditionalDebug.WriteLine(NSpace, "Reset hover");
+            Diag.WriteLine(NSpace, "Reset hover");
             Cursor = _holdCursor;
             _hoverLink.Foreground = _hoverForeground;
             _hoverLink.TextDecorations = _hoverDecorations;
@@ -656,14 +656,14 @@ public class CrossTextBlock : TextBlock, ICrossTrackable, ICrossTrackOwner
         start = Math.Min(Math.Min(SelectionStart, SelectionEnd), totalLength);
         end = Math.Min(Math.Max(SelectionStart, SelectionEnd), totalLength);
 
-        ConditionalDebug.WriteLine(NSpace, $"[{start}, {end}), length: {totalLength}");
+        Diag.WriteLine(NSpace, $"[{start}, {end}), length: {totalLength}");
         return start < totalLength && start < end;
     }
 
     private string GetComplexText(int start, int end)
     {
         const string NSpace = $"{nameof(CrossTextBlock)}.{nameof(GetComplexText)}";
-        ConditionalDebug.WriteLine(NSpace, $"Range: [{start}, {end})");
+        Diag.WriteLine(NSpace, $"Range: [{start}, {end})");
 
         if (start >= end || Inlines == null)
         {
@@ -788,8 +788,8 @@ public class CrossTextBlock : TextBlock, ICrossTrackable, ICrossTrackOwner
 
         if (SelectionStart != start || SelectionEnd != end)
         {
-            ConditionalDebug.WriteLine(NSpace, $"start: {start}, {SelectionStart}");
-            ConditionalDebug.WriteLine(NSpace, $"end: {end}, {SelectionEnd}");
+            Diag.WriteLine(NSpace, $"start: {start}, {SelectionStart}");
+            Diag.WriteLine(NSpace, $"end: {end}, {SelectionEnd}");
             SelectionStart = start;
             SelectionEnd = end;
 

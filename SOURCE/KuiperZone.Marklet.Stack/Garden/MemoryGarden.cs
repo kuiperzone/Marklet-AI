@@ -18,7 +18,6 @@
 // You should have received a copy of the GNU Affero General Public License along
 // with Marklet. If not, see <https://www.gnu.org/licenses/>.
 
-using System.Collections;
 using KuiperZone.Marklet.Stack.Garden.Internal;
 using KuiperZone.Marklet.Tooling;
 
@@ -26,16 +25,14 @@ namespace KuiperZone.Marklet.Stack.Garden;
 
 /// <summary>
 /// A sequence container for <see cref="GardenDeck"/> items backed by application logic, and a database implementation
-/// provided by the <see cref="IMemoryGardener"/> implementation.
+/// provided by the <see cref="IServiceProvider"/> implementation.
 /// </summary>
 /// <remarks>
 /// This and related class are not thread safe. While backed by a database, it does not need one to operate. However, in
 /// this case, all data is held in memory and lost on exit. Thanks to Molly Rocket for the helpful metaphor.
 /// </remarks>
-public sealed class MemoryGarden : IReadOnlyCollection<GardenDeck>
+public sealed partial class MemoryGarden : IReadOnlyCollection<GardenBasket>
 {
-    private const long MinBasketAlloc = 100 * 1024 * 1024; // 100MB
-
     /// <summary>
     /// Gets the maximum character length of meta and name strings.
     /// </summary>
@@ -73,62 +70,74 @@ public sealed class MemoryGarden : IReadOnlyCollection<GardenDeck>
     /// </remarks>
     public const int MaxDeckCount = 1000;
 
-    private readonly IReadOnlyList<GardenDeck> Empty = new List<GardenDeck>();
+    /// <summary>
+    /// Gets the schema version.
+    /// </summary>
+    public const int SchemaVersion = MetaOps.SchemaVersion;
+
     private readonly List<GardenBasket> _baskets = new(4);
-    private double _allocFactor = 0.025; // <- 2.5% of 16GB, = 410MB
+    private string? _name;
 
     /// <summary>
-    /// Static constructor.
+    /// Constructor which calls <see cref="Open"/> if provider is not null.
     /// </summary>
-    static MemoryGarden()
-    {
-        var list = new List<BasketKind>(4);
-        LegalBaskets = list;
-
-        foreach (var item in Enum.GetValues<BasketKind>())
-        {
-            if (item.IsLegal() && item != BasketKind.Waste)
-            {
-                list.Add(item);
-            }
-        }
-
-        // Waste last
-        list.Add(BasketKind.Waste);
-    }
-
-    /// <summary>
-    /// Default constructor.
-    /// </summary>
-    public MemoryGarden()
+    public MemoryGarden(IServiceProvider? provider = null)
     {
         const string NSpace = $"{nameof(MemoryGarden)}.constructor";
-        ConditionalDebug.WriteLine(NSpace, "System memory: " + SystemMemory);
-        ConditionalDebug.ThrowIfNegativeOrZero(SystemMemory);
 
-        Baskets = _baskets;
-
-        foreach (var item in LegalBaskets)
+        foreach (var item in Enum.GetValues<BasketKind>())
         {
             if (item.IsLegal())
             {
                 _baskets.Add(new(this, item));
             }
         }
+
+        Count = _baskets.Count;
+        Baskets = _baskets;
+
+        if (provider != null)
+        {
+            Diag.WriteLine(NSpace, "Call open");
+            Open(provider);
+        }
+    }
+
+    private MemoryGarden(MemoryGarden other)
+    {
+        Baskets = _baskets;
+        _name = other._name;
+
+        foreach(var item in other)
+        {
+            _baskets.Add(new GardenBasket(this, item));
+        }
+
+        if (other.Provider != null)
+        {
+            Status = GardenStatus.Readonly;
+            Provider = other.Provider?.CloneReadOnly();
+        }
+
+        Diag.ThrowIfFalse(IsEphemeral);
     }
 
     /// <summary>
-    /// Gets a sequence of legal <see cref="BasketKind"/> values for use with <see cref="GetBasket"/>.
+    /// Occurs on change when: A. one or more items are modified, added or removed, B. <see cref="Provider"/> changes
+    /// indicating that the garden was opened or closed and, C. <see cref="Name"/> or other meta changes.
     /// </summary>
-    public static readonly IReadOnlyList<BasketKind> LegalBaskets;
+    /// <remarks>
+    /// The <see cref="GardenChangedEventArgs"/> does not indicate which <see cref="GardenDeck"/> instance may have
+    /// changed, as it may occur once on multiple such changes. However, it does indicate which instance <see
+    /// cref="Baskets"/> has received the change. The <see cref="FocusedUpdated"/>event can be used to received detailed
+    /// item change information, but only for the item in "focus". Where <see cref="GardenChangedEventArgs.Basket"/>
+    /// equals <see cref="BasketKind.None"/>, it implies a change to <see cref="MemoryGarden"/> itself, such as opening
+    /// or closing of <see cref="Provider"/>.
+    /// </remarks>
+    public event EventHandler<GardenChangedEventArgs>? Changed;
 
     /// <summary>
-    /// Gets total system memory in bytes.
-    /// </summary>
-    public static readonly long SystemMemory = GC.GetGCMemoryInfo().TotalAvailableMemoryBytes;
-
-    /// <summary>
-    /// Occurs when the <see cref="Focused"/> reference changes, including being set to null.
+    /// Occurs when the <see cref="Focused"/> reference changes (including being set to null).
     /// </summary>
     public event EventHandler<FocusChangedEventArgs>? FocusChanged;
 
@@ -137,7 +146,7 @@ public sealed class MemoryGarden : IReadOnlyCollection<GardenDeck>
     /// </summary>
     /// <remarks>
     /// The event is invoked only for the instance given by <see cref="Focused"/>. It is not invoked when items are
-    /// added or removed. It does occur when <see cref="Focused"/> is null
+    /// added or removed. It does not occur when <see cref="Focused"/> is null.
     /// </remarks>
     public event EventHandler<FocusedUpdatedEventArgs>? FocusedUpdated;
 
@@ -147,62 +156,30 @@ public sealed class MemoryGarden : IReadOnlyCollection<GardenDeck>
     public IReadOnlyList<GardenBasket> Baskets { get; }
 
     /// <summary>
-    /// Gets the datbase backing "gardener" instance.
-    /// </summary>
-    public IMemoryGardener? Gardener { get; private set; }
-
-    /// <summary>
-    /// Gets whether data added to the garden is persistant.
+    /// Gets the database provider.
     /// </summary>
     /// <remarks>
-    /// The value is false where <see cref="Gardener"/> is null or where <see cref="IMemoryGardener.IsReadOnly"/> gives
-    /// true.
+    /// IMPORTANT. Where <see cref="Provider"/> is null, or <see cref="IServiceProvider.IsReadOnly"/> is true, instance
+    /// will still allow <see cref="Insert"/> and modification, but changes will not persist (ephemeral).
     /// </remarks>
-    public bool IsPersistant
-    {
-        get
-        {
-            if (Gardener != null)
-            {
-                return !Gardener.IsReadOnly;
-            }
-
-            return false;
-        }
-    }
+    public IServiceProvider? Provider { get; private set; }
 
     /// <summary>
-    /// Gets a value in bytes above which cached <see cref="GardenLeaf"/> data will be restricted on a per basket basis.
+    /// Gets the current status.
     /// </summary>
-    /// <remarks>
-    /// Once read and accessed, data is cached in memory. While not intended to be perfect, this provides a means to
-    /// free memory not in use.
-    /// </remarks>
-    public long BasketAlloc
-    {
-        get
-        {
-            if (double.IsNaN(_allocFactor))
-            {
-                return SystemMemory;
-            }
-
-            return Math.Max((long)(_allocFactor * SystemMemory), MinBasketAlloc);
-        }
-    }
+    public GardenStatus Status { get; set; }
 
     /// <summary>
-    /// Gets or sets a value expected to be in the range [0.01, 1.0] which permits memory usage on a per-basket basis up
-    /// to (very approximately) <see cref="AllocFactor"/> multiplied by <see cref="SystemMemory"/>.
+    /// Gets whether new or modified content is ephemeral.
     /// </summary>
     /// <remarks>
-    /// This exists only for edge cases where a user runs many mega-chats over an extended period. A value of NaN
-    /// implies no limit. Default is 0.025.
+    /// The value is true where <see cref="Provider"/> is null or where <see cref="IServiceProvider.IsReadOnly"/> is
+    /// true. A closed or readonly instance will still allow <see cref="Insert"/> and modification, but changes will not
+    /// persist (ephemeral).
     /// </remarks>
-    public double AllocFactor
+    public bool IsEphemeral
     {
-        get { return _allocFactor; }
-        set { _allocFactor = Math.Clamp(value, 0.01, 1.0); }
+        get { return Provider == null || Provider.IsReadOnly; }
     }
 
     /// <summary>
@@ -225,12 +202,54 @@ public sealed class MemoryGarden : IReadOnlyCollection<GardenDeck>
     }
 
     /// <summary>
-    /// Implements <see cref="IReadOnlyCollection{T}.Count"/> and gets the total open count.
+    /// Gets or sets the name.
     /// </summary>
     /// <remarks>
-    /// Always returns 0 if <see cref="Gardener"/> is null.
+    /// Changes are not persistant unless <see cref="Provider"/> is persistant.
     /// </remarks>
-    public int Count
+    public string? Name
+    {
+        get { return _name; }
+
+        set
+        {
+            value = Sanitize(value, MaxMetaLength);
+
+            if (_name != value)
+            {
+                _name = value;
+
+                if (Provider?.IsReadOnly == false)
+                {
+                    try
+                    {
+                        using var con = Provider.Connect();
+                        MetaOps.UpdateName(con, value);
+                    }
+                    catch
+                    {
+                        SetStatus(GardenStatus.Lost);
+                    }
+                }
+
+                OnChanged(BasketKind.None);
+            }
+        }
+    }
+
+    /// <summary>
+    /// Gets the currently selected <see cref="GardenDeck"/> child.
+    /// </summary>
+    /// <remarks>
+    /// The term "focused", here, means that the item is the focus of attention (i.e. being viewed). Initial value is
+    /// null (none).
+    /// </remarks>
+    public GardenDeck? Focused { get; private set; }
+
+    /// <summary>
+    /// Gets the total count of all <see cref="GardenDeck"/> instances in all baskets.
+    /// </summary>
+    public int PopulationCount
     {
         get
         {
@@ -246,433 +265,32 @@ public sealed class MemoryGarden : IReadOnlyCollection<GardenDeck>
     }
 
     /// <summary>
-    /// Gets the currently selected <see cref="GardenDeck"/> child.
+    /// Implements <see cref="IReadOnlyCollection{T}.Count"/>
     /// </summary>
     /// <remarks>
-    /// The term "focused" means that the item is focus of attention. Initial value is null (none).
+    /// Note that is the count of <see cref="GardenBasket"/> instance. See also <see cref="PopulationCount"/>.
     /// </remarks>
-    public GardenDeck? Focused { get; private set; }
+    public int Count { get; }
 
     /// <summary>
-    /// Common sanitization method.
-    /// </summary>
-    /// <remarks>
-    /// The result is null if given an empty of whitespace string.
-    /// </remarks>
-    public static string? Sanitize(string? text, int maxLength)
-    {
-        const SanFlags SanFlags = SanFlags.Trim | SanFlags.NormC | SanFlags.SubControl;
-        text = Sanitizer.Sanitize(text, SanFlags, maxLength);
-        return string.IsNullOrEmpty(text) ? null : text;
-    }
-
-    /// <summary>
-    /// Determines whether <see cref="OpenDatabase"/> will upgrade the database schema when called.
-    /// </summary>
-    public static bool IsUpgradeRequired(IMemoryGardener gardener)
-    {
-        using var con = gardener.Connect();
-        var version = MetaOps.ReadSchema(con);
-        return version != 0 && version < MetaOps.SchemaVersion;
-    }
-
-    /// <summary>
-    /// Returns the corresponding <see cref="GardenBasket"/> instance given a <see cref="GardenDeck.Basket"/> value.
+    /// Gets the corresponding <see cref="GardenBasket"/> instance for the given <see cref="BasketKind"/> identifier.
     /// </summary>
     /// <exception cref="ArgumentException">Invalid BasketKind</exception>
-    public GardenBasket GetBasket(BasketKind kind)
+    public GardenBasket this[BasketKind basket]
     {
-        for(int n = 0; n < _baskets.Count; ++n)
+        get
         {
-            var item = _baskets[n];
-
-            if (item.Kind == kind)
+            for (int n = 0; n < Count; ++n)
             {
-                return item;
-            }
-        }
+                var item = _baskets[n];
 
-        throw new ArgumentException($"Invalid {nameof(BasketKind)} {kind}", nameof(kind));
-    }
-
-    /// <summary>
-    /// Returns true if the garden contains the given item.
-    /// </summary>
-    public bool Contains(GardenDeck obj)
-    {
-        return Gardener != null && obj.Garden == this;
-    }
-
-    /// <summary>
-    /// Opens the database, loads <see cref="GardenDeck"/> headers, and sets <see cref="Gardener"/> to the instance
-    /// supplied.
-    /// </summary>
-    /// <remarks>
-    /// The result is true on success. It does nothing and returns false if <see cref="Gardener"/> equals the supplied
-    /// "gardener" instance. If the garden is already open, <see cref="CloseDatabase"/> if first called to clear all
-    /// cached data.
-    /// </remarks>
-    public bool OpenDatabase(IMemoryGardener gardener)
-    {
-        const string NSpace = $"{nameof(MemoryGarden)}.{nameof(OpenDatabase)}";
-        ConditionalDebug.WriteLine(NSpace, "OPEN GARDEN");
-
-        if (Gardener == gardener)
-        {
-            ConditionalDebug.WriteLine(NSpace, "Already open");
-            return false;
-        }
-
-        ConditionalDebug.WriteLine(NSpace, "Getting connection");
-        using var con = gardener.Connect();
-        MetaOps.Init(gardener);
-
-        ConditionalDebug.WriteLine(NSpace, "Close existing");
-        CloseDatabase();
-
-        ConditionalDebug.ThrowIfNotNull(Gardener);
-
-        ConditionalDebug.WriteLine(NSpace, "Read headers");
-        var list = new List<GardenDeck>(64);
-        GardenDeck.ReadAllDb(con, this, list);
-
-        foreach (var item in list)
-        {
-            // Do not invoke event for every item
-            GetBasket(item.Basket).InsertCache(item, false);
-        }
-
-        Gardener = gardener;
-        ConditionalDebug.WriteLine(NSpace, "Garden formally open");
-
-        foreach (var item in _baskets)
-        {
-            if (item.Count != 0)
-            {
-                // Single event for multiple insertions
-                item.OnChangedInternal(true);
-            }
-        }
-
-        return true;
-    }
-
-    /// <summary>
-    /// Sets <see cref="Gardener"/> to null and discards all cached data.
-    /// </summary>
-    public void CloseDatabase()
-    {
-        if (Gardener == null && IsEmpty)
-        {
-            return;
-        }
-
-        Gardener = null;
-
-        foreach (var item in _baskets)
-        {
-            item.ClearCache(true);
-        }
-
-        // Discard should clear this
-        ConditionalDebug.ThrowIfNotNull(Focused);
-    }
-
-    /// <summary>
-    /// Discards all data and re-loads from <see cref="Gardener"/>.
-    /// </summary>
-    /// <remarks>
-    /// If <see cref="Gardener"/> is null, it does nothing and returns false. Otherwise, it calls <see
-    /// cref="CloseDatabase"/> followed by <see cref="OpenDatabase"/> with same <see cref="Gardener"/>.
-    /// </remarks>
-    public bool Reload()
-    {
-        if (Gardener == null)
-        {
-            return false;
-        }
-
-        var g = Gardener;
-        CloseDatabase();
-        OpenDatabase(g);
-        return true;
-    }
-
-    /// <summary>
-    /// Finds the child or returns null.
-    /// </summary>
-    /// <remarks>
-    /// Matching is simple and case sensitive. The <see cref="GardenDeck.Title"/> value does not have to be unique and
-    /// only the most recent in terms of creation is returned. The call always returns null if <see cref="Gardener"/> is
-    /// null.
-    /// </remarks>
-    public GardenDeck? FindOnId(Zuid id)
-    {
-        if (Gardener != null)
-        {
-            var stub = new GardenDeck(id);
-
-            foreach (var item in _baskets)
-            {
-                var obj = item.FindInternal(stub);
-
-                if (obj != null)
-                {
-                    return obj;
-                }
-            }
-        }
-
-        return null;
-    }
-
-    /// <summary>
-    /// Finds a recent child instance with matching "title", or returns null.
-    /// </summary>
-    /// <remarks>
-    /// The <see cref="GardenDeck.Title"/> value does not have to be unique and only the most recent in terms of
-    /// creation time is returned. Simple match is used. The call always returns null if "title" is null or empty.
-    /// </remarks>
-    public GardenDeck? FindTitleExact(string? title, StringComparison comparison = StringComparison.Ordinal)
-    {
-        title = Sanitize(title, MaxMetaLength);
-
-        if (title == null)
-        {
-            return null;
-        }
-
-        foreach (var basket in _baskets)
-        {
-            // Items otherwise ordered creation first
-            foreach (var item in basket)
-            {
-                if (title.Equals(item.Title, comparison))
+                if (item.Kind == basket)
                 {
                     return item;
                 }
             }
-        }
 
-        return null;
-    }
-
-    /// <summary>
-    /// Inserts new <see cref="GardenDeck"/> instance and returns instance give.
-    /// </summary>
-    /// <exception cref="ArgumentException">Already member in garden</exception>
-    public GardenDeck Insert(GardenDeck obj)
-    {
-        const string NSpace = $"{nameof(MemoryGarden)}.{nameof(Insert)}";
-        ConditionalDebug.WriteLine(NSpace, "NEW INSTANCE");
-        ConditionalDebug.WriteLine(NSpace, $"Kind: {obj.Kind}, {obj.Basket}");
-
-        if (obj.Garden != null)
-        {
-            // This should reliably determine whether already
-            // exists or even a member of other Garden database
-            throw new ArgumentException("Already member in garden");
-        }
-
-        if (!obj.InsertDb(this) || !GetBasket(obj.Basket).InsertCache(obj, true))
-        {
-            // Unexpected failure here
-            throw new InvalidOperationException($"Unexpected failure insert {nameof(GardenDeck)}");
-        }
-
-        ConditionalDebug.ThrowIfNull(obj.Garden);
-
-        if (obj.IsFocused)
-        {
-            OnFocusChanged(obj);
-        }
-
-        ConditionalDebug.WriteLine(NSpace, $"Success OK");
-        return obj;
-    }
-
-    /// <summary>
-    /// Deletes the given instance and returns true on success.
-    /// </summary>
-    public bool Delete(GardenDeck obj)
-    {
-        const string NSpace = $"{nameof(MemoryGarden)}.{nameof(Delete)}";
-        ConditionalDebug.WriteLine(NSpace, "DELETE");
-        ConditionalDebug.WriteLine(NSpace, $"Kind: {obj.Kind}, {obj.Basket}");
-
-        if (GetBasket(obj.Basket).RemoveCache(obj, true))
-        {
-            using var con = Gardener?.Connect();
-            return obj.DeleteDb(con);
-        }
-
-        return false;
-    }
-
-    /// <summary>
-    /// Deletes all message data from the database, including all messages, and sets <see cref="Count"/> to 0.
-    /// </summary>
-    /// <remarks>
-    /// Where <see cref="Gardener"/> is null, <see cref="Purge"/> merely discard cache. The result is true if <see
-    /// cref="IsEmpty"/> was false when called.
-    /// </remarks>
-    public bool Purge()
-    {
-        const string NSpace = $"{nameof(MemoryGarden)}.{nameof(Purge)}";
-        ConditionalDebug.WriteLine(NSpace, "PURGE");
-
-        bool result = !IsEmpty;
-
-        var g = Gardener;
-        CloseDatabase();
-        ConditionalDebug.ThrowIfNotNull(Focused);
-
-        if (g != null)
-        {
-            using var con = g.Connect();
-            MetaOps.Purge(con);
-
-            OpenDatabase(g);
-        }
-
-        return result;
-    }
-
-    /// <summary>
-    /// Gets a count of the number of items to be pruned.
-    /// </summary>
-    public int GetCount(PruneOptions options)
-    {
-        int count = 0;
-
-        foreach (var item in LegalBaskets)
-        {
-            count += GetBasket(item).PruneCount(options);
-        }
-
-        return count;
-    }
-
-    /// <summary>
-    /// Prunes items in all baskets and returns removal count.
-    /// </summary>
-    /// <remarks>
-    /// Where "options" is null, the method may be used to reduce excessive memory use.
-    /// </remarks>
-    public int Prune(PruneOptions? options)
-    {
-        // Do waste first
-        int count = GetBasket(BasketKind.Waste).Prune(options);
-
-        foreach (var item in _baskets)
-        {
-            if (item.Kind != BasketKind.Waste)
-            {
-                count += item.Prune(options);
-            }
-        }
-
-        return count;
-    }
-
-    /// <summary>
-    /// Implements <see cref="IEnumerable{T}.GetEnumerator()"/>.
-    /// </summary>
-    /// <remarks>
-    /// The order of items should be assumed to be arbitrary. Always returns an empty sequence if <see cref="Gardener"/>
-    /// is null.
-    /// </remarks>
-    public IEnumerator<GardenDeck> GetEnumerator()
-    {
-        return GetEnumerable()?.GetEnumerator() ?? Empty.GetEnumerator();
-    }
-
-    IEnumerator IEnumerable.GetEnumerator()
-    {
-        return GetEnumerator();
-    }
-
-    /// <summary>
-    /// Sets <see cref="Focused"/> on the given child and returns true if selection changed.
-    /// </summary>
-    /// <remarks>
-    /// Does nothing if <see cref="Gardener"/> is null.
-    /// </remarks>
-    internal void OnFocusChanged(GardenDeck? obj)
-    {
-        if (Focused != obj)
-        {
-            ConditionalDebug.ThrowIfTrue(obj?.IsFocused == false);
-
-            // Silent
-            var old = Focused;
-            old?.DeselectNoRaise();
-
-            Focused = obj;
-            obj?.GetBasket()?.SetRecentInternal(obj);
-            FocusChanged?.Invoke(this, new(obj, old));
+            throw new ArgumentException($"Invalid {nameof(BasketKind)} {basket}");
         }
     }
-
-
-    /// <summary>
-    /// Called when properties of "obj" have changed.
-    /// </summary>
-    internal void OnUpdated(GardenDeck obj, DeckMods mods, bool raiseBasket)
-    {
-        const string NSpace = $"{nameof(MemoryGarden)}.{nameof(OnUpdated)}";
-        ConditionalDebug.WriteLine(NSpace, "Deck: " + obj.ToString());
-        ConditionalDebug.WriteLine(NSpace, "Mods: " + mods);
-
-        if (mods != DeckMods.None)
-        {
-            try
-            {
-                if (mods.HasFlag(DeckMods.Basket))
-                {
-                    foreach (var b in _baskets)
-                    {
-                        if (b.RemoveCache(obj, raiseBasket))
-                        {
-                            break;
-                        }
-                    }
-
-                    GetBasket(obj.Basket).InsertCache(obj, raiseBasket);
-                    ConditionalDebug.ThrowIfNotSame(obj.Garden, this);
-                    return;
-                }
-
-                GetBasket(obj.Basket).OnChangedInternal(raiseBasket);
-                ConditionalDebug.ThrowIfNotSame(obj.Garden, this);
-            }
-            finally
-            {
-                if (Focused == obj)
-                {
-                    FocusedUpdated?.Invoke(this, new(obj));
-                }
-            }
-        }
-    }
-
-    private List<GardenDeck>? GetEnumerable()
-    {
-        int count = Count;
-
-        if (count != 0)
-        {
-            var list = new List<GardenDeck>(count);
-
-            for (int n = 0; n < _baskets.Count; ++n)
-            {
-                list.AddRange(_baskets[n]);
-            }
-
-            return list;
-        }
-
-        return null;
-    }
-
 }

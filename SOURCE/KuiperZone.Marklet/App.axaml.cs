@@ -35,16 +35,24 @@ public partial class App : ChromeApplication<MainWindow>
     static App()
     {
         var assembly = Assembly.GetAssembly(typeof(AppSettings));
+
         Version = assembly?.GetName()?.Version ??
             throw new InvalidOperationException("Failed to retrieve Assembly version");
 
-        Copyright = assembly?.GetCustomAttribute<AssemblyCopyrightAttribute>()?.Copyright ??
-            throw new InvalidOperationException("Failed to retrieve Assembly version");
+        Copyright = assembly.GetCustomAttribute<AssemblyCopyrightAttribute>()?.Copyright ??
+            throw new InvalidOperationException("Failed to retrieve Assembly Copyright");
 
-        // Settings must read Version.
-        // Assign these in a constructor.
-        AppSettings = AppSettings.Global;
-        ContentSettings = ContentSettings.Global;
+        DisplayVersion = Version.ToString(2);
+
+#if DEBUG
+        IsDebug = true;
+        DisplayVersion += " Debug";
+#endif
+
+#if PREVIEW
+        IsPreview = true;
+        DisplayVersion += " Preview";
+#endif
     }
 
     /// <summary>
@@ -55,16 +63,11 @@ public partial class App : ChromeApplication<MainWindow>
         : base("zone.kuiper.marklet")
     {
         const string NSpace = $"{nameof(App)}.constructor";
-        ConditionalDebug.WriteLine(NSpace, $"AppId: {Host.AppId}");
-        ConditionalDebug.ThrowIfNullOrEmpty(Host.AppId);
+        Diag.WriteLine(NSpace, $"AppId: {Host.AppId}");
+        Diag.ThrowIfNullOrEmpty(Host.AppId);
 
         Name = "Marklet";
     }
-
-    /// <summary>
-    /// Gets whether the application display title.
-    /// </summary>
-    public const string DisplayTitle = "M\u2219A\u2219R\u2219K\u2219L\u2219E\u2219T";
 
     /// <summary>
     /// Gets the number of parts included in <see cref="Version"/>.
@@ -72,22 +75,41 @@ public partial class App : ChromeApplication<MainWindow>
     public const int VersionParts = 2;
 
     /// <summary>
-    /// Gets the application version.
+    /// Gets whether the application display title.
+    /// </summary>
+    public const string DisplayTitle = "M\u2219A\u2219R\u2219K\u2219L\u2219E\u2219T";
+
+    /// <summary>
+    /// Gets the application version from the <see cref="ChromeApplication"/> subclass assembly.
     /// </summary>
     public static Version Version { get; }
 
     /// <summary>
-    /// Gets the copyright statement.
+    /// Gets whether DEBUG is defined.
     /// </summary>
-    public static string Copyright { get; }
+    public static bool IsDebug { get; }
 
     /// <summary>
-    /// Gets the project website name.
+    /// Gets whether PREVIEW is defined.
     /// </summary>
-    public static string? WebName { get; }
+    public static bool IsPreview { get; }
 
     /// <summary>
-    /// Gets the web address associated with <see cref="WebName"/>.
+    /// Gets the display version from the <see cref="ChromeApplication"/> subclass assembly.
+    /// </summary>
+    /// <remarks>
+    /// This comprises <see cref="Version"/> with <see cref="VersionParts"/> elements, plus a possible version suffix.
+    /// In order to access the suffix, the csproj should include: {AssemblyMetadata Include="VersionSuffix" Value="$(VersionSuffix)" /}
+    /// </remarks>
+    public static string DisplayVersion { get; }
+
+    /// <summary>
+    /// Gets the copyright statement from the <see cref="ChromeApplication"/> subclass assembly.
+    /// </summary>
+    public static string? Copyright { get; }
+
+    /// <summary>
+    /// Gets the web address.
     /// </summary>
     public static Uri WebUrl { get; } = new("https://kuiper.zone/marklet-ai/");
 
@@ -97,21 +119,6 @@ public partial class App : ChromeApplication<MainWindow>
     public static Uri RepoUrl { get; } = new("https://github.com/kuiperzone/Marklet-AI");
 
     /// <summary>
-    /// Gets the public social web address.
-    /// </summary>
-    public static Uri XUrl { get; } = new("https://x.com/kuiperzone");
-
-    /// <summary>
-    /// Gets the global <see cref="AppSettings"/> instance.
-    /// </summary>
-    public static readonly AppSettings AppSettings;
-
-    /// <summary>
-    /// Gets the global <see cref="ContentSettings"/> instance.
-    /// </summary>
-    public static readonly ContentSettings ContentSettings;
-
-    /// <summary>
     /// Override.
     /// </summary>
     public override void Initialize()
@@ -119,19 +126,24 @@ public partial class App : ChromeApplication<MainWindow>
         const string NSpace = $"{nameof(App)}.{nameof(Initialize)}";
 
         // LOAD FIRST
-        ConditionalDebug.WriteLine(NSpace, "Loading XAML");
+        Diag.WriteLine(NSpace, "Loading XAML");
         AvaloniaXamlLoader.Load(this);
 
         base.Initialize();
 
-        ConditionalDebug.WriteLine(NSpace, $"Reading: {nameof(WindowSettings)}");
-        AppSettings.Read(Path.Combine(Host.ConfigDirectory, "app-settings.json"));
+        Diag.WriteLine(NSpace, $"Reading: {nameof(AppSettings)}");
+        AppSettings.Global.Read(Path.Combine(Host.ConfigDirectory, "app-settings.json"));
 
-        ConditionalDebug.WriteLine(NSpace, $"Reading: {nameof(AppSettings)}");
-        ContentSettings.Read(Path.Combine(Host.ConfigDirectory, "content-settings.json"));
+        Diag.WriteLine(NSpace, $"Reading: {nameof(ContentSettings)}");
+        ContentSettings.Global.Read(Path.Combine(Host.ConfigDirectory, "content-settings.json"));
+
+        Diag.WriteLine(NSpace, $"Reading: {nameof(DatabaseSettings)}");
+        DatabaseSettings.Global.Read(Path.Combine(Host.ConfigDirectory, "data-settings.json"));
 
         // Expect config directory to exist in test
-        ConditionalDebug.ThrowIfNull(AppSettings.SettingsPath);
-        ConditionalDebug.ThrowIfNull(ContentSettings.SettingsPath);
+        Diag.ThrowIfNull(AppSettings.Global.SettingsPath);
+        Diag.ThrowIfNull(ContentSettings.Global.SettingsPath);
+        Diag.ThrowIfNull(DatabaseSettings.Global.SettingsPath);
     }
+
 }

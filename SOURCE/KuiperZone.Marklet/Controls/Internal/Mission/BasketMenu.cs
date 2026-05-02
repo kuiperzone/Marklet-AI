@@ -42,10 +42,10 @@ internal sealed class BasketMenu : ContextMenu
     {
         _view = toolbar.View;
         _folderMore = _view.FolderMore;
-        ConditionalDebug.ThrowIfNull(_folderMore);
+        Diag.ThrowIfNull(_folderMore);
 
         _historyMore = toolbar.View.HistoryMore;
-        ConditionalDebug.ThrowIfNull(_historyMore);
+        Diag.ThrowIfNull(_historyMore);
 
         var kind = toolbar.Kind;
         var deckKind = kind.DefaultDeck();
@@ -55,33 +55,33 @@ internal sealed class BasketMenu : ContextMenu
         if (kind.CanInstigateNew())
         {
             var menu = new MenuItem();
-            menu.Header = ChromeFonts.NewRunBlock($"{Symbols.EditSquare} New {deckKind.DisplayName(DisplayKind.Default)}");
+            menu.Header = ChromeFonts.CreateRunBlock($"{Symbols.EditSquare} New {deckKind.DisplayName(DisplayStyle.Default)}");
             menu.InputGesture = BasketKeys.NewGesture;
 
             // We can handle this directly
             Items.Add(menu);
-            menu.Click += (_, __) => main.OnNewClicked();
+            menu.Click += (_, __) => main.OnNewClick();
 
             if (kind == BasketKind.Recent)
             {
                 // Special entry for this
                 menu = new MenuItem();
-                menu.Header = ChromeFonts.NewRunBlock($"{Symbols.HourglassBottom} New Ephemeral");
+                menu.Header = ChromeFonts.CreateRunBlock($"{Symbols.HourglassBottom} New Ephemeral");
                 menu.InputGesture = BasketKeys.EphemeralGesture;
                 Items.Add(menu);
-                menu.Click += (_, __) => main.OnNewClicked(true);
+                menu.Click += (_, __) => main.OnNewClick(true);
             }
 
             Items.Add(new Separator());
         }
 
-        SearchItem.Header = ChromeFonts.NewRunBlock($"{Symbols.Search} Search {deckKind.DisplayName(DisplayKind.Plural)}\u2026");
+        SearchItem.Header = ChromeFonts.CreateRunBlock($"{Symbols.Search} Search {deckKind.DisplayName(DisplayStyle.Plural)}\u2026");
         SearchItem.InputGesture = BasketKeys.SearchGesture;
         SearchItem.ToggleType = MenuItemToggleType.CheckBox;
         SearchItem.IsChecked = true; // <- leave initial space (will be reset)
         Items.Add(SearchItem);
 
-        PinTopItem.Header = ChromeFonts.NewRunBlock($"{Symbols.Keep} Show Pinned at Top");
+        PinTopItem.Header = ChromeFonts.CreateRunBlock($"{Symbols.Keep} Show Pinned at Top");
         PinTopItem.InputGesture = BasketKeys.PinTopGesture;
         PinTopItem.ToggleType = MenuItemToggleType.CheckBox;
         PinTopItem.IsChecked = true; // <- leave initial space (will be reset)
@@ -92,17 +92,17 @@ internal sealed class BasketMenu : ContextMenu
 
         if (kind != BasketKind.Waste)
         {
-            NewFolderItem.Header = ChromeFonts.NewRunBlock($"{Symbols.CreateNewFolder} New Folder\u2026");
+            NewFolderItem.Header = ChromeFonts.CreateRunBlock($"{Symbols.CreateNewFolder} New Folder\u2026");
             NewFolderItem.InputGesture = BasketKeys.FolderGesture;
             Items.Add(NewFolderItem);
         }
 
-        ExpandFoldersItem.Header = ChromeFonts.NewRunBlock($"{Symbols.FolderOpen} Expand Folders");
+        ExpandFoldersItem.Header = ChromeFonts.CreateRunBlock($"{Symbols.FolderOpen} Expand Folders");
         ExpandFoldersItem.InputGesture = BasketKeys.ExpandGesture;
         ExpandFoldersItem.Click += (_, __) => _view.ExpandFolders();
         Items.Add(ExpandFoldersItem);
 
-        CloseFoldersItem.Header = ChromeFonts.NewRunBlock($"{Symbols.Folder} Close Folders");
+        CloseFoldersItem.Header = ChromeFonts.CreateRunBlock($"{Symbols.Folder} Close Folders");
         CloseFoldersItem.InputGesture = BasketKeys.CloseGesture;
         CloseFoldersItem.Click += (_, __) => _view.CloseFolders();
         Items.Add(CloseFoldersItem);
@@ -111,12 +111,12 @@ internal sealed class BasketMenu : ContextMenu
 
         if (kind != BasketKind.Waste)
         {
-            PruneItem.Header = ChromeFonts.NewRunBlock($"{Symbols.Delete} Prune {kind.DisplayName()}\u2026");
+            PruneItem.Header = ChromeFonts.CreateRunBlock($"{Symbols.Delete} Prune {kind.DisplayName()}\u2026");
             Items.Add(PruneItem);
         }
         else
         {
-            EmptyItem.Header = ChromeFonts.NewRunBlock($"{Symbols.DeleteForever} Empty {kind.DisplayName()}\u2026");
+            EmptyItem.Header = ChromeFonts.CreateRunBlock($"{Symbols.DeleteForever} Empty {kind.DisplayName()}\u2026");
             Items.Add(EmptyItem);
         }
 

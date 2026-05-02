@@ -22,65 +22,67 @@ using KuiperZone.Marklet.Stack.Garden;
 
 namespace KuiperZone.Marklet.Stack.Test;
 
-public class GardenLeafTest : GardenTestBase
+public class GardenLeafTest : TestBase
 {
-    [Theory]
-    [InlineData(true)]
-    [InlineData(false)]
-    public void Delete_Garden_DeletesAndInvokesEvent(bool database)
+    [Fact]
+    public void Delete_DeletesAndInvokesEvent()
     {
-        var obj = OpenNew(database);
-        var child = obj.Insert(new(DeckKind.Chat, BasketKind.Recent));
+        var obj = new MemoryGarden(CreateMemoryProvider());
+
+        var child = new GardenDeck(DeckFormat.Chat, BasketKind.Recent);
+        Assert.True(obj.Insert(child));
 
         var receiver = new ChangeReceiver();
-        obj.GetBasket(child.Basket).Changed += receiver.BasketHandler;
+        obj.Changed += receiver.GardenChangedHandler;
 
         // Insert leaf
-        var leaf = child.Append(LeafKind.User, "Hello world");
-        Assert.NotNull(leaf);
-        Assert.Equal(1, receiver.BasketUpdatedCounter);
+        var leaf = child.Append(LeafFormat.UserMessage, "Hello world");
+        Assert.False(leaf.IsEphemeral);
+        Assert.Equal(1, receiver.ChangedCounter);
 
         // Insert stream
-        var stream = child.AppendStream(LeafKind.Assistant, "Hello world");
-
-        // No event as object not persistant until stream stops
-        Assert.Equal(1, receiver.BasketUpdatedCounter);
+        var stream = child.Append(LeafFormat.AssistantMessage, "Hello world", LeafFlags.Streaming);
+        Assert.True(stream.IsStreaming);
+        Assert.False(stream.IsEphemeral);
+        Assert.Equal(2, receiver.ChangedCounter);
 
         // Remove leaf
         Assert.True(leaf.Delete());
-        Assert.Equal(2, receiver.BasketUpdatedCounter);
+        Assert.Equal(3, receiver.ChangedCounter);
         Assert.Single(child);
         Assert.Null(leaf.Garden);
-        Assert.False(leaf.IsPersistant);
+        Assert.True(leaf.IsEphemeral);
 
         // Does nothing
         Assert.False(leaf.Delete());
 
         // Remove stream
         Assert.True(stream.Delete());
-        Assert.Equal(3, receiver.BasketUpdatedCounter);
+        Assert.Equal(4, receiver.ChangedCounter);
         Assert.Empty(child);
         Assert.Null(stream.Garden);
-        Assert.False(stream.IsPersistant);
+        Assert.True(stream.IsEphemeral);
     }
 
     [Fact]
     public void Delete_Standalone_Deletes()
     {
-        var child = new GardenDeck(DeckKind.Chat, BasketKind.Recent);
+        var child = new GardenDeck(DeckFormat.Chat, BasketKind.Recent);
 
         // Insert leaf
-        var leaf = child.Append(LeafKind.User, "Hello world");
-        Assert.NotNull(leaf);
+        var leaf = child.Append(LeafFormat.UserMessage, "Hello world");
+        Assert.True(leaf.IsEphemeral);
 
         // Insert stream
-        var stream = child.AppendStream(LeafKind.Assistant, "Hello world");
+        var stream = child.Append(LeafFormat.AssistantMessage, "Hello world", LeafFlags.Streaming);
+        Assert.True(stream.IsStreaming);
+        Assert.True(stream.IsEphemeral);
 
         // Remove leaf
         Assert.True(leaf.Delete());
         Assert.Single(child);
         Assert.Null(leaf.Garden);
-        Assert.False(leaf.IsPersistant);
+        Assert.True(leaf.IsEphemeral);
 
         // Does nothing
         Assert.False(leaf.Delete());
@@ -89,7 +91,7 @@ public class GardenLeafTest : GardenTestBase
         Assert.True(stream.Delete());
         Assert.Empty(child);
         Assert.Null(stream.Garden);
-        Assert.False(stream.IsPersistant);
+        Assert.True(stream.IsEphemeral);
     }
 
 }

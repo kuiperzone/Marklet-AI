@@ -31,7 +31,7 @@ public class PixieSelectableText : PixieControl
     private readonly CrossTextBlock _block = new();
 
     private string? _text;
-    private double _titleSize = ChromeFonts.DefaultFontSize;
+    private double _textSize = ChromeFonts.DefaultFontSize;
     private TextAlignment _titleAlignment;
     private TextWrapping _textWrapping = TextWrapping.Wrap;
 
@@ -46,8 +46,9 @@ public class PixieSelectableText : PixieControl
         _block.FocusAdorner = null;
 
         _block.FontWeight = TitleWeight;
-        _block.FontSize = _titleSize;
+        _block.FontSize = _textSize;
         _block.TextAlignment = _titleAlignment;
+        _block.TextWrapping = _textWrapping;
         _block.VerticalAlignment = VerticalContentAlignment;
         _block.Margin = new(0.0, VerticalContentOffset, 0.0, VerticalContentOffset);
     }
@@ -56,15 +57,15 @@ public class PixieSelectableText : PixieControl
     /// Defines the <see cref="TextAlignment"/> property.
     /// </summary>
     public static readonly DirectProperty<PixieSelectableText, string?> TextProperty =
-        AvaloniaProperty.RegisterDirect<PixieSelectableText, string?>(nameof(TitleSize),
+        AvaloniaProperty.RegisterDirect<PixieSelectableText, string?>(nameof(TextSize),
         o => o.Text, (o, v) => o.Text = v);
 
     /// <summary>
     /// Defines the <see cref="TextAlignment"/> property.
     /// </summary>
     public static readonly DirectProperty<PixieSelectableText, double> TextSizeProperty =
-        AvaloniaProperty.RegisterDirect<PixieSelectableText, double>(nameof(TitleSize),
-        o => o.TitleSize, (o, v) => o.TitleSize = v, ChromeFonts.DefaultFontSize);
+        AvaloniaProperty.RegisterDirect<PixieSelectableText, double>(nameof(TextSize),
+        o => o.TextSize, (o, v) => o.TextSize = v, ChromeFonts.DefaultFontSize);
 
     /// <summary>
     /// Defines the <see cref="TextAlignment"/> property.
@@ -83,6 +84,9 @@ public class PixieSelectableText : PixieControl
     /// <summary>
     /// Gets or sets the text content.
     /// </summary>
+    /// <remarks>
+    /// The <see cref="PixieControl.ValueChanged"/> event is invoked on change.
+    /// </remarks>
     public string? Text
     {
         get { return _text; }
@@ -92,10 +96,10 @@ public class PixieSelectableText : PixieControl
     /// <summary>
     /// Gets or sets the <see cref="Text"/> font size.
     /// </summary>
-    public double TitleSize
+    public double TextSize
     {
-        get { return _titleSize; }
-        set { SetAndRaise(TextSizeProperty, ref _titleSize, value); }
+        get { return _textSize; }
+        set { SetAndRaise(TextSizeProperty, ref _textSize, value); }
     }
 
     /// <summary>
@@ -130,6 +134,7 @@ public class PixieSelectableText : PixieControl
         if (p == TextProperty)
         {
             _block.Text = change.GetNewValue<string?>();
+            OnValueChanged();
             return;
         }
 

@@ -29,23 +29,14 @@ namespace KuiperZone.Marklet.Shared;
 /// </summary>
 public sealed class StubBot
 {
+    private const int SkipN = 10;
     private const string Model = "stub-bot";
-    private static readonly bool IsDebug;
     private static readonly TimeSpan StartDelay = TimeSpan.FromSeconds(3);
     private static readonly TimeSpan ChunkDelay = TimeSpan.FromMilliseconds(20);
 
     private readonly DispatcherTimer _timer = new();
     private int _posN;
     private string? _reply;
-
-    static StubBot()
-    {
-#if DEBUG
-        IsDebug = true;
-#else
-        IsDebug = false;
-#endif
-    }
 
     /// <summary>
     /// Constructor.
@@ -82,15 +73,15 @@ public sealed class StubBot
     /// </summary>
     public void Stop()
     {
+        _posN = 0;
+        _reply = null;
+        Chunk = null;
+
         if (_timer.IsEnabled)
         {
             _timer.Stop();
             ChunkReceived?.Invoke(this, EventArgs.Empty);
         }
-
-        _posN = 0;
-        _reply = null;
-        Chunk = null;
     }
 
     /// <summary>
@@ -104,8 +95,8 @@ public sealed class StubBot
         Insert(garden, BasketKind.Recent, "Show table", RandOffset(0.9), 100);
         Insert(garden, BasketKind.Recent, "Show list", RandOffset(0.9), 100);
         Insert(garden, BasketKind.Recent, "Show indented", RandOffset(0.9), 100);
-        Insert(garden, BasketKind.Recent, "Mega chat 1", RandOffset(30.0), GardenDeck.MaxLeafCount / 2);
-        Insert(garden, BasketKind.Recent, "Mega chat 2", RandOffset(30.0), GardenDeck.MaxLeafCount / 2);
+        Insert(garden, BasketKind.Recent, "Show Mega Code", RandOffset(30.0), GardenDeck.MaxLeafCount / 2);
+        Insert(garden, BasketKind.Recent, "Show Mega Table", RandOffset(30.0), GardenDeck.MaxLeafCount / 2);
 
         var obj = Insert(garden, BasketKind.Recent, "Explain quantum entanglement like I'm 12 years old.", RandOffset(30.0), 10);
         obj.Folder = "Science";
@@ -144,7 +135,7 @@ public sealed class StubBot
         obj.Folder = "Personal";
 
         // NOTES
-        Insert(garden, BasketKind.Notes, "Notes", RandOffset(0.9), 10);
+        Insert(garden, BasketKind.Notes, NoteContent(), RandOffset(0.9), 1);
 
         // ARCHIVE
         Insert(garden, BasketKind.Recent, BasketKind.Archive, "Show quoted", RandOffset(0.9), 100);
@@ -159,6 +150,36 @@ public sealed class StubBot
 
     }
 
+    private static string NoteContent()
+    {
+        return @"Technical Notes - Local AI Setup & Testing
+Last updated: 2026-05-01
+Ollama + Marklet Integration Testing
+I'm currently testing Marklet's connection to local models via Ollama. Key findings so far:
+
+Gemma4:26b (Q4_K_M) runs well on the RX 9070 with Vulkan + Flash Attention. Context up to 64k is stable with `OLLAMA_KV_CACHE_TYPE=q8_0`. Beyond that it starts swapping layers and becomes noticeably slower.
+gpt-oss:20b feels snappier for general use and handles 96k-128k context better, but its reasoning depth is slightly behind Gemma4 on complex tasks.
+Important: Always set OLLAMA_KEEP_ALIVE=0 when using Marklet so the model stays loaded between chats.
+
+Useful Environment Variables (for ollama.service)
+
+```
+BashEnvironment=""OLLAMA_VULKAN=1""
+Environment=""OLLAMA_FLASH_ATTENTION=1""
+Environment=""OLLAMA_KV_CACHE_TYPE=q8_0""
+Environment=""OLLAMA_CONTEXT_LENGTH=65536""
+Environment=""OLLAMA_KEEP_ALIVE=0""
+```
+Todo / Open Issues
+
+Test branching with attachments (currently drops them — expected behaviour)
+Verify custom title bar button positioning on GNOME (left-side preference)
+Add schema migration test for new ResourceKind enum values
+Measure cold-start time when model is not already loaded
+
+These notes are purely for internal testing. Everything is running 100% locally. No cloud services involved.";
+    }
+
     private static GardenDeck Insert(MemoryGarden garden, BasketKind origin, string msg0, TimeSpan offset, int total = 1)
     {
         return Insert(garden, origin, origin, msg0, offset, total);
@@ -168,14 +189,21 @@ public sealed class StubBot
     {
         var obj = new GardenDeck(origin.DefaultDeck(), origin, -offset);
         obj.Model = Model;
-        obj.Basket = basket;
-        obj.Append(LeafKind.User, msg0);
-        obj.Append(LeafKind.Assistant, GetReply(msg0));
+        obj.CurrentBasket = basket;
+
+        if (origin == BasketKind.Notes)
+        {
+            obj.Append(LeafFormat.UserNote, msg0);
+            msg0 = "User question about notes?";
+        }
+
+        obj.Append(LeafFormat.UserMessage, msg0);
+        obj.Append(LeafFormat.AssistantMessage, GetReply(msg0));
 
         for (int n = 1; n < total; ++n)
         {
-            obj.Append(LeafKind.User, "User message " + n);
-            obj.Append(LeafKind.Assistant, GetReply());
+            obj.Append(LeafFormat.UserMessage, msg0 + $" ({n})");
+            obj.Append(LeafFormat.AssistantMessage, GetReply(msg0));
         }
 
         garden.Insert(obj);
@@ -194,7 +222,7 @@ public sealed class StubBot
         return TimeSpan.FromDays(1.0 + Random.Shared.NextDouble() * days);
     }
 
-    private static string GetReply(string? msg = null)
+    private static string GetReply(string? msg)
     {
         // Will include test-card output if DEBUG or asked using simple algorithm rule.
         const StringComparison Comp = StringComparison.OrdinalIgnoreCase;
@@ -206,89 +234,100 @@ public sealed class StubBot
         {
             if (show < msg.IndexOf(" para", Comp) || show < msg.IndexOf(" text", Comp))
             {
-                return GetParaReply(true);
+                return GetParaReply();
             }
 
             if (show < msg.IndexOf(" fence", Comp) || show < msg.IndexOf(" code", Comp))
             {
-                return GetFencedReply(true);
+                return GetFencedReply();
             }
 
             if (show < msg.IndexOf(" indent", Comp))
             {
-                return GetIndentedReply(true);
+                return GetIndentedReply();
             }
 
             if (show < msg.IndexOf(" table", Comp))
             {
-                return GetTableReply(true);
+                return GetTableReply();
             }
 
             if (show < msg.IndexOf(" list", Comp))
             {
-                return GetListReply(true);
+                return GetListReply();
             }
 
-            if (show < msg.IndexOf(" quote", Comp))
+            if (show < msg.IndexOf(" quote", Comp) || show < msg.IndexOf(" quotation", Comp))
             {
-                return GetQuotedReply(true);
+                return GetQuotedReply();
+            }
+
+            if (show < msg.IndexOf(" html", Comp))
+            {
+                return GetHtmlReply();
             }
         }
 
-        switch (Random.Shared.Next(6))
-        {
-            case 0: return GetParaReply(false);
-            case 1: return GetFencedReply(false);
-            case 2: return GetIndentedReply(false);
-            case 3: return GetTableReply(false);
-            case 4: return GetListReply(false);
-            case 5: return GetQuotedReply(false);
-            default:
-                throw new InvalidOperationException("Invalid random");
-        }
+        return GetStandardReply();
     }
 
-    private static string GetParaReply(bool force)
+    private static string GetHello()
     {
-        var sb = new StringBuilder(GetLeader());
+        return $"Hello, This is {Model}.\n";
+    }
 
-        if (IsDebug || force)
-        {
-            sb.AppendLine();
-            sb.AppendLine("What follows is a test-card for text, headings and links.");
+    private static string GetStandardReply()
+    {
+        var sb = new StringBuilder(GetHello());
 
-            sb.AppendLine();
-            sb.AppendLine("# Heading 1");
-            sb.AppendLine(@"Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut
-labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo
-consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur.
-Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.");
+        sb.AppendLine();
+        sb.AppendLine("**No AI model connected.** You can use the following commands to test response output:");
 
-            sb.AppendLine();
-            sb.AppendLine("## Heading 2");
-            sb.AppendLine(@"Ut ullamcorper, ligula eu tempor congue, eros est euismod turpis, id tincidunt sapien risus a quam.
-Maecenas fermentum consequat mi. Donec fermentum. Pellentesque malesuada nulla a mi. Duis sapien sem, aliquet nec, commodo eget,
-consequat quis, neque.");
+        sb.AppendLine();
+        sb.AppendLine("    Show para, Show code, Show indent, Show table, Show list, Show quote, Show list");
 
-            sb.AppendLine();
-            sb.AppendLine("### Heading 3");
-            sb.AppendLine("This is [link text](http://example.com) to http://example.com. This is an example of `inline code`.");
-        }
+        sb.AppendLine();
+        sb.AppendLine("Ready");
 
         return sb.ToString();
     }
 
-    private static string GetFencedReply(bool force)
+    private static string GetParaReply()
     {
-        var sb = new StringBuilder(GetLeader());
+        var sb = new StringBuilder(GetHello());
 
-        if (IsDebug || force)
-        {
-            sb.AppendLine();
-            sb.AppendLine("What follows is a test-card for a fenced code block.");
+        sb.AppendLine();
+        sb.AppendLine("Here are paragraphs, headings and links:");
 
-            sb.AppendLine();
-            sb.AppendLine(@"```Bash
+        sb.AppendLine();
+        sb.AppendLine("# Heading 1");
+        sb.AppendLine(@"Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut
+labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo
+consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur.
+Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.");
+
+        sb.AppendLine();
+        sb.AppendLine("## Heading 2");
+        sb.AppendLine(@"Ut ullamcorper, ligula eu tempor congue, eros est euismod turpis, id tincidunt sapien risus a quam.
+Maecenas fermentum consequat mi. Donec fermentum. Pellentesque malesuada nulla a mi. Duis sapien sem, aliquet nec, commodo eget,
+consequat quis, neque.");
+
+        sb.AppendLine();
+        sb.AppendLine("### Heading 3");
+        sb.AppendLine("This is [link text](http://example.com) to http://example.com. This is an example of `inline code`.");
+
+        return sb.ToString();
+    }
+
+    private static string GetFencedReply()
+    {
+        var sb = new StringBuilder(GetHello());
+
+        sb.AppendLine();
+        sb.AppendLine("Here is a fenced code block:");
+
+        sb.AppendLine();
+        sb.AppendLine(@"```Bash
 #!/usr/bin/env bash
 
 set -euo pipefail
@@ -302,161 +341,149 @@ mkdir -p ""$BACKUP_DIR""
 echo ""Starting backup at $(date)"" >> ""$LOGFILE""
 
 rsync -aHv --delete \
-    --exclude={'*.tmp','cache/','node_modules/'} \
-    ""$SOURCE_DIR/"" ""$BACKUP_DIR/"" >> ""$LOGFILE"" 2>&1
+--exclude={'*.tmp','cache/','node_modules/'} \
+""$SOURCE_DIR/"" ""$BACKUP_DIR/"" >> ""$LOGFILE"" 2>&1
 
 if [ $? -eq 0 ]; then
-    echo ""Backup completed successfully"" >> ""$LOGFILE""
+echo ""Backup completed successfully"" >> ""$LOGFILE""
 else
-    echo ""Backup failed!"" >&2
-    exit 1
+echo ""Backup failed!"" >&2
+exit 1
 fi
 
 echo ""Done at $(date)"" >> ""$LOGFILE""
 ```");
 
-            sb.AppendLine();
-            sb.AppendLine("This is [link text](http://example.com) to http://example.com. This is an example of `inline code`.");
-        }
+        sb.AppendLine();
+        sb.AppendLine("This is [link text](http://example.com) to http://example.com. This is an example of `inline code`.");
 
         return sb.ToString();
     }
 
-    private static string GetIndentedReply(bool force)
+    private static string GetIndentedReply()
     {
-        var sb = new StringBuilder(GetLeader());
+        var sb = new StringBuilder(GetHello());
 
-        if (IsDebug || force)
-        {
-            sb.AppendLine();
-            sb.AppendLine("What follows is a test-card for an indented block.");
+        sb.AppendLine();
+        sb.AppendLine("Here is an indented block:");
 
-            sb.AppendLine();
-            sb.AppendLine(@"    #!/bin/bash
+        sb.AppendLine();
+        sb.AppendLine("    #!/bin/bash");
+        sb.AppendLine("    ");
+        sb.AppendLine("    echo \"┌──────────────────── System Snapshot ────────────────────┐\"");
+        sb.AppendLine("    echo \"│  Date:         $(date '+%Y-%m-%d %H:%M:%S')             │\"");
+        sb.AppendLine("    echo \"│  Hostname:     $(hostname)                              │\"");
+        sb.AppendLine("    echo \"│  Uptime:       $(uptime -p)                             │\"");
+        sb.AppendLine("    echo \"│  Load average: $(uptime | awk -F'load average:' '{print $2}')│\"");
+        sb.AppendLine("    echo \"└─────────────────────────────────────────────────────────┘\"");
 
-    echo ""┌──────────────────── System Snapshot ────────────────────┐""
-    echo ""│  Date:         $(date '+%Y-%m-%d %H:%M:%S')             │""
-    echo ""│  Hostname:     $(hostname)                              │""
-    echo ""│  Uptime:       $(uptime -p)                             │""
-    echo ""│  Load average: $(uptime | awk -F'load average:' '{print $2}')│""
-    echo ""└─────────────────────────────────────────────────────────┘""");
-
-            sb.AppendLine();
-            sb.AppendLine("This is [link text](http://example.com) to http://example.com. This is an example of `inline code`.");
-        }
+        sb.AppendLine();
+        sb.AppendLine("This is [link text](http://example.com) to http://example.com. This is an example of `inline code`.");
 
         return sb.ToString();
     }
 
-    private static string GetTableReply(bool force)
+    private static string GetTableReply()
     {
-        var sb = new StringBuilder(GetLeader());
+        var sb = new StringBuilder(GetHello());
 
-        if (IsDebug || force)
-        {
-            sb.AppendLine();
-            sb.AppendLine("What follows is a test-card for a block containing table data.");
+        sb.AppendLine();
+        sb.AppendLine("Here is a table:");
 
-            sb.AppendLine();
-            sb.AppendLine(@"| ID | Name        | Status   |
-|----|-------------|----------|
-| 1  | Alpha       | Active   |
-| 2  | Beta        | Pending  |
-| 3  | Gamma       | Disabled |");
+        sb.AppendLine();
+        sb.AppendLine("| ID | Name        | Status   |");
+        sb.AppendLine("|----|-------------|----------|");
+        sb.AppendLine("| 1  | Alpha       | Active   |");
+        sb.AppendLine("| 2  | Beta        | Pending  |");
+        sb.AppendLine("| 3  | Gamma       | Disabled |");
 
-            sb.AppendLine();
-            sb.AppendLine("This is [link text](http://example.com) to http://example.com. This is an example of `inline code`.");
-        }
+        sb.AppendLine();
+        sb.AppendLine("This is [link text](http://example.com) to http://example.com. This is an example of `inline code`.");
 
         return sb.ToString();
     }
 
-    private static string GetListReply(bool force)
+    private static string GetListReply()
     {
-        var sb = new StringBuilder(GetLeader());
+        var sb = new StringBuilder(GetHello());
 
-        if (IsDebug || force)
-        {
-            sb.AppendLine();
-            sb.AppendLine("What follows is a test-card for list blocks.");
+        sb.AppendLine();
+        sb.AppendLine("Here are some list blocks:");
 
-            sb.AppendLine();
-            sb.AppendLine("Here is an ordered list:");
-            sb.AppendLine();
-            sb.AppendLine("1. Lorem ipsum dolor sit amet, consectetur adipiscing elit.");
-            sb.AppendLine();
-            sb.AppendLine("2. Sed do eiusmod tempor incididunt.");
-            sb.AppendLine();
-            sb.AppendLine("3. Curabitur pretium tincidunt lacus.");
+        sb.AppendLine();
+        sb.AppendLine("Here is an ordered list:");
+        sb.AppendLine();
+        sb.AppendLine("1. Lorem ipsum dolor sit amet, consectetur adipiscing elit.");
+        sb.AppendLine();
+        sb.AppendLine("2. Sed do eiusmod tempor incididunt.");
+        sb.AppendLine();
+        sb.AppendLine("3. Curabitur pretium tincidunt lacus.");
 
-            sb.AppendLine();
-            sb.AppendLine("Here is an unordered list:");
-            sb.AppendLine();
-            sb.AppendLine("* Lorem ipsum dolor sit amet, consectetur adipiscing elit.");
-            sb.AppendLine();
-            sb.AppendLine("* Sed do eiusmod tempor incididunt.");
-            sb.AppendLine();
-            sb.AppendLine("* Curabitur pretium tincidunt lacus.");
+        sb.AppendLine();
+        sb.AppendLine("Here is an unordered list:");
+        sb.AppendLine();
+        sb.AppendLine("* Lorem ipsum dolor sit amet, consectetur adipiscing elit.");
+        sb.AppendLine();
+        sb.AppendLine("* Sed do eiusmod tempor incididunt.");
+        sb.AppendLine();
+        sb.AppendLine("* Curabitur pretium tincidunt lacus.");
 
-            sb.AppendLine();
-            sb.AppendLine("This is [link text](http://example.com) to http://example.com. This is an example of `inline code`.");
-        }
+        sb.AppendLine();
+        sb.AppendLine("This is [link text](http://example.com) to http://example.com. This is an example of `inline code`.");
 
         return sb.ToString();
     }
 
-    private static string GetQuotedReply(bool force)
+    private static string GetQuotedReply()
     {
-        var sb = new StringBuilder(GetLeader());
+        var sb = new StringBuilder(GetHello());
 
-        if (IsDebug || force)
-        {
-            sb.AppendLine();
-            sb.AppendLine("What follows is a test-card for various quoted blocks.");
+        sb.AppendLine();
+        sb.AppendLine("Here are some quoted blocks:");
 
-            sb.AppendLine();
-            sb.AppendLine("> Here are heading and paragraphs:");
-            sb.AppendLine(">");
-            sb.AppendLine("> ## Heading");
-            sb.AppendLine(@"> Ut ullamcorper, ligula eu tempor congue, eros est euismod turpis, id tincidunt sapien risus a quam.
+        sb.AppendLine();
+        sb.AppendLine("> Here are heading and paragraphs:");
+        sb.AppendLine(">");
+        sb.AppendLine("> ## Heading");
+        sb.AppendLine(@"> Ut ullamcorper, ligula eu tempor congue, eros est euismod turpis, id tincidunt sapien risus a quam.
 Maecenas fermentum consequat mi. Donec fermentum. Pellentesque malesuada nulla a mi. Duis sapien sem, aliquet nec, commodo eget,
 consequat quis, neque.");
 
-            sb.AppendLine();
-            sb.AppendLine(@"> | ID | Name        | Status   |
-> |----|-------------|----------|
-> | 1  | Alpha       | Active   |
-> | 2  | Beta        | Pending  |
-> | 3  | Gamma       | Disabled |");
+        sb.AppendLine();
+        sb.AppendLine("> Here is an ordered list:");
+        sb.AppendLine(">");
+        sb.AppendLine("> 1. Lorem ipsum dolor sit amet, consectetur adipiscing elit.");
+        sb.AppendLine(">");
+        sb.AppendLine("> 2. Sed do eiusmod tempor incididunt.");
+        sb.AppendLine(">");
+        sb.AppendLine("> 3. Curabitur pretium tincidunt lacus.");
 
-            sb.AppendLine();
-            sb.AppendLine("> Here is fenced code:");
-            sb.AppendLine(@"> ```bash
-> #!/usr/bin/env bash
-> BACKUP_DIR=""/mnt/backup/$(date +%Y-%m-%d)""
-> mkdir -p ""$BACKUP_DIR""
->```");
-
-
-            sb.AppendLine();
-            sb.AppendLine("> Here is an ordered list:");
-            sb.AppendLine(">");
-            sb.AppendLine("> 1. Lorem ipsum dolor sit amet, consectetur adipiscing elit.");
-            sb.AppendLine(">");
-            sb.AppendLine("> 2. Sed do eiusmod tempor incididunt.");
-            sb.AppendLine(">");
-            sb.AppendLine("> 3. Curabitur pretium tincidunt lacus.");
-
-            sb.AppendLine();
-            sb.AppendLine("> This is [link text](http://example.com) to http://example.com. This is an example of `inline code`.");
-        }
+        sb.AppendLine();
+        sb.AppendLine("> This is [link text](http://example.com) to http://example.com. This is an example of `inline code`.");
 
         return sb.ToString();
     }
 
-    private static string GetLeader()
+    private static string GetHtmlReply()
     {
-        return $"Hello, this is {Model}.\n";
+        var sb = new StringBuilder(GetHello());
+
+        sb.AppendLine();
+        sb.AppendLine("Here are some html blocks which are rendered as indented text:");
+
+        sb.AppendLine();
+        sb.AppendLine("<div>");
+        sb.AppendLine("This is div 1.");
+        sb.AppendLine("</div>");
+        sb.AppendLine("");
+        sb.AppendLine("<div>This is div 1.</div>");
+        sb.AppendLine("");
+        sb.AppendLine("<p>This is div 1.</p>");
+
+        sb.AppendLine();
+        sb.AppendLine("This is a <b><i>bold italic</i></b> using inline html, and this is an <unknown>unknown tag</unknown> which is shown as plain text.");
+
+        return sb.ToString();
     }
 
     private void TimerTickHandler(object? _, EventArgs __)
@@ -465,7 +492,11 @@ consequat quis, neque.");
 
         if (!string.IsNullOrEmpty(_reply) && _posN < _reply.Length)
         {
-            Chunk = _reply[_posN++].ToString();
+            int n0 = _posN;
+            int count = Math.Min(SkipN, _reply.Length - n0);
+            _posN += SkipN;
+
+            Chunk = _reply.Substring(n0, count);
             ChunkReceived?.Invoke(this, EventArgs.Empty);
             return;
         }

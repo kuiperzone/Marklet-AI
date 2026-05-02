@@ -138,8 +138,8 @@ public class DispatchCoalescer<T> where T : EventArgs
             catch (Exception ex)
             {
                 const string NSpace = $"{nameof(DispatchCoalescer)}.{nameof(PostReceiver)}";
-                ConditionalDebug.WriteLine(NSpace, "EXCEPTION IN UI THREAD HANDLER");
-                ConditionalDebug.WriteLine(NSpace, ex);
+                Diag.WriteLine(NSpace, "EXCEPTION IN UI THREAD HANDLER");
+                Diag.WriteLine(NSpace, ex);
             }
         }
     }

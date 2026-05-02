@@ -42,9 +42,9 @@ public class MarkTableTest
                                 "───────────────────────────\n" +
                                 "C20         C21         C22";
 
-        var obj = NewTable();
+        var obj = CreateTable();
         var block = obj.ToPaddedBlock();
-        ConditionalDebug.WriteLine(block.ToString(TextFormat.Unicode), false);
+        Diag.WriteLine(block.ToString(TextFormat.Unicode), false);
 
         Assert.Equal(Expect, block.ToString(TextFormat.Unicode));
     }
@@ -72,9 +72,9 @@ Next Line</td>
 </tr>
 </table>";
 
-        var obj = NewTable();
+        var obj = CreateTable();
         var str = obj.ToString(TextFormat.Html);
-        ConditionalDebug.WriteLine(str, false);
+        Diag.WriteLine(str, false);
 
         Assert.Equal(Expect, str);
     }
@@ -87,9 +87,9 @@ Next Line</td>
 |Cell10|Cell11<br />Next Line|Cell12|
 |*C20*|**C21**|`C22`|";
 
-        var obj = NewTable();
+        var obj = CreateTable();
         var str = obj.ToString(TextFormat.Markdown);
-        ConditionalDebug.WriteLine(str, false);
+        Diag.WriteLine(str, false);
 
         Assert.Equal(Expect, str);
     }
@@ -105,14 +105,14 @@ Next Line</td>
 "───────────────────────────\n" +
 "C20         C21         C22";
 
-        var obj = NewTable();
+        var obj = CreateTable();
         var str = obj.ToString(TextFormat.Unicode);
-        ConditionalDebug.WriteLine(str, false);
+        Diag.WriteLine(str, false);
 
         Assert.Equal(Expect, str);
     }
 
-    private static MarkTable NewTable()
+    private static MarkTable CreateTable()
     {
         var obj = new MarkTable(3, 3);
         obj.SetAlign(0, ColAlign.Left);

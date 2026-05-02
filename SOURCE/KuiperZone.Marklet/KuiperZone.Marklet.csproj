@@ -3,13 +3,12 @@
     <PropertyGroup>
         <OutputType>WinExe</OutputType>
 
+        <AssemblyName>Marklet</AssemblyName>
         <ApplicationIcon>Assets/marklet.ico</ApplicationIcon>
 
         <BuiltInComInteropSupport>true</BuiltInComInteropSupport>
         <ApplicationManifest>app.manifest</ApplicationManifest>
         <AvaloniaUseCompiledBindingsByDefault>true</AvaloniaUseCompiledBindingsByDefault>
-
-        <GenerateDocumentationFile>true</GenerateDocumentationFile>
     </PropertyGroup>
 
     <ItemGroup>

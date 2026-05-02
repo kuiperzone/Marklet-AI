@@ -28,8 +28,8 @@ using KuiperZone.Marklet.PixieChrome;
 using KuiperZone.Marklet.Settings;
 using KuiperZone.Marklet.Tooling;
 using KuiperZone.Marklet.PixieChrome.Controls;
-using KuiperZone.Marklet.Controls;
 using Avalonia;
+using Avalonia.Threading;
 
 namespace KuiperZone.Marklet.Windows;
 
@@ -43,11 +43,13 @@ public partial class MainWindow : ChromeWindow
 
     private static readonly ContentSettings ContentSettings = ContentSettings.Global;
 
+    private readonly DispatcherTimer _sizeTimer = new();
+    private readonly LightButton _searchButton;
     private readonly LightButton _pinButton;
     private readonly ColumnDefinition _missionColumn;
     private readonly EditorState _editorState;
     private readonly StubBot _stub = new();
-    private GardenLeaf? _chunking;
+    private GardenLeaf? _chunker;
 
     /// <summary>
     /// Default constructor.
@@ -56,39 +58,54 @@ public partial class MainWindow : ChromeWindow
         : base(false)
     {
         const string NSpace = $"{nameof(MainWindow)}.constructor";
-        ConditionalDebug.WriteLine(NSpace, "Constructor");
+        Diag.WriteLine(NSpace, "Constructor");
 
         DataContext = ChromeStyling.Global;
         WindowStartupLocation = WindowStartupLocation.CenterScreen;
         InitializeComponent();
 
-        Title = App.DisplayTitle;
+        ChromeBar.Title = App.DisplayTitle;
+        Title = ChromeApplication.Current.Name;
         _missionColumn = outerHorzGrid.ColumnDefinitions[1];
-        _pinButton = ChromeBar.LeftGroup.AddButton(Symbols.Keep, "Always on top");
+
+        _searchButton = ChromeBar.LeftGroup.AddButton(Symbols.Search, "Search");
+        _searchButton.Click += (_, __) => mission.IsSearching = !mission.IsSearching;
+
+        _pinButton = ChromeBar.RightGroup.AddButton(Symbols.Keep, "Always on top");
         _pinButton.Classes.Add("accent-checked");
         _pinButton.CanToggle = true;
         _pinButton.Click += (_, __) => Topmost = !Topmost;
 
         bufferBar.Basket = mission.Basket;
-        bufferBar.BoxChanged += BasketChangedHandler;
+        bufferBar.Changed += BufferBarChangedHandler;
 
         navigator.Viewer = viewer;
         navigator.Margin = new(0.0, 0.0, ChromeSizes.TabPx, 0.0);
 
-        mission.BasketChanged += BasketChangedHandler;
-        mission.ViewChanged += MissionViewChangedHandler;
-        mission.NewClicked += MissionNewClickedHandler;
-
         _editorState = new(this);
+        UpdateWindowSettings();
         UpdateContentSettings();
 
+        zoomStatus.MinWidth = 5.0 * ChromeSizes.OneCh;
+        AddStatusButton(zoomBar, Symbols.Replay).Click += (_, __) => viewer.Zoom.Reset();
+        AddRepeatableStatusButton(zoomBar, Symbols.Add).Click += (_, __) => viewer.Zoom.Increment();
+        AddRepeatableStatusButton(zoomBar, Symbols.Remove).Click += (_, __) => viewer.Zoom.Decrement();
+        UpdateZoomStatus();
+
+        mission.Changed += MissionChangedHandler;
+        mission.NewClicked += MissionNewClickedHandler;
+        viewer.Zoom.Changed += (_, __) => UpdateZoomStatus();
         prompter.EditWindowClick += EditWindowClickHandler;
         prompter.TextChanged += PromptTextChangedHandler;
         prompter.SubmitClick += (_, __) => SubmitMessage(prompter.Text);
 
+        Settings.Changed += (_, __) => UpdateWindowSettings();
         ContentSettings.Changed += (_, __) => UpdateContentSettings();
 
         _stub.ChunkReceived += StubChunkedHandler;
+
+        _sizeTimer.Interval = TimeSpan.FromSeconds(5.0);
+        _sizeTimer.Tick += (_, __) => UpdateGardenSize();
     }
 
     /// <summary>
@@ -141,6 +158,7 @@ public partial class MainWindow : ChromeWindow
         {
             bufferBar.BorderBrush = null;
         }
+
     }
 
     /// <summary>
@@ -161,38 +179,37 @@ public partial class MainWindow : ChromeWindow
     /// <summary>
     /// Overrides.
     /// </summary>
-    protected override void OnOpenedIdle()
+    protected override async void OnOpenedIdle()
     {
         base.OnOpenedIdle();
 
-        OpenDatabase(SqliteGardener.NewMemory());
-        StubBot.InsertTest(GardenGrounds.Global);
+        await GlobalGarden.Global.OpenAsync(this);
+
+        GardenChanged();
+        GlobalGarden.Global.Changed += (_, e) => GardenChanged(e);
     }
 
-    private async void OpenDatabase(IMemoryGardener gardener)
+    private static LightButton AddStatusButton(LightBar bar, string content, string? tip = null)
     {
-        bool upgrade = MemoryGarden.IsUpgradeRequired(gardener);
+        var button = bar.AddButton(content, tip);
+        button.FontSize = ChromeFonts.SmallFontSize;
+        button.Margin = new(0.0);
+        button.ContentPadding = new(1.0);
+        return button;
+    }
 
-        if (upgrade && gardener.IsReadOnly)
-        {
-            await ChromeDialog.ShowDialog(this, "It is necessary to upgrade the underlying database. However, the location is read-only.");
-            return;
-        }
-        else
-        if (upgrade)
-        {
-            if (await ChromeDialog.ShowDialog(this, "It is necessary to upgrade the underlying database. If other applications are sharing the same file, close them now.",
-                DialogButtons.Continue | DialogButtons.Cancel) != DialogButtons.Continue)
-            {
-                return;
-            }
-        }
-
-        GardenGrounds.Global.OpenDatabase(gardener);
+    private static LightButton AddRepeatableStatusButton(LightBar bar, string content, string? tip = null)
+    {
+        var button = AddStatusButton(bar, content, tip);
+        button.RepeatInterval = 500;
+        return button;
     }
 
     private void UpdateContentSettings()
     {
+        const string NSpace = $"{nameof(MainWindow)}.{nameof(UpdateContentSettings)}";
+        Diag.WriteLine(NSpace, "Updating");
+
         var body = ContentSettings.BodyFont;
         viewer.Zoom.Default = ContentSettings.DefaultScale;
         viewer.ContentWidth = ContentSettings.Width;
@@ -210,46 +227,117 @@ public partial class MainWindow : ChromeWindow
         prompter.MaxWidth = Math.Min(ContentSettings.Width.ToPixels(), ContentWidth.Medium.ToPixels());
     }
 
+    private void UpdateWindowSettings()
+    {
+        const string NSpace = $"{nameof(MainWindow)}.{nameof(UpdateWindowSettings)}";
+        Diag.WriteLine(NSpace, "Updating");
+        mission.IsSearchButtonVisible = !Settings.IsChromeWindow;
+    }
+
+    private void UpdateGardenSize()
+    {
+        var provider = GlobalGarden.Global.Provider;
+
+        if (provider != null)
+        {
+            var size = provider?.GetSize() ?? 0;
+            gardenSize.Text = size > 0 ? Magverter.ToFriendlyBytes(size) : null;
+            return;
+        }
+
+        gardenSize.Text = "Caching";
+    }
+
     private void SubmitMessage(string? content)
     {
         const string NSpace = $"{nameof(MainWindow)}.{nameof(SubmitMessage)}";
 
         prompter.Text = null;
-        var focused = mission.GetNew(true) ?? GardenGrounds.Global.Focused;
-        ConditionalDebug.WriteLine(NSpace, "Current or new: " + focused?.Title);
+        var focused = mission.GetNew(true) ?? GlobalGarden.Global.Focused;
+        Diag.WriteLine(NSpace, "Current or new: " + focused?.Title);
 
         if (focused != null)
         {
-            focused.Append(LeafKind.User, content);
+            // TBD Temporary code
+            bool reply = true;
+            var format = LeafFormat.UserMessage;
+
+            if (focused.Format == DeckFormat.Note && focused.Count == 0)
+            {
+                reply = false;
+                format = LeafFormat.UserNote;
+            }
+
+            focused.Append(format, content);
 
             if (focused.Garden == null)
             {
-                ConditionalDebug.WriteLine(NSpace, "Insert new");
-                GardenGrounds.Global.Insert(focused);
-                ConditionalDebug.ThrowIfNull(focused.Garden);
+                Diag.WriteLine(NSpace, "Insert new");
+                GlobalGarden.Global.Insert(focused);
             }
 
-            viewer.IsBusy = true;
-            viewer.ScrollToEnd();
+            if (reply)
+            {
+                viewer.IsBusy = true;
+                _stub.StartReply(content);
+            }
 
-            _stub.StartReply(content);
-            _chunking?.StopStream();
-            _chunking = null;
+            viewer.ScrollToEnd();
         }
     }
 
-    private void BasketChangedHandler(object? _, BasketChangedEventArgs e)
+    private void UpdateZoomStatus()
     {
-        const string NSpace = $"{nameof(MainWindow)}.{nameof(BasketChangedHandler)}";
-        ConditionalDebug.WriteLine(NSpace, $"Kind: {bufferBar.Basket}");
-
-        mission.Basket = e.Basket;
-        bufferBar.Basket = e.Basket;
-        prompter.IsEnabled = mission.CanReply;
+        zoomStatus.Text = viewer.Zoom.Scale + "%";
     }
 
-    private void MissionViewChangedHandler(object? _, EventArgs __)
+    private async void GardenChanged(GardenChangedEventArgs? e = null)
     {
+        _sizeTimer.Stop();
+
+        var global = GlobalGarden.Global;
+        var status = global.Status;
+
+        if (status == GardenStatus.Readonly)
+        {
+            gardenStatus.Foreground = ChromeBrushes.WarningBrush;
+            gardenStatus.Text = global.IsDefault() ? "DEFAULT: " + status.ToMessage() : status.ToMessage();
+        }
+        else
+        if (status.IsOpen())
+        {
+            gardenStatus.Foreground = ChromeStyling.GrayForeground;
+            gardenStatus.Text = global.IsDefault() ? "DEFAULT" : status.ToMessage();
+        }
+        else
+        {
+            gardenStatus.Text = status.ToMessage();
+            gardenStatus.Foreground = ChromeBrushes.CriticalBrush;
+        }
+
+        if (e != null && e.Basket != BasketKind.None)
+        {
+            // Don't access disk frequently for basket changes
+            _sizeTimer.Start();
+            return;
+        }
+
+        overlay.Clear();
+        mission.GetNew(true); // <- clear
+        UpdateGardenSize();
+
+        if (global.Status == GardenStatus.Lost)
+        {
+            await ChromeDialog.ShowDialog(this, "Database connection lost");
+        }
+    }
+
+    private void MissionChangedHandler(object? _, EventArgs e)
+    {
+        const string NSpace = $"{nameof(MainWindow)}.{nameof(MissionChangedHandler)}";
+        Diag.WriteLine(NSpace, $"Kind: {mission.Basket}");
+
+        bufferBar.Basket = mission.Basket;
         prompter.IsEnabled = mission.CanReply;
 
         if (mission.GetNew(false) == null)
@@ -258,12 +346,19 @@ public partial class MainWindow : ChromeWindow
         }
     }
 
+    private void BufferBarChangedHandler(object? _, EventArgs e)
+    {
+        const string NSpace = $"{nameof(MainWindow)}.{nameof(BufferBarChangedHandler)}";
+        Diag.WriteLine(NSpace, $"Kind: {bufferBar.Basket}");
+        mission.Basket = bufferBar.Basket;
+    }
+
     private void MissionNewClickedHandler(object? _, EventArgs __)
     {
-        prompter.IsEnabled = mission.CanReply;
         var pending = mission.GetNew(false);
+        prompter.IsEnabled = mission.CanReply;
 
-        if (pending != null)
+        if (pending != null && mission.CanReply)
         {
             prompter.FocusEditor();
             overlay.ShowPrompt(pending);
@@ -275,21 +370,21 @@ public partial class MainWindow : ChromeWindow
 
     private void StubChunkedHandler(object? _, EventArgs __)
     {
-        var focused = GardenGrounds.Global.Focused;
+        var focused = GlobalGarden.Global.Focused;
 
         if (focused != null)
         {
             viewer.IsBusy = false;
-            _chunking ??= focused.AppendStream(LeafKind.Assistant);
+            _chunker ??= focused.Append(LeafFormat.AssistantMessage, null, LeafFlags.Streaming);
 
             if (_stub.Chunk == null)
             {
-                _chunking.StopStream();
-                _chunking = null;
+                _chunker.StopStream();
+                _chunker = null;
                 return;
             }
 
-            _chunking.AppendStream(_stub.Chunk);
+            _chunker.AppendStream(_stub.Chunk);
         }
     }
 

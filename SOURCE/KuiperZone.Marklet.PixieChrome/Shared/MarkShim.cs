@@ -18,15 +18,8 @@
 // You should have received a copy of the GNU Affero General Public License along
 // with Marklet. If not, see <https://www.gnu.org/licenses/>.
 
-using Avalonia;
-using Avalonia.Collections;
-using Avalonia.Controls;
-using Avalonia.Input;
 using Avalonia.Media;
 using KuiperZone.Marklet.PixieChrome.Controls;
-using KuiperZone.Marklet.PixieChrome.Controls.Internal;
-using KuiperZone.Marklet.Tooling;
-using KuiperZone.Marklet.Tooling.Markdown;
 
 namespace KuiperZone.Marklet.PixieChrome.Shared;
 

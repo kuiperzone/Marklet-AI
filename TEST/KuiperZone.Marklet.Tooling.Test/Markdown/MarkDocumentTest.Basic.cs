@@ -353,7 +353,7 @@ a10   a11";
         File.WriteAllText($"./{nameof(ToString_Basic_Html)}.html", text);
         File.WriteAllText($"./{nameof(ToString_Basic_Html)}.markdig.html", Markdig.Markdown.ToHtml(BasicSource));
 
-        ConditionalDebug.WriteLine(text, false);
+        Diag.WriteLine(text, false);
 
         Assert.Equal(ExpectBasicHtml, text);
     }
@@ -367,7 +367,7 @@ a10   a11";
         File.WriteAllText($"./{nameof(ToString_Basic_Markdown)}.md", text);
         File.WriteAllText($"./{nameof(ToString_Basic_Markdown)}.markdig.md", Markdig.Markdown.Normalize(BasicSource));
 
-        ConditionalDebug.WriteLine(text, false);
+        Diag.WriteLine(text, false);
 
         Assert.Equal(ExpectBasicMarkdown, text);
     }
@@ -381,7 +381,7 @@ a10   a11";
         File.WriteAllText($"./{nameof(ToString_Basic_UnicodeMono)}.txt", text);
         File.WriteAllText($"./{nameof(ToString_Basic_UnicodeMono)}.markdig.txt", Markdig.Markdown.ToPlainText(BasicSource));
 
-        ConditionalDebug.WriteLine(text, false);
+        Diag.WriteLine(text, false);
 
         Assert.Equal(ExpectBasicUnicodeMono, text);
     }
@@ -389,7 +389,7 @@ a10   a11";
     [Fact]
     public void Constructor_Basic_NoInlines()
     {
-        var obj = NewObj(BasicSource, MarkOptions.Markdown & ~MarkOptions.Inlines);
+        var obj = CreateObj(BasicSource, MarkOptions.Markdown & ~MarkOptions.Inlines);
 
         // # Heading `Code` 1\\\\\n## Heading 2 **Bold** ##\\\\\nBody [Link]([http://uri.com](http://uri.com) 'title')
         Assert.Equal(BlockKind.Para, obj[0].Kind);
@@ -575,7 +575,7 @@ a10   a11";
     [Fact]
     public void Constructor_Basic_DefaultOpts()
     {
-        var obj = NewObj(BasicSource);
+        var obj = CreateObj(BasicSource);
         //
         // # Heading `Code` 1\\
         Assert.Equal(BlockKind.H1, obj[0].Kind);
@@ -893,16 +893,16 @@ a10   a11";
     {
         var obj0 = new MarkDocument(BasicSource);
         var mark0 = obj0.ToString(TextFormat.Markdown);
-        ConditionalDebug.WriteLine("// OBJ0:", false);
-        ConditionalDebug.WriteLine(mark0, false);
+        Diag.WriteLine("// OBJ0:", false);
+        Diag.WriteLine(mark0, false);
 
         var obj1 = new MarkDocument(mark0);
 
-        ConditionalDebug.WriteLine("//", false);
-        ConditionalDebug.WriteLine("//", false);
-        ConditionalDebug.WriteLine("//", false);
-        ConditionalDebug.WriteLine("// OBJ1:", false);
-        ConditionalDebug.WriteLine(obj1.ToString(TextFormat.Markdown));
+        Diag.WriteLine("//", false);
+        Diag.WriteLine("//", false);
+        Diag.WriteLine("//", false);
+        Diag.WriteLine("// OBJ1:", false);
+        Diag.WriteLine(obj1.ToString(TextFormat.Markdown));
 
         var b0 = obj0;
         var b1 = obj1;

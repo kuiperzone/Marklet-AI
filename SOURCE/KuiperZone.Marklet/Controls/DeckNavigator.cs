@@ -24,7 +24,6 @@ using KuiperZone.Marklet.PixieChrome;
 using Avalonia.Input;
 using KuiperZone.Marklet.Stack.Garden;
 using KuiperZone.Marklet.Tooling;
-using Avalonia.Threading;
 using KuiperZone.Marklet.Shared;
 using Avalonia;
 using Avalonia.Media;
@@ -64,7 +63,7 @@ public class DeckNavigator : Border
         Padding = ChromeSizes.StandardPadding;
 
         // Not expanded on created
-        ConditionalDebug.ThrowIfTrue(_isExpanded);
+        Diag.ThrowIfTrue(_isExpanded);
         _grid.HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Right;
         _grid.MinHeight = ChromeFonts.DefaultLineHeight * 2.0;
 
@@ -76,15 +75,15 @@ public class DeckNavigator : Border
         _grid.Children.Add(_editor);
         _editor.IsVisible = _isExpanded;
         _editor.MaxLines = 1;
-        _editor.MaxLength = FindOptions.MaxLength;
+        _editor.MaxLength = SearchOptions.MaxLength;
         _editor.Width = ChromeSizes.OneCh * 30.0;
         _editor.Watermark = "Press enter to find\u2026";
         _editor.VerticalAlignment = Avalonia.Layout.VerticalAlignment.Center;
         _editor.HasBackButton = false;
         _editor.HasMatchCaseButton = true;
         _editor.HasMatchWordButton = true;
-        _editor.Submitted += FindSubmittedHandler;
-        _editor.TextChanging += FindChangingHandler;
+        _editor.Submitted += SearchSubmittedHandler;
+        _editor.TextChanging += SearchChangingHandler;
 
         Grid.SetColumn(_info, InfoColumn);
         _grid.Children.Add(_info);
@@ -177,12 +176,12 @@ public class DeckNavigator : Border
         {
             e.Handled = true;
 
-            if (!GardenGrounds.IsMissionSearch)
+            if (!GlobalGarden.IsMissionSearch)
             {
                 IsExpanded = true;
 
                 // We handle single line only
-                var text = _viewer?.Tracker?.GetEffectiveText(WhatText.SelectedOrNull)?.TrimTitle(FindOptions.MaxLength);
+                var text = _viewer?.Tracker?.GetEffectiveText(WhatText.SelectedOrNull)?.TrimTitle(SearchOptions.MaxLength);
 
                 if (!string.IsNullOrEmpty(text))
                 {
@@ -206,7 +205,7 @@ public class DeckNavigator : Border
     {
         base.OnAttachedToVisualTree(e);
         Styling.StylingChanged += StylingChangedHandler;
-        GardenGrounds.MissionChanged += MissionChangedHandler;
+        GlobalGarden.MissionChanged += MissionChangedHandler;
         StylingChangedHandler(null, EventArgs.Empty);
     }
 
@@ -217,7 +216,7 @@ public class DeckNavigator : Border
     {
         base.OnDetachedFromVisualTree(e);
         Styling.StylingChanged -= StylingChangedHandler;
-        GardenGrounds.MissionChanged -= MissionChangedHandler;
+        GlobalGarden.MissionChanged -= MissionChangedHandler;
     }
 
     /// <summary>
@@ -226,7 +225,7 @@ public class DeckNavigator : Border
     protected override void OnKeyDown(KeyEventArgs e)
     {
         const string NSpace = $"{nameof(DeckNavigator)}.{nameof(OnKeyDown)}";
-        ConditionalDebug.WriteLine(NSpace, $"Key: {e.Key}, {e.KeyModifiers}");
+        Diag.WriteLine(NSpace, $"Key: {e.Key}, {e.KeyModifiers}");
 
         base.OnKeyDown(e);
 
@@ -237,13 +236,13 @@ public class DeckNavigator : Border
         }
     }
 
-    private FindFlags GetFlags()
+    private SearchFlags GetFlags()
     {
-        var flags = _editor.IsMatchCaseChecked ? FindFlags.None : FindFlags.IgnoreCase;
+        var flags = _editor.IsMatchCaseChecked ? SearchFlags.None : SearchFlags.IgnoreCase;
 
         if (_editor.IsMatchWordChecked)
         {
-            return flags | FindFlags.Word;
+            return flags | SearchFlags.Word;
         }
 
         return flags;
@@ -251,7 +250,7 @@ public class DeckNavigator : Border
 
     private void UpdateState()
     {
-        bool mission = GardenGrounds.IsMissionSearch;
+        bool mission = GlobalGarden.IsMissionSearch;
 
         _toggle.IsChecked = _isExpanded;
         _toggle.IsVisible = !mission;
@@ -262,10 +261,10 @@ public class DeckNavigator : Border
 
     private void UpdatePositionText()
     {
-        if (_viewer?.IsFinding == true)
+        if (_viewer?.IsSearching == true)
         {
-            int pos = _viewer.FindPos;
-            int count = _viewer.FindCount;
+            int pos = _viewer.KeywordPos;
+            int count = _viewer.KeywordCount;
 
             if (count == 0)
             {
@@ -290,7 +289,7 @@ public class DeckNavigator : Border
             }
 
             _info.Inlines = null;
-            _info.Text = string.Concat(_viewer.FindPos.ToString(), " of ", _viewer.FindCount.ToString());
+            _info.Text = string.Concat(_viewer.KeywordPos.ToString(), " of ", _viewer.KeywordCount.ToString());
             return;
         }
 
@@ -301,7 +300,7 @@ public class DeckNavigator : Border
 
     private void StylingChangedHandler(object? _, EventArgs __)
     {
-        if (GardenGrounds.IsMissionSearch)
+        if (GlobalGarden.IsMissionSearch)
         {
             base.Background = Styling.BackgroundLow;
             return;
@@ -312,28 +311,28 @@ public class DeckNavigator : Border
 
     private void PreviousClickHandler(object? _, EventArgs __)
     {
-        _viewer?.PreviousOrHome();
+        _viewer?.PreviousKeywordOrHome();
     }
 
     private void NextClickHandler(object? _, EventArgs __)
     {
-        _viewer?.NextOrEnd();
+        _viewer?.NextKeywordOrEnd();
     }
 
-    private void FindSubmittedHandler(object? _, EventArgs __)
+    private void SearchSubmittedHandler(object? _, EventArgs __)
     {
-        if (!GardenGrounds.IsMissionSearch)
+        if (!GlobalGarden.IsMissionSearch)
         {
-            GardenGrounds.Find = new(_editor.Text, GetFlags());
+            GlobalGarden.Search = new(_editor.Text, GetFlags());
         }
     }
 
-    private void FindChangingHandler(object? _, EventArgs __)
+    private void SearchChangingHandler(object? _, EventArgs __)
     {
-        if (!GardenGrounds.IsMissionSearch && string.IsNullOrWhiteSpace(_editor.Text))
+        if (!GlobalGarden.IsMissionSearch && string.IsNullOrWhiteSpace(_editor.Text))
         {
             // Clear not search
-            GardenGrounds.Find = null;
+            GlobalGarden.Search = null;
         }
     }
 
@@ -347,9 +346,9 @@ public class DeckNavigator : Border
         UpdateState();
         StylingChangedHandler(null, EventArgs.Empty);
 
-        if (!GardenGrounds.IsMissionSearch)
+        if (!GlobalGarden.IsMissionSearch)
         {
-            GardenGrounds.Find = new(_editor.Text, GetFlags());
+            GlobalGarden.Search = new(_editor.Text, GetFlags());
         }
 
         UpdatePositionText();

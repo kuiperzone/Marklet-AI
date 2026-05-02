@@ -86,6 +86,11 @@ public static class Symbols
     public const string AllMatch = "\ue093";
 
     /// <summary>
+    /// all_out (zoom out)
+    /// </summary>
+    public const string AllOut = "\ue90b";
+
+    /// <summary>
     /// area_chart
     /// </summary>
     public const string AreaChart = "\ue770";
@@ -766,6 +771,11 @@ public static class Symbols
     public const string Handyman = "\uf10b";
 
     /// <summary>
+    /// hard_disk
+    /// </summary>
+    public const string HardDisk = "\uf3da";
+
+    /// <summary>
     /// help (question mark in circle)
     /// </summary>
     public const string Help = "\ue887";
@@ -1114,6 +1124,16 @@ public static class Symbols
     /// replay
     /// </summary>
     public const string Replay = "\ue042";
+
+    /// <summary>
+    /// reset_settings
+    /// </summary>
+    public const string ResetSettings = "\uf47f";
+
+    /// <summary>
+    /// reset_wrench
+    /// </summary>
+    public const string ResetWrench = "\uf56c";
 
     /// <summary>
     /// restore_page

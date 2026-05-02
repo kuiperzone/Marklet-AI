@@ -22,58 +22,63 @@ using KuiperZone.Marklet.Stack.Garden;
 
 namespace KuiperZone.Marklet.Stack.Test;
 
-public class MemoryGardenTest : GardenTestBase
+public class MemoryGardenTest : TestBase
 {
-    [Fact]
-    public void Populate_Reload_LoadsBack()
+    [Theory]
+    [InlineData(ProviderFlags.Memory)]
+    [InlineData(ProviderFlags.Memory | ProviderFlags.WalNormal)]
+    [InlineData(ProviderFlags.Memory | ProviderFlags.WalNormal | ProviderFlags.SchemaInit1)]
+    public void Populate_Reloads(ProviderFlags flags)
     {
         const int PopCount = 20;
-        var obj = OpenNew(true);
-        Assert.NotNull(obj.Gardener);
-        Assert.True(obj.IsPersistant);
+        var obj = new MemoryGarden(CreateMemoryProvider(flags));
+        Assert.False(obj.IsEphemeral); // will fail for flags = None
 
-        Populate(obj, DeckKind.Chat, BasketKind.Recent, PopCount);
-        Assert.Equal(PopCount, obj.Count);
+        var provider = obj.Provider;
+        Assert.NotNull(provider);
+
+        Populate(obj, DeckFormat.Chat, BasketKind.Recent, PopCount);
+        Assert.Equal(PopCount, obj.PopulationCount);
 
         obj.Reload();
 
-        Assert.NotNull(obj.Gardener);
-        Assert.True(obj.IsPersistant);
-        Assert.Equal(PopCount, obj.Count);
+        Assert.Same(provider, obj.Provider);
+        Assert.False(obj.IsEphemeral);
+        Assert.Equal(PopCount, obj.PopulationCount);
 
-        int n = 0;
-
-        foreach (var _ in obj)
+        for(int n = 0; n < PopCount; ++n)
         {
-            var child = obj.FindTitleExact(n++.ToString());
+            var child = obj.FindOnTitle(n++.ToString());
             Assert.NotNull(child);
-            Assert.Equal(DeckKind.Chat, child.Kind);
+            Assert.Equal(DeckFormat.Chat, child.Format);
+            Assert.Equal(BasketKind.Recent, child.CurrentBasket);
 
-            Assert.True(child.IsPersistant);
-            Assert.False(child.IsLoaded);
+            var expEphem = flags.HasFlag(ProviderFlags.Memory) ? EphemeralStatus.Persistant : EphemeralStatus.Implicit;
+            Assert.Equal(expEphem, child.Ephemeral);
+            Assert.False(child.IsOpen);
             Assert.NotNull(child.Garden);
             Assert.Empty(child);
 
-            child.Load();
+            child.Open();
 
             var leaf = child[0];
-            Assert.Equal(LeafKind.User, leaf.Kind);
+            Assert.Equal(LeafFormat.UserMessage, leaf.Format);
             Assert.Equal("User 0", leaf.Content);
 
             leaf = child[1];
-            Assert.Equal(LeafKind.Assistant, leaf.Kind);
+            Assert.Equal(LeafFormat.AssistantMessage, leaf.Format);
             Assert.Equal("Assistant 1", leaf.Content);
 
             leaf = child[2];
-            Assert.Equal(LeafKind.User, leaf.Kind);
+            Assert.Equal(LeafFormat.UserMessage, leaf.Format);
             Assert.Equal("User 2", leaf.Content);
 
             leaf = child[3];
-            Assert.Equal(LeafKind.Assistant, leaf.Kind);
+            Assert.Equal(LeafFormat.AssistantMessage, leaf.Format);
             Assert.Equal("Assistant 3", leaf.Content);
 
             leaf = child[4];
-            Assert.Equal(LeafKind.User, leaf.Kind);
+            Assert.Equal(LeafFormat.UserMessage, leaf.Format);
             Assert.Equal("User 4", leaf.Content);
 
             Assert.True(child.Count > 4);
@@ -81,90 +86,112 @@ public class MemoryGardenTest : GardenTestBase
     }
 
     [Fact]
-    public void Populate_AccessibleWithoutDatabase()
+    public void Populate_AccessibleWithoutProvider()
     {
         const int PopCount = 20;
 
-        // Do not use NewObj()
         var obj = new MemoryGarden();
+        Populate(obj, DeckFormat.Chat, BasketKind.Recent, PopCount);
+        Assert.Equal(PopCount, obj.PopulationCount);
 
-        Populate(obj, DeckKind.Chat, BasketKind.Recent, PopCount);
-        Assert.Equal(PopCount, obj.Count);
-
-        Assert.Null(obj.Gardener);
-        Assert.False(obj.IsPersistant);
-        Assert.Equal(PopCount, obj.Count);
+        Assert.Null(obj.Provider);
+        Assert.True(obj.IsEphemeral);
+        Assert.Equal(PopCount, obj.PopulationCount);
 
         int n = 0;
 
-        foreach (var _ in obj)
+        foreach (var _ in obj[BasketKind.Recent])
         {
-            var child = obj.FindTitleExact(n++.ToString());
+            var child = obj.FindOnTitle(n++.ToString());
             Assert.NotNull(child);
-            Assert.Equal(DeckKind.Chat, child.Kind);
+            Assert.Equal(DeckFormat.Chat, child.Format);
+            Assert.Equal(BasketKind.Recent, child.CurrentBasket);
 
-            Assert.False(child.IsPersistant);
-            Assert.True(child.IsLoaded);
+            Assert.Equal(EphemeralStatus.Implicit, child.Ephemeral);
+            Assert.True(child.IsOpen);
             Assert.NotNull(child.Garden);
             Assert.NotEmpty(child);
 
             var leaf = child[0];
-            Assert.Equal(LeafKind.User, leaf.Kind);
+            Assert.Equal(LeafFormat.UserMessage, leaf.Format);
             Assert.Equal("User 0", leaf.Content);
 
             leaf = child[1];
-            Assert.Equal(LeafKind.Assistant, leaf.Kind);
+            Assert.Equal(LeafFormat.AssistantMessage, leaf.Format);
             Assert.Equal("Assistant 1", leaf.Content);
 
             leaf = child[2];
-            Assert.Equal(LeafKind.User, leaf.Kind);
+            Assert.Equal(LeafFormat.UserMessage, leaf.Format);
             Assert.Equal("User 2", leaf.Content);
 
             leaf = child[3];
-            Assert.Equal(LeafKind.Assistant, leaf.Kind);
+            Assert.Equal(LeafFormat.AssistantMessage, leaf.Format);
             Assert.Equal("Assistant 3", leaf.Content);
 
             leaf = child[4];
-            Assert.Equal(LeafKind.User, leaf.Kind);
+            Assert.Equal(LeafFormat.UserMessage, leaf.Format);
             Assert.Equal("User 4", leaf.Content);
 
             Assert.True(child.Count > 4);
         }
+    }
+
+    [Fact]
+    public void Populate__Open_IsReadOnlyConcordant()
+    {
+        var obj0 = new MemoryGarden(CreateProvider());
+        Assert.False(obj0.IsEphemeral);
+
+        var provider = obj0.Provider;
+        Assert.NotNull(provider);
+
+        Populate(obj0, DeckFormat.Chat, BasketKind.Recent, 5);
+        Populate(obj0, DeckFormat.Note, BasketKind.Recent, 5);
+        Populate(obj0, DeckFormat.Note, BasketKind.Notes, 5);
+        Populate(obj0, DeckFormat.Chat, BasketKind.Archive, 5);
+        Populate(obj0, DeckFormat.Chat, BasketKind.Waste, 5);
+
+        var obj1 = new MemoryGarden();
+        obj1.Open(new SqliteProvider(provider.Source, ProviderFlags.ReadOnly));
+        Assert.True(obj1.IsEphemeral);
+
+        Assert.True(obj0.IsConcordant(obj1));
     }
 
     [Fact]
     public void Insert_CreatesChildAndInvokesEvent()
     {
-        var obj = OpenNew();
+        var obj = new MemoryGarden(CreateMemoryProvider());
 
         var receiver = new ChangeReceiver();
-        obj.GetBasket(BasketKind.Recent).Changed += receiver.BasketHandler;
+        obj.Changed += receiver.GardenChangedHandler;
 
         // First, we will add one but not insert it.
-        var child = obj.Insert(new(DeckKind.Chat, BasketKind.Recent));
-        Assert.Equal(1, receiver.BasketUpdatedCounter);
+        var child = new GardenDeck(DeckFormat.Chat, BasketKind.Recent);
+        Assert.True(obj.Insert(child));
+        Assert.Equal(1, receiver.ChangedCounter);
 
         child.Title = "New title";
-        Assert.Equal(2, receiver.BasketUpdatedCounter);
+        Assert.Equal(2, receiver.ChangedCounter);
 
         // Now try to re-read it
         obj.Reload();
-        Assert.NotNull(obj.Gardener);
-        Assert.True(obj.IsPersistant);
-        Assert.NotNull(obj.FindTitleExact("New title"));
+        Assert.NotNull(obj.Provider);
+        Assert.False(obj.IsEphemeral);
+        Assert.NotNull(obj.FindOnTitle("New title"));
     }
 
     [Fact]
     public void FindOnId_Succeeds()
     {
-        var obj = OpenNew();
+        var obj = new MemoryGarden(CreateMemoryProvider());
 
-        var deck = new GardenDeck(DeckKind.Chat, BasketKind.Recent);
+        var deck = new GardenDeck(DeckFormat.Chat, BasketKind.Recent);
         obj.Insert(deck);
 
         Assert.Same(deck, obj.FindOnId(deck.Id));
 
-        deck = new GardenDeck(DeckKind.Note, BasketKind.Notes);
+        deck = new GardenDeck(DeckFormat.Note, BasketKind.Notes);
         obj.Insert(deck);
 
         Assert.Same(deck, obj.FindOnId(deck.Id));
@@ -174,31 +201,59 @@ public class MemoryGardenTest : GardenTestBase
     }
 
     [Fact]
-    public void Purge_EmptyTables()
+    public void Purge_Succeeds()
     {
-        var obj = OpenNew();
-        Populate(obj, DeckKind.Chat, BasketKind.Recent, 100);
-        Populate(obj, DeckKind.Note, BasketKind.Notes, 100);
+        var obj = new MemoryGarden(CreateMemoryProvider());
+        var provider = obj.Provider;
+        Populate(obj, DeckFormat.Chat, BasketKind.Recent, 100);
+        Populate(obj, DeckFormat.Note, BasketKind.Notes, 100);
 
-        Assert.Equal(200, obj.Count);
+        Assert.Equal(200, obj.PopulationCount);
 
-        Assert.True(obj.Purge());
-        Assert.True(obj.IsPersistant);
-        Assert.Empty(obj);
+        obj.Close();
 
-        // Check has gone from database
-        obj.Reload();
-        Assert.True(obj.IsPersistant);
-        Assert.Empty(obj);
+        Assert.True(MemoryGarden.Purge(provider));
+
+        Assert.NotNull(provider);
+        Assert.Equal(GardenStatus.OpenOk, obj.Open(provider));
+        Assert.False(obj.IsEphemeral);
+        Assert.True(obj.IsEmpty);
     }
 
+    [Fact]
+    public void CloneReadOnly_IsConcordant()
+    {
+        var obj0 = new MemoryGarden(CreateMemoryProvider());
+        obj0.Name = "Name0";
+
+        Populate(obj0, DeckFormat.Chat, BasketKind.Recent, 10);
+        Populate(obj0, DeckFormat.Note, BasketKind.Notes, 10);
+
+        Assert.Equal(20, obj0.PopulationCount);
+
+        var obj1 = obj0.CloneReadOnly();
+        Assert.True(obj0.IsConcordant(obj1));
+
+        foreach(var basket in obj0)
+        {
+            foreach(var item in basket)
+            {
+                Assert.True(item.Open() > 0);
+            }
+        }
+
+        Assert.True(obj0.IsConcordant(obj1));
+
+        var child0 = obj0.FindOnTitle("1");
+        Assert.NotNull(child0);
+    }
 
     [Fact]
     public void SetFocused_InvokesEvent()
     {
         // Don't need a separate reader
-        var obj = OpenNew();
-        Populate(obj, DeckKind.Chat, BasketKind.Recent, 5);
+        var obj = new MemoryGarden();
+        Populate(obj, DeckFormat.Chat, BasketKind.Recent, 5);
 
         // Initially null
         Assert.Null(obj.Focused);
@@ -207,8 +262,8 @@ public class MemoryGardenTest : GardenTestBase
         obj.FocusChanged += receiver.FocusChangedHandler;
         obj.FocusedUpdated += receiver.FocusedUpdatedHandler;
 
-        var first = obj.FindTitleExact("0");
-        var childN = obj.FindTitleExact("1");
+        var first = obj.FindOnTitle("0");
+        var childN = obj.FindOnTitle("1");
         Assert.NotNull(first);
         Assert.NotNull(childN);
 
@@ -238,12 +293,7 @@ public class MemoryGardenTest : GardenTestBase
         Assert.Same(childN, receiver.FocusedUpdatedEvent.Current);
         receiver.Reset();
 
-        childN.Append(LeafKind.PersistantMessage, "Message");
-        Assert.NotNull(receiver.FocusedUpdatedEvent);
-        Assert.Same(childN, receiver.FocusedUpdatedEvent.Current);
-        receiver.Reset();
-
-        childN.Append(LeafKind.EphemeralMessage, "Message");
+        childN.Append(LeafFormat.Notification, "Message");
         Assert.NotNull(receiver.FocusedUpdatedEvent);
         Assert.Same(childN, receiver.FocusedUpdatedEvent.Current);
         receiver.Reset();

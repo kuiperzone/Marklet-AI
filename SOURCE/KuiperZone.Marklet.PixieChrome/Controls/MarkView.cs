@@ -94,19 +94,19 @@ public class MarkView : MarkControl, ICrossTrackOwner
     public MarkOptions Options { get; set; } = MarkOptions.Markdown | MarkOptions.Coalesce | MarkOptions.Sanitize;
 
     /// <summary>
-    /// Gets the "find in text" substring text.
+    /// Gets the keyword substring text.
     /// </summary>
-    public string? FindText { get; private set; }
+    public string? KeywordText { get; private set; }
 
     /// <summary>
-    /// Gets the "find in text" flag options.
+    /// Gets the number of occurrences of <see cref="KeywordText"/>.
     /// </summary>
-    public FindFlags FindFlags { get; private set; }
+    public int KeywordCount { get; private set; }
 
     /// <summary>
-    /// Gets the number of occurrences of <see cref="FindText"/>.
+    /// Gets the "search in text" flag options.
     /// </summary>
-    public int FindCount { get; private set; }
+    public SearchFlags SearchFlags { get; private set; }
 
     /// <summary>
     /// Gets or sets a header Control instance.
@@ -219,10 +219,10 @@ public class MarkView : MarkControl, ICrossTrackOwner
     }
 
     /// <summary>
-    /// Sets <see cref="Content"/>, <see cref="FindText"/> and <see cref="FindFlags"/> in single operation,
+    /// Sets <see cref="Content"/>, <see cref="KeywordText"/> and <see cref="SearchFlags"/> in single operation,
     /// returning true if changed and visible update applied.
     /// </summary>
-    public bool SetContent(string? content, string? find = null, FindFlags flags = FindFlags.None)
+    public bool SetContent(string? content, string? keyword = null, SearchFlags flags = SearchFlags.None)
     {
         if (string.IsNullOrWhiteSpace(content))
         {
@@ -239,7 +239,7 @@ public class MarkView : MarkControl, ICrossTrackOwner
             _found = null;
         }
 
-        if (SetFindInternal(find, flags) || update)
+        if (SetSearchInternal(keyword, flags) || update)
         {
             Rebuild();
             return true;
@@ -249,12 +249,12 @@ public class MarkView : MarkControl, ICrossTrackOwner
     }
 
     /// <summary>
-    /// Sets <see cref="FindText"/> and <see cref="FindFlags"/>, returning true if changed and visible update
+    /// Sets <see cref="KeywordText"/> and <see cref="SearchFlags"/>, returning true if changed and visible update
     /// applied.
     /// </summary>
-    public bool SetFind(string? find, FindFlags flags)
+    public bool SetSearch(string? keyword, SearchFlags flags)
     {
-        if (SetFindInternal(find, flags))
+        if (SetSearchInternal(keyword, flags))
         {
             Rebuild();
             return true;
@@ -281,10 +281,10 @@ public class MarkView : MarkControl, ICrossTrackOwner
 
         if (p == ContentProperty)
         {
-            ConditionalDebug.WriteLine(NSpace, "Update content");
+            Diag.WriteLine(NSpace, "Update content");
             _found = null;
             _source = new(_content, Options);
-            SetFindInternal(FindText, FindFlags);
+            SetSearchInternal(KeywordText, SearchFlags);
             Rebuild();
             return;
         }
@@ -331,29 +331,29 @@ public class MarkView : MarkControl, ICrossTrackOwner
         }
     }
 
-    private bool SetFindInternal(string? find, FindFlags flags)
+    private bool SetSearchInternal(string? keyword, SearchFlags flags)
     {
-        if (string.IsNullOrWhiteSpace(find))
+        if (string.IsNullOrWhiteSpace(keyword))
         {
             // Will not trim the sides, but not going to searching for a single space etc.
-            find = null;
+            keyword = null;
         }
 
         if (Options.HasFlag(MarkOptions.Sanitize))
         {
-            find = Sanitizer.Sanitize(find, SanFlags.SubControl | SanFlags.NormC);
+            keyword = Sanitizer.Sanitize(keyword, SanFlags.SubControl | SanFlags.NormC);
         }
 
-        if (_found == null || FindText != find || FindFlags != flags)
+        if (_found == null || KeywordText != keyword || SearchFlags != flags)
         {
-            FindText = find;
-            FindFlags = flags;
+            KeywordText = keyword;
+            SearchFlags = flags;
 
             int counter = 0;
             var old = _found;
 
-            _found = _source?.Find(FindText, FindFlags, out counter);
-            FindCount = counter;
+            _found = _source?.Search(KeywordText, SearchFlags, out counter);
+            KeywordCount = counter;
 
             return old != null || _found != null;
         }

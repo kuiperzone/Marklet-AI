@@ -24,7 +24,7 @@ namespace KuiperZone.Marklet.Stack.Garden;
 /// Identifies the <see cref="GardenBasket"/> instance.
 /// </summary>
 /// <remarks>
-/// Integer values are written to storage and must not change.
+/// Existing values are written to storage and must not change.
 /// </remarks>
 public enum BasketKind : byte
 {
@@ -34,24 +34,24 @@ public enum BasketKind : byte
     None = 0,
 
     /// <summary>
-    /// Wastebasket.
-    /// </summary>
-    Waste = 1,
-
-    /// <summary>
     /// Recent basket.
     /// </summary>
-    Recent = 2,
+    Recent = 1,
 
     /// <summary>
     /// Notes basket.
     /// </summary>
-    Notes = 3,
+    Notes = 2,
 
     /// <summary>
     /// Archive basket.
     /// </summary>
-    Archive = 4,
+    Archive = 3,
+
+    /// <summary>
+    /// Wastebasket.
+    /// </summary>
+    Waste = 100, // <- explicit value (always last)
 }
 
 /// <summary>
@@ -60,12 +60,12 @@ public enum BasketKind : byte
 public static partial class HelperExt
 {
     /// <summary>
-    /// Gets whether the value is legal for <see cref="GardenDeck.Kind"/>.
+    /// Gets whether the value is legal for <see cref="GardenDeck.Format"/>.
     /// </summary>
     public static bool IsLegal(this BasketKind src)
     {
         // This is for compatibility across different version
-        return src >= BasketKind.Waste && src <= BasketKind.Archive;
+        return (src > BasketKind.None && src <= BasketKind.Archive) || src == BasketKind.Waste;
     }
 
     /// <summary>
@@ -81,18 +81,18 @@ public static partial class HelperExt
     }
 
     /// <summary>
-    /// Gets the default or initial basket for this <see cref="DeckKind"/> value.
+    /// Gets the default or initial basket for this <see cref="DeckFormat"/> value.
     /// </summary>
-    public static DeckKind DefaultDeck(this BasketKind src)
+    public static DeckFormat DefaultDeck(this BasketKind src)
     {
         switch (src)
         {
             case BasketKind.Recent:
-                return DeckKind.Chat;
+                return DeckFormat.Chat;
             case BasketKind.Notes:
-                return DeckKind.Note;
+                return DeckFormat.Note;
             default:
-                return DeckKind.None;
+                return DeckFormat.None;
         }
     }
 
@@ -113,12 +113,12 @@ public static partial class HelperExt
     }
 
     /// <summary>
-    /// Gets whether the basket may content mixed <see cref="DeckKind"/> values.
+    /// Gets whether the basket may content mixed <see cref="DeckFormat"/> values.
     /// </summary>
     public static bool IsMixedContent(this BasketKind src)
     {
         // Semantic shortcut TBD
-        return DefaultDeck(src) == DeckKind.None;
+        return DefaultDeck(src) == DeckFormat.None;
     }
 
 }

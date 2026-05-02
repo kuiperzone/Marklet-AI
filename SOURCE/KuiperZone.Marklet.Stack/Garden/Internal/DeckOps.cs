@@ -35,11 +35,6 @@ internal static class DeckOps
     public const string TableName = "deck";
 
     /// <summary>
-    /// Gets the current table version of deck data, where 1 is the first release.
-    /// </summary>
-    public const int TableVersion = 1;
-
-    /// <summary>
     /// Deck column. Do not change.
     /// </summary>
     public const string IdField = "id";
@@ -47,17 +42,17 @@ internal static class DeckOps
     /// <summary>
     /// Deck column. Do not change.
     /// </summary>
-    public const string KindField = "deck_kind";
+    public const string FormatField = "format";
 
     /// <summary>
     /// Deck column. Do not change.
     /// </summary>
-    public const string OriginField = "origin_kind";
+    public const string OriginField = "origin_basket";
 
     /// <summary>
     /// Deck column. Do not change.
     /// </summary>
-    public const string BasketField = "basket_kind";
+    public const string BasketField = "current_basket";
 
     /// <summary>
     /// Deck column. Do not change.
@@ -82,19 +77,34 @@ internal static class DeckOps
     /// <summary>
     /// Deck column. Do not change.
     /// </summary>
-    public const string PinnedField = "pinned";
+    public const string FlagsField = "flags";
 
     // VERSION 1
-    private const string CreateSql = $@"CREATE TABLE IF NOT EXISTS {TableName} (
+    // Keep this for all time.
+    public const string CreateSql1 = $@"CREATE TABLE IF NOT EXISTS {TableName} (
 {IdField}       BIGINT NOT NULL PRIMARY KEY,
-{KindField}     INTEGER NOT NULL,
+{FormatField}   INTEGER NOT NULL,
 {OriginField}   INTEGER NOT NULL,
 {BasketField}   INTEGER NOT NULL,
 {UpdatedField}  BIGINT NOT NULL,
 {TitleField}    VARCHAR(255),
 {ModelField}    VARCHAR(255),
-{FolderField}    VARCHAR(255),
-{PinnedField}   BOOL NOT NULL DEFAULT FALSE
+{FolderField}   VARCHAR(255),
+{FlagsField}    INTEGER NOT NULL DEFAULT 0
+);";
+
+    // VERSION 2
+    // When this is changed, add to Upgrade()
+    private const string CreateSqlLatest = $@"CREATE TABLE IF NOT EXISTS {TableName} (
+{IdField}       BIGINT NOT NULL PRIMARY KEY,
+{FormatField}   INTEGER NOT NULL,
+{OriginField}   INTEGER NOT NULL,
+{BasketField}   INTEGER NOT NULL,
+{UpdatedField}  BIGINT NOT NULL,
+{TitleField}    VARCHAR(255),
+{ModelField}    VARCHAR(255),
+{FolderField}   VARCHAR(255),
+{FlagsField}    INTEGER NOT NULL DEFAULT 0
 );";
 
     private static readonly DeckMods[] Fields;
@@ -134,7 +144,7 @@ internal static class DeckOps
         const string NSpace = $"{nameof(DeckOps)}.{nameof(GetReader)}";
 
         const string Sql = $"SELECT * FROM {TableName} ORDER BY {IdField};";
-        ConditionalDebug.WriteLine(NSpace, Sql);
+        Diag.WriteLine(NSpace, Sql);
 
         var cmd = con.CreateCommand();
         cmd.CommandText = Sql;
@@ -143,57 +153,57 @@ internal static class DeckOps
     }
 
     /// <summary>
-    /// Inserts the <see cref="GardenDeck"/> header, but not its children.
+    /// Inserts the <see cref="GardenDeck"/> header, but not its children. Throws on failure.
     /// </summary>
     /// <exception cref="ArgumentException">Id undefined</exception>
-    public static bool Insert(DbConnection con, GardenDeck obj, DbTransaction? tran = null)
+    /// <exception cref="InvalidOperationException">Primary key conflict</exception>
+    /// <exception cref="DbException">Database exception</exception>
+    public static void Insert(DbConnection con, GardenDeck obj, DbTransaction? tran = null)
     {
         const string Sql = $@"INSERT INTO {TableName}
-        ({IdField}, {KindField}, {OriginField}, {BasketField}, {UpdatedField}, {TitleField}, {ModelField}, {FolderField}, {PinnedField}) VALUES
-        (@{IdField}, @{KindField}, @{OriginField}, @{BasketField}, @{UpdatedField}, @{TitleField}, @{ModelField}, @{FolderField}, @{PinnedField});";
+        ({IdField}, {FormatField}, {OriginField}, {BasketField}, {UpdatedField}, {TitleField}, {ModelField}, {FolderField}, {FlagsField}) VALUES
+        (@{IdField}, @{FormatField}, @{OriginField}, @{BasketField}, @{UpdatedField}, @{TitleField}, @{ModelField}, @{FolderField}, @{FlagsField});";
 
         if (obj.Id.IsEmpty)
         {
             throw new ArgumentException($"{nameof(GardenDeck)}.{nameof(obj.Id)} undefined", nameof(obj));
         }
 
-        ConditionalDebug.ThrowIfFalse(obj.Kind.IsLegal());
-        ConditionalDebug.ThrowIfFalse(obj.Basket.IsLegal());
+        Diag.ThrowIfFalse(obj.Format.IsLegal());
+        Diag.ThrowIfFalse(obj.CurrentBasket.IsLegal());
 
         using var cmd = con.CreateCommand();
         cmd.CommandText = Sql;
         cmd.Transaction = tran;
 
         cmd.AddValue($"@{IdField}", obj.Id.Value);
-        cmd.AddValue($"@{KindField}", (byte)obj.Kind); // <- enum as byte
-        cmd.AddValue($"@{OriginField}", (byte)obj.Origin); // <- enum as byte
-        cmd.AddValue($"@{BasketField}", (byte)obj.Basket); // <- enum as byte
+        cmd.AddValue($"@{FormatField}", (byte)obj.Format); // <- enum
+        cmd.AddValue($"@{OriginField}", (byte)obj.OriginBasket); // <- enum
+        cmd.AddValue($"@{BasketField}", (byte)obj.CurrentBasket); // <- enum
         cmd.AddValue($"@{UpdatedField}", obj.Updated.Ticks);
         cmd.AddValue($"@{TitleField}", obj.Title);
         cmd.AddValue($"@{ModelField}", obj.Model);
         cmd.AddValue($"@{FolderField}", obj.Folder);
-        cmd.AddValue($"@{PinnedField}", obj.IsPinned);
+        cmd.AddValue($"@{FlagsField}", obj.Flags); // <- enum
 
         if (cmd.ExecuteNonQuery() != 1)
         {
-            // Not expected
-            ConditionalDebug.Fail($"Unexpected {nameof(GardenDeck)} INSERT failure");
-            return false;
+            // Not expected at this point
+            throw new InvalidOperationException($"Primary {nameof(GardenDeck)} key conflict");
         }
-
-        return true;
     }
 
     /// <summary>
     /// Updates the <see cref="GardenDeck"/> header, but not its children.
     /// </summary>
+    /// <exception cref="DbException">Database exception</exception>
     public static bool Update(DbConnection con, GardenDeck obj, DeckMods mods, DbTransaction? tran = null)
     {
         const string Sql = $"UPDATE {TableName} SET";
 
         if (mods == DeckMods.None)
         {
-            ConditionalDebug.Fail($"{nameof(DeckMods)} none");
+            Diag.Fail($"{nameof(DeckMods)} none");
             return false;
         }
 
@@ -201,6 +211,7 @@ internal static class DeckOps
         var buffer = new StringBuilder(Sql);
 
         using var cmd = con.CreateCommand();
+        cmd.Transaction = tran;
         cmd.AddValue($"@{IdField}", obj.Id.Value);
 
         foreach (var item in Fields)
@@ -227,7 +238,7 @@ internal static class DeckOps
                         buffer.Append(',');
                     }
                     buffer.Append($" {BasketField} = @{BasketField}");
-                    cmd.AddValue($"@{BasketField}", obj.Basket);
+                    cmd.AddValue($"@{BasketField}", obj.CurrentBasket);
                     i0 = true;
                     continue;
                 case DeckMods.Title:
@@ -257,30 +268,29 @@ internal static class DeckOps
                     cmd.AddValue($"@{FolderField}", obj.Folder);
                     i0 = true;
                     continue;
-                case DeckMods.Pinned:
+                case DeckMods.Flags:
                     if (i0)
                     {
                         buffer.Append(',');
                     }
-                    buffer.Append($" {PinnedField} = @{PinnedField}");
-                    cmd.AddValue($"@{PinnedField}", obj.IsPinned);
+                    buffer.Append($" {FlagsField} = @{FlagsField}");
+                    cmd.AddValue($"@{FlagsField}", obj.Flags);
                     i0 = true;
                     continue;
                 default:
-                    ConditionalDebug.Fail($"Unknown {nameof(DeckMods)} {item}");
+                    Diag.Fail($"Unknown {nameof(DeckMods)} {item}");
                     break;
             }
         }
 
-        ConditionalDebug.ThrowIfFalse(i0);
+        Diag.ThrowIfFalse(i0);
         buffer.Append($" WHERE {IdField} = @{IdField};");
         cmd.CommandText = buffer.ToString();
-        cmd.Transaction = tran;
 
         if (cmd.ExecuteNonQuery() != 1)
         {
             // Not expected
-            ConditionalDebug.Fail($"Unexpected {nameof(GardenDeck)} UPDATE failure");
+            Diag.Fail($"Unexpected {nameof(GardenDeck)} UPDATE failure");
             return false;
         }
 
@@ -293,13 +303,14 @@ internal static class DeckOps
     /// <remarks>
     /// The deletion will cascade the <see cref="GardenLeaf"/> children which will also be removed.
     /// </remarks>
+    /// <exception cref="DbException">Database exception</exception>
     public static bool Delete(DbConnection con, Zuid id)
     {
         const string NSpace = $"{nameof(DeckOps)}.{nameof(Delete)}";
-        ConditionalDebug.WriteLine(NSpace, "ZUID: " + id);
+        Diag.WriteLine(NSpace, "ZUID: " + id);
 
         const string Sql = $"DELETE FROM {TableName} WHERE {IdField} = @{IdField};";
-        ConditionalDebug.WriteLine(NSpace, Sql);
+        Diag.WriteLine(NSpace, Sql);
 
         // Employs delete cascade on leaf table
         // So no need to delete leaf data individually.
@@ -310,30 +321,76 @@ internal static class DeckOps
     }
 
     /// <summary>
-    /// Ensure table exists.
+    /// Test routine only.
     /// </summary>
-    public static void EnsureTable(DbConnection con, DbTransaction tran)
+    /// <exception cref="DbException">Database exception</exception>
+    public static void CreateSchema1(DbConnection con, DbTransaction tran)
     {
-        const string NSpace = $"{nameof(DeckOps)}.{nameof(EnsureTable)}";
-        ConditionalDebug.WriteLine(NSpace, CreateSql);
-
-        using var cmd = con.CreateCommand();
-        cmd.CommandText = CreateSql;
-        cmd.Transaction = tran;
-        cmd.ExecuteNonQuery();
+        ExecuteNonQuery(con, tran, CreateSql1);
     }
 
-    public static void UpgradeTable(DbConnection _, DbTransaction __, int currentSchema)
+    /// <summary>
+    /// Ensure table schema.
+    /// </summary>
+    /// <exception cref="DbException">Database exception</exception>
+    public static void CreateOrAlter(DbConnection con, DbTransaction tran, int currentVersion)
     {
-        // Future expansion.
-        const string NSpace = $"{nameof(DeckOps)}.{nameof(UpgradeTable)}";
+        const string NSpace = $"{nameof(DeckOps)}.{nameof(CreateOrAlter)}";
+        Diag.ThrowIfNegative(currentVersion);
 
-        // FOR FUTURE
+        if (currentVersion == 0)
+        {
+            ExecuteNonQuery(con, tran, CreateSqlLatest);
+            return;
+        }
+
+        if (currentVersion < MetaOps.SchemaVersion)
+        {
+            Diag.WriteLine(NSpace, $"UPGRADE TABLE: {TableName} from {currentVersion} to {MetaOps.SchemaVersion}");
+            while (UpgradeIteration(con, tran, ++currentVersion)) ;
+        }
+    }
+
+    private static bool UpgradeIteration(DbConnection con, DbTransaction tran, int currentVersion)
+    {
+        if (currentVersion > MetaOps.SchemaVersion)
+        {
+            return false;
+        }
+
         // I.e. ALTER TABLE message ADD COLUMN metadata TEXT DEFAULT '';
-        ConditionalDebug.WriteLine(NSpace, $"UPGRADE TABLE: {TableName} from {currentSchema} to {TableVersion}");
+        Diag.ThrowIfZero(currentVersion);
+        Diag.ThrowIfGreaterThan(currentVersion, MetaOps.MaxSchema);
 
-        // Not expected (would currently be an error)
-        throw new NotImplementedException($"{TableName} upgrade not implemented");
+        switch (currentVersion)
+        {
+            case 1:
+                // First;
+                return true;
+
+            case 2:
+                // Alter from 1 to 2
+                // ExecuteNonQuery(con, tran, "ALTER TABLE...");
+                return true;
+            default:
+                // Not expected
+                // We must account for all versions even if no change
+                throw new InvalidOperationException($"Unknown schema version {currentVersion}");
+        }
     }
 
+    private static void ExecuteNonQuery(DbConnection con, DbTransaction? tran, string? sql)
+    {
+        const string NSpace = $"{nameof(DeckOps)}.{nameof(ExecuteNonQuery)}";
+
+        if (!string.IsNullOrEmpty(sql))
+        {
+            using var cmd = con.CreateCommand();
+            cmd.Transaction = tran;
+            cmd.CommandText = sql;
+
+            Diag.WriteLine(NSpace, cmd.CommandText);
+            cmd.ExecuteNonQuery();
+        }
+    }
 }

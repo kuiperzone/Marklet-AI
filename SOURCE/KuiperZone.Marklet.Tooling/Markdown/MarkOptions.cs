@@ -53,7 +53,7 @@ public enum MarkOptions
     /// </summary>
     /// <remarks>
     /// If not specified, inline content is ignored. It does nothing unless <see cref="Blocks"/> is given. The case for
-    /// omitting it is to process preserve content verbatim where possible, while still handling fenced code and other
+    /// omitting it is to preserve content verbatim where possible, while still handling fenced code and other
     /// specialized regions. Plain texts links are still detected provided <see cref="PlainLinks"/> is given. Invariably
     /// both <see cref="Blocks"/> and <see cref="Inlines"/> should be specified.
     /// </remarks>

@@ -18,7 +18,6 @@
 // You should have received a copy of the GNU Affero General Public License along
 // with Marklet. If not, see <https://www.gnu.org/licenses/>.
 
-using KuiperZone.Marklet.Stack.Garden;
 using KuiperZone.Marklet.Tooling;
 
 namespace KuiperZone.Marklet.Stack.Test;
@@ -29,24 +28,29 @@ public class ZuidTest
     public void DefaultStruct_Ok()
     {
         // For info
-        ConditionalDebug.WriteLine(Zuid.SequenceBits.ToString());
+        Diag.WriteLine(Zuid.SequenceBits.ToString());
 
         Zuid obj = default;
         Assert.True(obj.IsEmpty);
-        Assert.Equal(Zuid.ZeroTime, obj.Timestamp);
+        Assert.Equal(Zuid.MinTime, obj.Timestamp);
         Assert.Equal("0000000000000000", obj.ToString());
         Assert.Equal(default, obj);
+
+        // Prevent inadvertent change of
+        // characteristics which will break databases in wild
+        Assert.Equal(1970, Zuid.MinTime.Year);
+        Assert.Equal(2527, Zuid.MaxTime.Year);
     }
 
     [Fact]
     public void New_MinTime()
     {
-        var obj = Zuid.New(Zuid.ZeroTime);
+        var obj = Zuid.New(Zuid.MinTime);
         Assert.Equal("1970-01-01 00:00:00.000Z", obj.ToString(true));
 
         Assert.False(obj.IsEmpty);
         Assert.True(obj.Value > 0);
-        Assert.Equal(Zuid.ZeroTime, obj.Timestamp);
+        Assert.Equal(Zuid.MinTime, obj.Timestamp);
         Assert.NotEqual(default, obj);
     }
 
@@ -54,9 +58,9 @@ public class ZuidTest
     public void New_MaxTime()
     {
         var obj = Zuid.New(Zuid.MaxTime);
-        ConditionalDebug.WriteLine(obj.ToString(true));
+        Diag.WriteLine(obj.ToString(true));
 
-        // Ensure a minimum value
+        // Ensure a viable maximum time
         Assert.True(obj.Timestamp > new DateTime(2300, 01, 21));
 
         Assert.False(obj.IsEmpty);
@@ -68,11 +72,11 @@ public class ZuidTest
     public void New_Ok()
     {
         var obj = Zuid.New();
-        ConditionalDebug.WriteLine(obj.ToString());
+        Diag.WriteLine(obj.ToString());
 
         Assert.False(obj.IsEmpty);
         Assert.True(obj.Value > 0);
-        Assert.True(obj.Timestamp > Zuid.ZeroTime);
+        Assert.True(obj.Timestamp > Zuid.MinTime);
         Assert.True(obj.Timestamp < Zuid.MaxTime);
         Assert.NotEqual(default, obj);
 

@@ -45,7 +45,7 @@ internal sealed class DeckCard : PixieCard
     public DeckCard(GardenDeck source, bool isRoot)
     {
         const string NSpace = $"{nameof(DeckCard)}.constructor";
-        ConditionalDebug.WriteLine(NSpace, source.Title);
+        Diag.WriteLine(NSpace, source.Title);
 
         Source = source;
         IsRootFolder = isRoot;
@@ -90,21 +90,21 @@ internal sealed class DeckCard : PixieCard
 
         if (_changeCounter != Source.VisualCounter)
         {
-            ConditionalDebug.WriteLine(NSpace, $"REFRESH: {Source.Title}");
-            ConditionalDebug.WriteLine(NSpace, $"Searching: {isSearching}");
+            Diag.WriteLine(NSpace, $"REFRESH: {Source.Title}");
+            Diag.WriteLine(NSpace, $"Searching: {isSearching}");
             _changeCounter = Source.VisualCounter;
 
-            var kind = Source.Kind;
-            bool ephem = Source.IsEphemeral;
-            var name = kind.DisplayName(DisplayKind.Default, ephem);
+            var kind = Source.Format;
+            var ephem = Source.Ephemeral;
+            var name = kind.DisplayName(DisplayStyle.Default, ephem);
 
-            Title = Source.GetTitleOrDefault("New " + name);
+            Title = Source.Title ?? "New " + name;
             RightSymbol = Source.IsPinned ? Symbols.Keep : null;
 
-            if (ephem || kind != Source.Basket.DefaultDeck())
+            if (ephem == EphemeralStatus.Explicit || kind != Source.CurrentBasket.DefaultDeck())
             {
                 var symbol = kind.MaterialSymbol(ephem);
-                name = kind.DisplayName(DisplayKind.Upper, ephem);
+                name = kind.DisplayName(DisplayStyle.Upper, ephem);
                 Header = $"{symbol} {name}";
             }
             else
@@ -115,7 +115,7 @@ internal sealed class DeckCard : PixieCard
 
         if (isSearching)
         {
-            Footer = Source.SearchSnippet ?? Source.Updated.ToFriendly();
+            Footer = Source.KeywordSnippet ?? Source.Updated.ToFriendly();
         }
         else
         {
@@ -149,7 +149,7 @@ internal sealed class DeckCard : PixieCard
 
         if (props.IsLeftButtonPressed)
         {
-            ConditionalDebug.WriteLine(NSpace, "Capture");
+            Diag.WriteLine(NSpace, "Capture");
             e.Pointer.Capture(this);
             Cursor = Styling.IsActualThemeDark ? ChromeCursors.DocumentDark48 : ChromeCursors.DocumentLight48;
         }
@@ -164,13 +164,13 @@ internal sealed class DeckCard : PixieCard
 
         if (captured == this)
         {
-            ConditionalDebug.WriteLine(NSpace, "Is captured");
+            Diag.WriteLine(NSpace, "Is captured");
             var target = GetTarget(e);
 
             // Ensure foreign folder and not self
             if (target != _dropTarget)
             {
-                ConditionalDebug.WriteLine(NSpace, "Drag target");
+                Diag.WriteLine(NSpace, "Drag target");
                 CancelTarget();
                 _dropTarget = target;
                 target?.StartDrop(Source);
@@ -192,7 +192,7 @@ internal sealed class DeckCard : PixieCard
 
         if (e.Pointer.Captured == this)
         {
-            ConditionalDebug.WriteLine(NSpace, "Capture released");
+            Diag.WriteLine(NSpace, "Capture released");
             e.Handled = true;
             e.Pointer.Capture(null);
             target?.AcceptDrop(Source);
@@ -221,7 +221,7 @@ internal sealed class DeckCard : PixieCard
 
         if (top != null && top.InputHitTest(e.GetPosition(top)) is Control control)
         {
-            ConditionalDebug.WriteLine(NSpace, "Control: " + control);
+            Diag.WriteLine(NSpace, "Control: " + control);
             return control.FindLogicalAncestorOfType<IDeckDrop>(true);
         }
 

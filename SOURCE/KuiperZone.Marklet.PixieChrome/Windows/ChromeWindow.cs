@@ -96,7 +96,7 @@ public class ChromeWindow : Window
     public ChromeWindow(WindowSettings settings, bool isDialog)
     {
         const string NSpace = $"{nameof(ChromeWindow)}.Constructor";
-        ConditionalDebug.WriteLine(NSpace, $"Class type: {GetType().Name}");
+        Diag.WriteLine(NSpace, $"Class type: {GetType().Name}");
         FontSize = ChromeFonts.DefaultFontSize;
         FontFamily = ChromeFonts.DefaultFamily;
 
@@ -135,7 +135,7 @@ public class ChromeWindow : Window
         base.Background = Brushes.Transparent;
 
         // Expect this (this is a "unit test")
-        ConditionalDebug.ThrowIfNotNull(_contentSource);
+        Diag.ThrowIfNotNull(_contentSource);
 
         Activated += ActivatedHandler;
         Deactivated += DeactivatedHandler;
@@ -348,12 +348,12 @@ public class ChromeWindow : Window
         const string NSpace = $"{nameof(ChromeWindow)}.{nameof(GetScreenRect)}";
 
         var screen = Screens.ScreenFromWindow(this);
-        ConditionalDebug.WriteLine(NSpace, "Window screen: " + screen?.DisplayName ?? "NULL");
+        Diag.WriteLine(NSpace, "Window screen: " + screen?.DisplayName ?? "NULL");
 
         if (screen == null)
         {
             screen = Screens.Primary;
-            ConditionalDebug.WriteLine(NSpace, "Primary screen: " + screen?.DisplayName ?? "NULL");
+            Diag.WriteLine(NSpace, "Primary screen: " + screen?.DisplayName ?? "NULL");
         }
 
         if (screen != null && screen.Scaling > 0.0)
@@ -362,14 +362,14 @@ public class ChromeWindow : Window
             var work = screen.WorkingArea;
 
             var pos = new Point(work.X / scale, work.Y / scale);
-            ConditionalDebug.WriteLine(NSpace, "DIP x,y: " + pos);
+            Diag.WriteLine(NSpace, "DIP x,y: " + pos);
 
             var size = new Size(work.Width / scale, work.Height / scale);
-            ConditionalDebug.WriteLine(NSpace, "DIP size: " + size);
+            Diag.WriteLine(NSpace, "DIP size: " + size);
             return new(pos, size);
         }
 
-        ConditionalDebug.WriteLine(NSpace, "NO SCREEN");
+        Diag.WriteLine(NSpace, "NO SCREEN");
         return new(default, Size.Infinity);
     }
 
@@ -381,15 +381,15 @@ public class ChromeWindow : Window
         const string NSpace = $"{nameof(ChromeWindow)}.{nameof(GetRelativeRect)}";
 
         var p0 = IsVisible ? Position : _closePosition;
-        ConditionalDebug.WriteLine(NSpace, $"p0: {p0}");
+        Diag.WriteLine(NSpace, $"p0: {p0}");
 
         var p1 = parent.Position;
-        ConditionalDebug.WriteLine(NSpace, $"p1: {p1}");
+        Diag.WriteLine(NSpace, $"p1: {p1}");
 
         var pos = new Point(p0.X - p1.X, p0.Y - p1.Y);
 
-        ConditionalDebug.WriteLine(NSpace, $"Pos: {pos}");
-        ConditionalDebug.WriteLine(NSpace, $"Size: {new Size(Width, Height)}");
+        Diag.WriteLine(NSpace, $"Pos: {pos}");
+        Diag.WriteLine(NSpace, $"Size: {new Size(Width, Height)}");
 
         return new(pos, new Size(Width, Height));
     }
@@ -411,7 +411,7 @@ public class ChromeWindow : Window
 
         Width = bounds.Width;
         Height = bounds.Height;
-        ConditionalDebug.WriteLine(NSpace, $"Size: {bounds.Size}");
+        Diag.WriteLine(NSpace, $"Size: {bounds.Size}");
 
         if (!double.IsFinite(bounds.X) || !double.IsFinite(bounds.Y))
         {
@@ -432,7 +432,7 @@ public class ChromeWindow : Window
             int y = Math.Clamp(pos.Y, work.Y, work.Y + work.Height - (int)(Height * scale));
 
             Position = new PixelPoint(x, y);
-            ConditionalDebug.WriteLine(NSpace, $"Position: {Position}");
+            Diag.WriteLine(NSpace, $"Position: {Position}");
 
             WindowStartupLocation = WindowStartupLocation.Manual;
         }
@@ -448,8 +448,8 @@ public class ChromeWindow : Window
     protected virtual void OnStylingChanged(bool init)
     {
         const string NSpace = $"{nameof(ChromeWindow)}.{nameof(OnStylingChanged)}";
-        ConditionalDebug.WriteLine(NSpace, $"Init: {init}");
-        ConditionalDebug.ThrowIfNotEqual(Brushes.Transparent, base.Background);
+        Diag.WriteLine(NSpace, $"Init: {init}");
+        Diag.ThrowIfNotEqual(Brushes.Transparent, base.Background);
 
         UpdateBorder(WindowState);
         _chromeBar.RefreshStyling();
@@ -507,8 +507,8 @@ public class ChromeWindow : Window
     protected override void OnOpened(EventArgs e)
     {
         const string NSpace = $"{nameof(ChromeWindow)}.{nameof(OnOpened)}";
-        ConditionalDebug.WriteLine(NSpace, $"IsDialog: {IsDialog}");
-        ConditionalDebug.WriteLine(NSpace, $"Title: {Title}");
+        Diag.WriteLine(NSpace, $"IsDialog: {IsDialog}");
+        Diag.WriteLine(NSpace, $"Title: {Title}");
 
         base.OnOpened(e);
 
@@ -557,9 +557,9 @@ public class ChromeWindow : Window
 
         // https://github.com/AvaloniaUI/Avalonia/issues/19231
         // Log the receiver class type. Had an issue with parent window receiving keys.
-        ConditionalDebug.WriteLine(NSpace, $"Class type: {GetType().Name}");
-        ConditionalDebug.WriteLine(NSpace, $"Key: {e.Key}, {e.PhysicalKey}");
-        ConditionalDebug.WriteLine(NSpace, $"Handled: {e.Handled}, {IsActive}");
+        Diag.WriteLine(NSpace, $"Class type: {GetType().Name}");
+        Diag.WriteLine(NSpace, $"Key: {e.Key}, {e.PhysicalKey}");
+        Diag.WriteLine(NSpace, $"Handled: {e.Handled}, {IsActive}");
 
         if (!IsActive || e.Handled)
         {
@@ -580,7 +580,7 @@ public class ChromeWindow : Window
 
         if (e.PhysicalKey == PhysicalKey.Escape && IsEscapeToClose && IsActive)
         {
-            ConditionalDebug.WriteLine(NSpace, "Escape accepted");
+            Diag.WriteLine(NSpace, "Escape accepted");
             e.Handled = true;
             Close();
             return;
@@ -691,8 +691,8 @@ public class ChromeWindow : Window
 
             if (!p.IsLeftButtonPressed && TryEdge(e, out WindowEdge edge))
             {
-                ConditionalDebug.WriteLine(NSpace, $"Class type: {GetType().Name}");
-                ConditionalDebug.WriteLine(NSpace, $"Edge detect at: {e.GetPosition(this)}");
+                Diag.WriteLine(NSpace, $"Class type: {GetType().Name}");
+                Diag.WriteLine(NSpace, $"Edge detect at: {e.GetPosition(this)}");
 
                 SetBaseValue(CursorProperty, EdgeToCursor(edge));
                 return;
@@ -700,6 +700,7 @@ public class ChromeWindow : Window
         }
 
         // Reset
+        Diag.WriteLine(NSpace, "Reset cursor");
         SetBaseValue(CursorProperty, _cursor);
     }
 
@@ -722,10 +723,10 @@ public class ChromeWindow : Window
     private void OnWindowSettingsChanged(bool isDialog)
     {
         const string NSpace = $"{nameof(ChromeWindow)}.{nameof(OnWindowSettingsChanged)}";
-        ConditionalDebug.WriteLine(NSpace, $"IsDialog: {isDialog}");
+        Diag.WriteLine(NSpace, $"IsDialog: {isDialog}");
 
         IsChromeWindow = Settings.GetChromeWindow(isDialog);
-        ConditionalDebug.WriteLine(NSpace, $"IsChromeWindow: {IsChromeWindow}");
+        Diag.WriteLine(NSpace, $"IsChromeWindow: {IsChromeWindow}");
 
         if (IsChromeWindow != _chromeWindowLast || !_initialized)
         {
@@ -772,12 +773,29 @@ public class ChromeWindow : Window
         _chromeBar.UpdateWindowSettings(isDialog);
     }
 
+    private bool IsPopupOpen()
+    {
+        return this.GetVisualDescendants().OfType<Popup>().Any(p => p.IsOpen) || this.GetVisualDescendants().OfType<FlyoutPresenter>().Any();
+    }
+
     private bool TryEdge(PointerEventArgs e, out WindowEdge edge)
     {
+        if (IsPopupOpen())
+        {
+            edge = default;
+            return false;
+        }
+
         var p = e.GetPosition(this);
         var grab = GetGrabPixels(p);
 
-        if (p.X < grab)
+        if (grab <= 0.0)
+        {
+            edge = default;
+            return false;
+        }
+
+        if (p.X < grab && p.X >= 0.0)
         {
             if (p.Y < grab)
             {
@@ -795,7 +813,7 @@ public class ChromeWindow : Window
             return true;
         }
 
-        if (p.X > Bounds.Width - grab)
+        if (p.X > Bounds.Width - grab && p.X < Bounds.Width)
         {
             if (p.Y < grab)
             {
@@ -813,13 +831,13 @@ public class ChromeWindow : Window
             return true;
         }
 
-        if (p.Y < grab)
+        if (p.Y < grab && p.Y >= 0.0)
         {
             edge = WindowEdge.North;
             return true;
         }
 
-        if (p.Y > Bounds.Height - grab)
+        if (p.Y > Bounds.Height - grab && p.Y < Bounds.Height)
         {
             edge = WindowEdge.South;
             return true;
@@ -840,7 +858,12 @@ public class ChromeWindow : Window
 
         while (v != null && ++count < MaxWalk)
         {
-            if (v is LightButton or Button or TextBox or Slider or ScrollBar or LightDismissOverlayLayer)
+            if (v is LightDismissOverlayLayer)
+            {
+                return 0.0;
+            }
+
+            if (v is LightButton or Button or TextBox or Slider or ScrollBar)
             {
                 // Still allow but small grab so as not to interfer
                 return ConflictPixels;
@@ -928,22 +951,22 @@ public class ChromeWindow : Window
     private void ActivatedHandler(object? _, EventArgs __)
     {
         const string NSpace = $"{nameof(ChromeWindow)}.{nameof(ActivatedHandler)}";
-        ConditionalDebug.WriteLine(NSpace, $"Class type: {GetType().Name}");
+        Diag.WriteLine(NSpace, $"Class type: {GetType().Name}");
         ReactivateContent();
     }
 
     private void DeactivatedHandler(object? _, EventArgs __)
     {
         const string NSpace = $"{nameof(ChromeWindow)}.{nameof(DeactivatedHandler)}";
-        ConditionalDebug.WriteLine(NSpace, $"Class type: {GetType().Name}");
+        Diag.WriteLine(NSpace, $"Class type: {GetType().Name}");
         DeactivateContent();
     }
 
     private void ChromePointerPressedHandler(object? _, PointerPressedEventArgs e)
     {
         const string NSpace = $"{nameof(ChromeWindow)}.{nameof(ChromePointerPressedHandler)}";
-        ConditionalDebug.WriteLine(NSpace, $"Class type: {GetType().Name}");
-        ConditionalDebug.WriteLine(NSpace, $"Handled: {e.Handled}");
+        Diag.WriteLine(NSpace, $"Class type: {GetType().Name}");
+        Diag.WriteLine(NSpace, $"Handled: {e.Handled}");
 
         if (e.Handled)
         {
@@ -965,7 +988,7 @@ public class ChromeWindow : Window
         // Handle drag move as we don't have system bar if this is called
         if (props.IsLeftButtonPressed && !TryEdge(e, out WindowEdge _))
         {
-            ConditionalDebug.WriteLine(NSpace, $"Begin drag move");
+            Diag.WriteLine(NSpace, $"Begin drag move");
             BeginMoveDrag(e);
             e.Handled = true;
         }
@@ -998,8 +1021,8 @@ public class ChromeWindow : Window
                     TryEdge(e, out WindowEdge edge))
                 {
                     // Accept even if event was handled
-                    ConditionalDebug.WriteLine(NSpace, $"Class type: {GetType().Name}");
-                    ConditionalDebug.WriteLine(NSpace, $"BeginResizeDrag: {pos}");
+                    Diag.WriteLine(NSpace, $"Class type: {GetType().Name}");
+                    Diag.WriteLine(NSpace, $"BeginResizeDrag: {pos}");
 
                     BeginResizeDrag(edge, e);
                     e.Handled = true;

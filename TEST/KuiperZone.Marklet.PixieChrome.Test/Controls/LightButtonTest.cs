@@ -35,7 +35,7 @@ public class LightButtonTest : ControlTestBase
         AssertDirect(obj, LightButton.ContentProperty, null, "Hello");
         AssertDirect(obj, LightButton.ContentAlignmentProperty, TextAlignment.Center, TextAlignment.Left);
         AssertDirect(obj, LightButton.FontWeightProperty, FontWeight.Normal, FontWeight.Bold);
-        AssertDirect(obj, LightButton.IsRepeatableProperty, false, true);
+        AssertDirect(obj, LightButton.RepeatIntervalProperty, 0, 100);
         AssertDirect(obj, LightButton.IsCheckedProperty, false, true);
         AssertDirect(obj, LightButton.CanToggleProperty, false, true);
         AssertDirect(obj, LightButton.DropMenuProperty, null, new ContextMenu());

@@ -74,8 +74,8 @@ public sealed class PruneWindow : ChromeDialog
         Kind = source.Kind;
         _source = source;
 
-        var plural = Kind.DefaultDeck().DisplayName(DisplayKind.Plural, false);
-        var pluralLow = Kind.DefaultDeck().DisplayName(DisplayKind.LowerPlural, false);
+        var plural = Kind.DefaultDeck().DisplayName(DisplayStyle.Plural);
+        var pluralLow = Kind.DefaultDeck().DisplayName(DisplayStyle.LowerPlural);
 
         MinWidth = ChromeSizes.OneCh * 60;
         MaxWidth = MinWidth;
@@ -84,7 +84,7 @@ public sealed class PruneWindow : ChromeDialog
         Title = "Prune " + Kind.DisplayName();
         Message = "Removes Abandoned " + plural;
 
-        foreach(var item in Periods.Values)
+        foreach (var item in Periods.Values)
         {
             _periodCombo.Items.Add(item.DisplayName());
         }
@@ -144,6 +144,7 @@ public sealed class PruneWindow : ChromeDialog
 
         Closing += ClosingHandler;
         Buttons = AcceptButton | DialogButtons.Cancel;
+        ButtonText.Add(AcceptButton, "Prune Now");
     }
 
     /// <summary>
@@ -183,26 +184,13 @@ public sealed class PruneWindow : ChromeDialog
         ValueChangedHandler(null, EventArgs.Empty);
     }
 
-    /// <summary>
-    /// Overrides.
-    /// </summary>
-    protected override string GetButtonText(DialogButtons button)
-    {
-        if (button == AcceptButton)
-        {
-            return "Prune Now";
-        }
-
-        return base.GetButtonText(button);
-    }
-
     private void SetOptions(PruneOptions opts)
     {
         const string NSpace = $"{nameof(PruneWindow)}.{nameof(SetOptions)}";
 
         opts.Period = Periods[_periodCombo.SelectedIndex].ToSpan();
-        ConditionalDebug.WriteLine(NSpace, "Index: " + _periodCombo.SelectedIndex);
-        ConditionalDebug.WriteLine(NSpace, "Value: " + opts.Period);
+        Diag.WriteLine(NSpace, "Index: " + _periodCombo.SelectedIndex);
+        Diag.WriteLine(NSpace, "Value: " + opts.Period);
 
         opts.AlwaysDelete = _deleteRadio.IsChecked;
         opts.RemovePinned = _pinnedCheck.IsChecked;

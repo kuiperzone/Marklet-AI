@@ -77,7 +77,7 @@ public partial class ChromeStyling : ReactiveObject
         set
         {
             const string NSpace = $"{nameof(ChromeStyling)}.{nameof(Theme)} setter";
-            ConditionalDebug.WriteLine(NSpace, $"Current: {_theme}, New: {value}");
+            Diag.WriteLine(NSpace, $"Current: {_theme}, New: {value}");
 
             _theme = value;
             _app?.RequestedThemeVariant = value.ToVariant();
@@ -103,8 +103,8 @@ public partial class ChromeStyling : ReactiveObject
     public void Initialize(Application app, AppearanceSettings? settings = null)
     {
         const string NSpace = $"{nameof(ChromeStyling)}.{nameof(Initialize)}";
-        ConditionalDebug.WriteLine(NSpace, $"Requested theme: {app.RequestedThemeVariant}");
-        ConditionalDebug.WriteLine(NSpace, $"Actual theme: {app.RequestedThemeVariant}");
+        Diag.WriteLine(NSpace, $"Requested theme: {app.RequestedThemeVariant}");
+        Diag.WriteLine(NSpace, $"Actual theme: {app.RequestedThemeVariant}");
 
         if (_app != null)
         {
@@ -126,10 +126,10 @@ public partial class ChromeStyling : ReactiveObject
 
         // Order important
         app.ActualThemeVariantChanged += ActualThemeVariantChangedHandler;
-        ConditionalDebug.WriteLine(NSpace, $"Requested now: {app.RequestedThemeVariant}");
-        ConditionalDebug.WriteLine(NSpace, $"Actual now: {app.ActualThemeVariant}");
+        Diag.WriteLine(NSpace, $"Requested now: {app.RequestedThemeVariant}");
+        Diag.WriteLine(NSpace, $"Actual now: {app.ActualThemeVariant}");
 
-        ConditionalDebug.WriteLine(NSpace, "Copy settings");
+        Diag.WriteLine(NSpace, "Copy settings");
         _settings = settings ?? AppearanceSettings.Global;
 
         ApplySettings();
@@ -192,10 +192,10 @@ public partial class ChromeStyling : ReactiveObject
     private void ActualThemeVariantChangedHandler(object? _, EventArgs __)
     {
         const string NSpace = $"{nameof(ChromeStyling)}.{nameof(ActualThemeVariantChangedHandler)}";
-        ConditionalDebug.WriteLine(NSpace, $"AppTheme: {Theme}");
+        Diag.WriteLine(NSpace, $"AppTheme: {Theme}");
 
         var variant = _app!.ActualThemeVariant;
-        ConditionalDebug.WriteLine(NSpace, $"Variant: {variant}");
+        Diag.WriteLine(NSpace, $"Variant: {variant}");
 
         // Order important
         IsActualThemeDark = variant == ThemeVariant.Dark;

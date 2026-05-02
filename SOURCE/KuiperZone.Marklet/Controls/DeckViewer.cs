@@ -32,7 +32,6 @@ using Avalonia.Threading;
 using Avalonia.Input;
 using KuiperZone.Marklet.PixieChrome.Shared;
 using KuiperZone.Marklet.Controls.Internal;
-using System.Diagnostics;
 
 namespace KuiperZone.Marklet.Controls;
 
@@ -46,7 +45,7 @@ namespace KuiperZone.Marklet.Controls;
 /// </remarks>
 public sealed class DeckViewer : MarkControl, ICrossTrackOwner
 {
-    private static readonly MemoryGarden Garden = GardenGrounds.Global;
+    private static readonly MemoryGarden Garden = GlobalGarden.Global;
     private static readonly ImmutableSolidColorBrush DefaultUserBackground = new(ChromeBrushes.BlueAccent.Color, 0.15);
 
     private readonly DispatchCoalescer _coalescer = new(DispatcherPriority.Render);
@@ -56,11 +55,11 @@ public sealed class DeckViewer : MarkControl, ICrossTrackOwner
     private CornerRadius _leafCornerRadius;
     private GardenDeck? _focusedDeck;
     private bool _focusChanged;
-    private bool _findChanged;
+    private bool _searchChanged;
     private BusyIndicator? _busyIndicator;
 
-    private int _findN = -1;
-    private DeckLeaf? _findView;
+    private int _keywordN = -1;
+    private LeafView? _keywordLeaf;
 
     /// <summary>
     /// Constructor.
@@ -79,7 +78,7 @@ public sealed class DeckViewer : MarkControl, ICrossTrackOwner
         UpdateScrollerWidth(ContentWidth);
 
         // Difficult to fit to width without showing horizontal scroll if AutoHide is false
-        ConditionalDebug.ThrowIfFalse(_scroller.AllowAutoHide);
+        Diag.ThrowIfFalse(_scroller.AllowAutoHide);
 
         Zoom.Changed += ZoomChangedHandler;
         _coalescer.Posted += PostedHandler;
@@ -126,7 +125,7 @@ public sealed class DeckViewer : MarkControl, ICrossTrackOwner
     }
 
     /// <summary>
-    /// Gets or sets the background brush used for <see cref="LeafKind.User"/> messages.
+    /// Gets or sets the background brush used for <see cref="LeafFormat.UserMessage"/> messages.
     /// </summary>
     public IBrush? UserBackground
     {
@@ -144,29 +143,29 @@ public sealed class DeckViewer : MarkControl, ICrossTrackOwner
     }
 
     /// <summary>
-    /// Gets whether the <see cref="DeckViewer"/> is highlighting the <see cref="GardenGrounds.Find"/> text.
+    /// Gets whether the <see cref="DeckViewer"/> is highlighting the <see cref="GlobalGarden.Search"/> text.
     /// </summary>
-    public bool IsFinding { get; private set; }
+    public bool IsSearching { get; private set; }
 
     /// <summary>
-    /// Gets the total number of occurrences of <see cref="GardenGrounds.Find"/> text.
+    /// Gets the total number of occurrences of <see cref="GlobalGarden.Search"/> text.
     /// </summary>
     /// <summary>
-    /// The value is always 0 where <see cref="IsFinding"/> is false.
+    /// The value is always 0 where <see cref="IsSearching"/> is false.
     /// </summary>
-    public int FindCount { get; private set; }
+    public int KeywordCount { get; private set; }
 
     /// <summary>
-    /// Gets the current "find" position where <see cref="FindCount"/> is greater than 0.
+    /// Gets the current "keyword" position where <see cref="KeywordCount"/> is greater than 0.
     /// </summary>
     /// <remarks>
-    /// The range is [-1, <see cref="FindCount"/>], where -1 implies page top, and <see cref="FindCount"/> the page
-    /// bottom. The value is invalid where <see cref="FindCount"/> is 0. Note that <see cref="FindCount"/> is not
+    /// The range is [-1, <see cref="KeywordCount"/>], where -1 implies page top, and <see cref="KeywordCount"/> the page
+    /// bottom. The value is invalid where <see cref="KeywordCount"/> is 0. Note that <see cref="KeywordCount"/> is not
     /// contiguous. It is not possible to navigate on level of underlying textual "Run" instances, but only message
-    /// leaves themselves, hence it will jump over values when <see cref="PreviousOrHome"/> or <see
-    /// cref="NextOrEnd"/> are called.
+    /// leaves themselves, hence it will jump over values when <see cref="PreviousKeywordOrHome"/> or <see
+    /// cref="NextKeywordOrEnd"/> are called.
     /// </remarks>
-    public int FindPos { get; private set; }
+    public int KeywordPos { get; private set; }
 
     /// <summary>
     /// TBD
@@ -182,7 +181,6 @@ public sealed class DeckViewer : MarkControl, ICrossTrackOwner
                 if (value && _focusedDeck != null)
                 {
                     _busyIndicator = new();
-                    //_chatCoalescer.Post();
                     return;
                 }
 
@@ -201,6 +199,14 @@ public sealed class DeckViewer : MarkControl, ICrossTrackOwner
     public double ActualContentWidth { get; private set; }
 
     /// <summary>
+    /// Gets the currently focused kind.
+    /// </summary>
+    public DeckFormat FocusedKind
+    {
+        get { return _focusedDeck?.Format ?? DeckFormat.None; }
+    }
+
+    /// <summary>
     /// Unwanted child.
     /// </summary>
     [Obsolete($"Do not use.", true)]
@@ -211,25 +217,25 @@ public sealed class DeckViewer : MarkControl, ICrossTrackOwner
     }
 
     /// <summary>
-    /// Brings the previous item containing find text into view or, scrolls to top if no more find results available.
+    /// Brings the previous item containing keyword text into view or, scrolls to top if no more search results available.
     /// </summary>
     /// <remarks>
     /// The result is true if the scroll area is at the top on return, or false if more "previous results" are
     /// available. The <see cref="Changed"/> event is always invoked.
     /// </remarks>
-    public bool PreviousOrHome()
+    public bool PreviousKeywordOrHome()
     {
-        if (FindCount > 0)
+        if (KeywordCount > 0)
         {
             var children = _scroller.Children;
 
-            for (int n = _findN - 1; n > -1; --n)
+            for (int n = _keywordN - 1; n > -1; --n)
             {
-                if (children[n] is DeckLeaf leaf && leaf.FindCount != 0)
+                if (children[n] is LeafView leaf && leaf.SearchCount != 0)
                 {
-                    _findN = n;
-                    _findView = leaf;
-                    FindPos -= leaf.FindCount;
+                    _keywordN = n;
+                    _keywordLeaf = leaf;
+                    KeywordPos -= leaf.SearchCount;
                     leaf.BringIntoView();
                     Changed?.Invoke(this, EventArgs.Empty);
                     return false;
@@ -238,9 +244,9 @@ public sealed class DeckViewer : MarkControl, ICrossTrackOwner
         }
 
         // Beyond range
-        _findView = null;
-        _findN = -1;
-        FindPos = 0;
+        _keywordLeaf = null;
+        _keywordN = -1;
+        KeywordPos = 0;
 
         // Scroll start
         _scroller.NormalizedY = 0.0;
@@ -250,33 +256,33 @@ public sealed class DeckViewer : MarkControl, ICrossTrackOwner
     }
 
     /// <summary>
-    /// Brings the next item containing find text into view or, scrolls to bottom if no more find results available.
+    /// Brings the next item containing keyword text into view or, scrolls to bottom if no more keyword results available.
     /// </summary>
     /// <remarks>
     /// The result is true if the scroll area is at the bottom on return, or false if more "next results" are available.
     /// The <see cref="Changed"/> event is always invoked.
     /// </remarks>
-    public bool NextOrEnd()
+    public bool NextKeywordOrEnd()
     {
         var children = _scroller.Children;
 
-        if (FindCount > 0)
+        if (KeywordCount > 0)
         {
-            if (_findView != null)
+            if (_keywordLeaf != null)
             {
-                FindPos += _findView.FindCount;
+                KeywordPos += _keywordLeaf.SearchCount;
             }
             else
             {
-                FindPos = 1;
+                KeywordPos = 1;
             }
 
-            for (int n = _findN + 1; n < children.Count; ++n)
+            for (int n = _keywordN + 1; n < children.Count; ++n)
             {
-                if (children[n] is DeckLeaf leaf && leaf.FindCount != 0)
+                if (children[n] is LeafView leaf && leaf.SearchCount != 0)
                 {
-                    _findN = n;
-                    _findView = leaf;
+                    _keywordN = n;
+                    _keywordLeaf = leaf;
                     leaf.BringIntoView();
                     Changed?.Invoke(this, EventArgs.Empty);
                     return false;
@@ -285,9 +291,9 @@ public sealed class DeckViewer : MarkControl, ICrossTrackOwner
         }
 
         // Beyond range
-        _findView = null;
-        _findN = children.Count;
-        FindPos = FindCount + 1;
+        _keywordLeaf = null;
+        _keywordN = children.Count;
+        KeywordPos = KeywordCount + 1;
 
         // Scroll end
         _scroller.NormalizedY = 1.0;
@@ -368,7 +374,7 @@ public sealed class DeckViewer : MarkControl, ICrossTrackOwner
 
         foreach (var item in _scroller.Children)
         {
-            if (item is DeckLeaf leaf)
+            if (item is LeafView leaf)
             {
                 leaf.OwnerRefresh();
             }
@@ -398,7 +404,7 @@ public sealed class DeckViewer : MarkControl, ICrossTrackOwner
         base.OnAttachedToVisualTree(e);
         Garden.FocusChanged += FocusChangedHandler;
         Garden.FocusedUpdated += FocusedUpdatedHandler;
-        GardenGrounds.FindChanged += FindHandler;
+        GlobalGarden.SearchChanged += SearchHandler;
     }
 
     /// <summary>
@@ -409,7 +415,7 @@ public sealed class DeckViewer : MarkControl, ICrossTrackOwner
         base.OnDetachedFromVisualTree(e);
         Garden.FocusChanged -= FocusChangedHandler;
         Garden.FocusedUpdated -= FocusedUpdatedHandler;
-        GardenGrounds.FindChanged -= FindHandler;
+        GlobalGarden.SearchChanged -= SearchHandler;
     }
 
     private void UpdateScrollerWidth(ContentWidth width)
@@ -419,39 +425,39 @@ public sealed class DeckViewer : MarkControl, ICrossTrackOwner
         _scroller.ContentMaxWidth = ActualContentWidth;
     }
 
-    private DeckLeaf? ResetFind()
+    private LeafView? ResetSearch()
     {
-        var oldLeaf = _findView;
-        _findN = -1;
-        _findView = null;
+        var oldLeaf = _keywordLeaf;
+        _keywordN = -1;
+        _keywordLeaf = null;
 
-        FindPos = 1;
-        FindCount = 0;
-        IsFinding = _focusedDeck?.Count > 0 && GardenGrounds.Find?.Subtext != null;
+        KeywordPos = 1;
+        KeywordCount = 0;
+        IsSearching = _focusedDeck?.Count > 0 && GlobalGarden.Search?.Keyword != null;
 
         return oldLeaf;
     }
 
-    private void Rebuild(bool focused, bool finding)
+    private void Rebuild(bool focused, bool searching)
     {
         // We limit it 1,000 currently.
         // Tested this with 10,000 messages. Using Task.Yield()
         // showed no demonstrable benefit. Searching adds overhead.
         const string NSpace = $"{nameof(DeckViewer)}.{nameof(Rebuild)}";
-        ConditionalDebug.WriteLine(NSpace, "REBUILD");
+        Diag.WriteLine(NSpace, "REBUILD");
 
-        var oldView = ResetFind();
+        var oldView = ResetSearch();
 
         if (_focusedDeck == null)
         {
-            ConditionalDebug.WriteLine(NSpace, "Select none");
+            Diag.WriteLine(NSpace, "Select none");
             _scroller.Children.Clear();
             return;
         }
 
         // Expect open
         // Setting GardenDeck.IsFocused should open it
-        ConditionalDebug.ThrowIfFalse(_focusedDeck.IsLoaded);
+        Diag.ThrowIfFalse(_focusedDeck.IsOpen);
 
         var src = _focusedDeck;
         var children = _scroller.Children;
@@ -462,38 +468,38 @@ public sealed class DeckViewer : MarkControl, ICrossTrackOwner
         {
             var leaf = src[n];
 
-            if (n < children.Count && children[n] is DeckLeaf view)
+            if (n < children.Count && children[n] is LeafView view)
             {
                 buffer.Add(view);
-                view.Rebuild(leaf, focused, finding);
+                view.Rebuild(leaf, focused, searching);
             }
             else
             {
                 // Keep top clear of navigator
-                view = new DeckLeaf(this, n == 0 ? DeckNavigator.MinimumHeight : 0.0);
+                view = new LeafView(this, n == 0 ? DeckNavigator.MinimumHeight : 0.0);
                 buffer.Add(view);
-                view.Rebuild(leaf, focused, finding);
+                view.Rebuild(leaf, focused, searching);
             }
 
-            if (view.FindCount > 0)
+            if (view.SearchCount > 0)
             {
-                if (_findView == null)
+                if (_keywordLeaf == null)
                 {
-                    _findN = n;
-                    _findView = view;
-                    FindPos = 1;
-                    FindCount += view.FindCount;
+                    _keywordN = n;
+                    _keywordLeaf = view;
+                    KeywordPos = 1;
+                    KeywordCount += view.SearchCount;
                     continue;
                 }
 
                 if (!focused && view == oldView)
                 {
-                    _findN = n;
-                    _findView = view;
-                    FindPos = FindCount + 1;
+                    _keywordN = n;
+                    _keywordLeaf = view;
+                    KeywordPos = KeywordCount + 1;
                 }
 
-                FindCount += view.FindCount;
+                KeywordCount += view.SearchCount;
             }
         }
 
@@ -507,7 +513,7 @@ public sealed class DeckViewer : MarkControl, ICrossTrackOwner
         children.TrimCapacity();
 
         // Ensure children are removed from Tracker, otherwise will have memory leak.
-        ConditionalDebug.WriteLine(NSpace, $"Tracker count: {Tracker.Children.Count}");
+        Diag.WriteLine(NSpace, $"Tracker count: {Tracker.Children.Count}");
     }
 
     private void ZoomChangedHandler(object? _, EventArgs __)
@@ -515,16 +521,16 @@ public sealed class DeckViewer : MarkControl, ICrossTrackOwner
         _scroller.ContentMaxWidth = ContentWidth.ToPixels() * Zoom.Fraction;
     }
 
-    private void FindHandler(object? _, EventArgs __)
+    private void SearchHandler(object? _, EventArgs __)
     {
-        _findChanged = true;
+        _searchChanged = true;
         _coalescer.Post();
     }
 
     private void FocusChangedHandler(object? sender, FocusChangedEventArgs e)
     {
         const string NSpace = $"{nameof(DeckViewer)}.{nameof(FocusChangedHandler)}";
-        ConditionalDebug.WriteLine(NSpace, "SELECTED CHANGE RECEIVED");
+        Diag.WriteLine(NSpace, "SELECTED CHANGE RECEIVED");
 
         Tracker.SelectNone();
 
@@ -547,7 +553,7 @@ public sealed class DeckViewer : MarkControl, ICrossTrackOwner
     private void FocusedUpdatedHandler(object? sender, FocusedUpdatedEventArgs e)
     {
         const string NSpace = $"{nameof(DeckViewer)}.{nameof(FocusChangedHandler)}";
-        ConditionalDebug.WriteLine(NSpace, "SELECTED UPDATE RECEIVED");
+        Diag.WriteLine(NSpace, "SELECTED UPDATE RECEIVED");
 
         _focusedDeck = e.Current;
         _coalescer.Post();
@@ -558,15 +564,15 @@ public sealed class DeckViewer : MarkControl, ICrossTrackOwner
         bool focused = _focusChanged;
         _focusChanged = false;
 
-        bool finding = _findChanged;
-        _findChanged = false;
+        bool searching = _searchChanged;
+        _searchChanged = false;
 
         bool isBottom = _scroller.IsBottom();
-        Rebuild(focused, finding);
+        Rebuild(focused, searching);
 
-        if ((focused || finding) && _findView != null)
+        if ((focused || searching) && _keywordLeaf != null)
         {
-            Dispatcher.UIThread.Post(() => _findView.BringIntoView());
+            Dispatcher.UIThread.Post(() => _keywordLeaf.BringIntoView());
             Changed?.Invoke(this, EventArgs.Empty);
             return;
         }

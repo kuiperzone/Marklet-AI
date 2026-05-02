@@ -35,8 +35,11 @@ public sealed class ApplicationHost
     /// <summary>
     /// Constructor with application reverse domain name identity, i.e. "zone.kuiper.marklet".
     /// </summary>
+    /// <remarks>
+    /// Must be created by <see cref="ChromeApplication"/>.
+    /// </remarks>
     /// <exception cref="InvalidOperationException">appId</exception>
-    public ApplicationHost(string appId)
+    internal ApplicationHost(string appId)
     {
         ArgumentException.ThrowIfNullOrEmpty(appId, nameof(appId));
         AppId = appId;
@@ -49,7 +52,7 @@ public sealed class ApplicationHost
 
         if (IsLinux)
         {
-            if (!string.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable("FLATPAK_SANDBOX_DIR")))
+            if (Environment.GetEnvironmentVariable("FLATPAK_ID") != null)
             {
                 // AppId and FLATPAK_ID are expected to be same!
                 // Flatpak already has ID in leading paths
@@ -75,12 +78,12 @@ public sealed class ApplicationHost
         DataDirectory = GetPathOrDefault("XDG_DATA_HOME", pathId, localData);
         CacheDirectory = GetPathOrDefault("XDG_CACHE_HOME", pathId, Path.GetTempPath());
         RuntimeDirectory = GetPathOrDefault("XDG_RUNTIME_DIR", pathId, Path.GetTempPath());
-        DownloadDirectory = GetPathOrDefault("XDG_DOWNLOAD_DIR", null, "~/Downloads");
 
         // File lock
         _lockPath = Path.Combine(RuntimeDirectory, ".lock");
         _raisePath = Path.Combine(RuntimeDirectory, ".raise");
-        HasFileSystemPermission = !IsLinux || Directory.Exists("/proc/sys");
+
+        HasFileSystemPermission = CheckFileSystemPermission(IsLinux);
 
         DebugRuntime();
     }
@@ -121,31 +124,6 @@ public sealed class ApplicationHost
     public bool IsFlatpak { get; }
 
     /// <summary>
-    /// Gets whether <see cref="Initialize"/> has been called.
-    /// </summary>
-    public bool IsInitialized { get; private set; }
-
-    /// <summary>
-    /// Gets whether the application holds the exclusive lock handle.
-    /// </summary>
-    /// <remarks>
-    /// The value is set on <see cref="Initialize"/>.
-    /// </remarks>
-    public bool HasAppLock
-    {
-        get { return _lockHandle != null; }
-    }
-
-    /// <summary>
-    /// Gets an indication as to whether app has wider filesystem permissions.
-    /// </summary>
-    /// <remarks>
-    /// The value is always true under non-linux systems. It is true on Linux where the directory "/proc/sys" is
-    /// detected.
-    /// </remarks>
-    public bool HasFileSystemPermission { get; }
-
-    /// <summary>
     /// Gets the main executable path.
     /// </summary>
     public string ProcessPath { get; }
@@ -176,9 +154,29 @@ public sealed class ApplicationHost
     public string RuntimeDirectory { get; }
 
     /// <summary>
-    /// Gets the user download directory.
+    /// Gets whether <see cref="Initialize"/> has been called.
     /// </summary>
-    public string DownloadDirectory { get; }
+    public bool IsInitialized { get; private set; }
+
+    /// <summary>
+    /// Gets an indication as to whether app has wider filesystem permissions.
+    /// </summary>
+    /// <remarks>
+    /// The value is always true under non-linux systems. It is true on Linux where the directory "/proc/sys" is
+    /// detected.
+    /// </remarks>
+    public bool HasFileSystemPermission { get; }
+
+    /// <summary>
+    /// Gets whether the application holds the exclusive lock handle.
+    /// </summary>
+    /// <remarks>
+    /// The value is set on <see cref="Initialize"/>.
+    /// </remarks>
+    public bool IsLockAcquired
+    {
+        get { return _lockHandle != null; }
+    }
 
     /// <summary>
     /// Ensure all directories exist and acquires an exclusive lock file.
@@ -186,7 +184,7 @@ public sealed class ApplicationHost
     /// <remarks>
     /// The result is true if the instance holds an exclusive lock file.
     /// </remarks>
-    /// <exception cref="InvalidOperationException">Already initialized</exception>
+    /// <exception cref="InvalidOperationException">Already initialized, or failed to </exception>
     public bool Initialize()
     {
         const string NSpace = $"{nameof(ApplicationHost)}.{nameof(Initialize)}";
@@ -204,27 +202,26 @@ public sealed class ApplicationHost
 
             EnsureExists(CacheDirectory, true);
             EnsureExists(RuntimeDirectory, true);
-            EnsureExists(DownloadDirectory, true);
 
             // Remove any existing flag
             try { File.Delete(_raisePath); } catch { }
 
             try
             {
-                ConditionalDebug.WriteLine(NSpace, $"Acquire: {_lockPath}");
+                Diag.WriteLine(NSpace, $"Acquire: {_lockPath}");
                 _lockHandle = new FileStream(_lockPath, FileMode.OpenOrCreate, FileAccess.ReadWrite, FileShare.None, 64, FileOptions.DeleteOnClose);
-                ConditionalDebug.WriteLine(NSpace, "Acquired OK");
+                Diag.WriteLine(NSpace, "Acquired OK");
                 return true;
             }
             catch (IOException)
             {
                 // Raise flag
-                ConditionalDebug.WriteLine(NSpace, "Lock denied");
+                Diag.WriteLine(NSpace, "Lock denied");
                 try { File.Create(_raisePath).Dispose(); } catch { }
             }
         }
 
-        ConditionalDebug.WriteLine(NSpace, $"Result: {_lockHandle != null}");
+        Diag.WriteLine(NSpace, $"Result: {_lockHandle != null}");
         return _lockHandle != null;
     }
 
@@ -232,7 +229,7 @@ public sealed class ApplicationHost
     /// Returns true if other application attempted to acquire exclusive lock since the last call.
     /// </summary>
     /// <remarks>
-    /// The result is cleared when the call return. Application may poll this, say once per second.
+    /// The result is cleared when the call returns. Application may poll this, say once per second.
     /// </remarks>
     public bool IsLockRequested()
     {
@@ -243,13 +240,13 @@ public sealed class ApplicationHost
             try
             {
                 // Only return true if we can delete it
-                ConditionalDebug.WriteLine(NSpace, "Exclusive request detected");
+                Diag.WriteLine(NSpace, "Exclusive request detected");
                 File.Delete(_raisePath);
                 return true;
             }
             catch (Exception e)
             {
-                ConditionalDebug.WriteLine(NSpace, e);
+                Diag.WriteLine(NSpace, e);
             }
         }
 
@@ -266,15 +263,16 @@ public sealed class ApplicationHost
     }
 
     /// <summary>
-    /// Removes pertenant directories as part of a "un-install" process.
+    /// Removes pertenant directories as part of an optional "un-install" process.
     /// </summary>
     /// <remarks>
     /// The <see cref="DataDirectory"/> is removed only if "data" is true. Does nothing where <see cref="IsFlatpak"/> is
-    /// true as removal is left to flatpak itself. The <see cref="Initialize"/> method should NOT be called where <see
-    /// cref="Uninstall"/> is to be used.
+    /// true as removal is left to flatpak itself. The <see cref="Initialize"/> method should NOT be called on app
+    /// launch where <see cref="Remove"/> is to be used. Rather application should be called with a command line
+    /// option which call <see cref="Remove"/> only and exits.
     /// </remarks>
     /// <exception cref="InvalidOperationException">Invalid Initialization</exception>
-    public void Uninstall(bool data)
+    public void Remove(bool data = true)
     {
         if (!IsFlatpak)
         {
@@ -290,15 +288,15 @@ public sealed class ApplicationHost
             }
 
             // Expect these to have AppId leaf name
-            ConditionalDebug.ThrowIfFalse(ConfigDirectory.Contains(AppId));
+            Diag.ThrowIfFalse(ConfigDirectory.Contains(AppId));
             Directory.Delete(ConfigDirectory, true);
 
-            ConditionalDebug.ThrowIfFalse(RuntimeDirectory.Contains(AppId));
+            Diag.ThrowIfFalse(RuntimeDirectory.Contains(AppId));
             Directory.Delete(RuntimeDirectory, true);
 
             if (data)
             {
-                ConditionalDebug.ThrowIfFalse(DataDirectory.Contains(AppId));
+                Diag.ThrowIfFalse(DataDirectory.Contains(AppId));
                 Directory.Delete(DataDirectory, true);
             }
         }
@@ -310,13 +308,13 @@ public sealed class ApplicationHost
 
         try
         {
-            ConditionalDebug.WriteLine(NSpace, "Assert directory: " + directory);
+            Diag.WriteLine(NSpace, "Assert directory: " + directory);
             Directory.CreateDirectory(directory);
         }
         catch (Exception e)
         {
             // Allowed to exist as read-only
-            ConditionalDebug.WriteLine(NSpace, e);
+            Diag.WriteLine(NSpace, e);
 
             if (writable || !Directory.Exists(directory))
             {
@@ -341,6 +339,26 @@ public sealed class ApplicationHost
         return path;
     }
 
+    private static bool CheckFileSystemPermission(bool flatpak)
+    {
+        if (!flatpak)
+        {
+            // Assume true
+            return true;
+        }
+
+        try
+        {
+            string test = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments));
+            _= Directory.EnumerateFileSystemEntries(test).FirstOrDefault();
+            return true;
+        }
+        catch
+        {
+            return false;
+        }
+    }
+
     private string GetPathOrDefault(string? var0, string? id, string def)
     {
         if (var0 != null)
@@ -359,7 +377,11 @@ public sealed class ApplicationHost
     private string FinalizePath(string path)
     {
 #if DEBUG
+        _ = IsAppImage; // <- prevent IDE nag
         return ExpandHome(Path.Combine(path, "debug"));
+#elif PREVIEW
+        _ = IsAppImage;
+        return ExpandHome(Path.Combine(path, "preview"));
 #else
         // Keep AppImage separate from other installations and avoid conflict.
         return IsAppImage ? ExpandHome(Path.Combine(path, "appimage")) : ExpandHome(path);
@@ -370,13 +392,16 @@ public sealed class ApplicationHost
     private void DebugRuntime()
     {
         const string NSpace = $"{nameof(ApplicationHost)}.{nameof(DebugRuntime)}";
-        ConditionalDebug.WriteLine(NSpace, $"OS: {RuntimeInformation.OSDescription}");
-        ConditionalDebug.WriteLine(NSpace, $"{nameof(AppId)}: {AppId}");
-        ConditionalDebug.WriteLine(NSpace, $"{nameof(IsFlatpak)}: {IsFlatpak}");
-        ConditionalDebug.WriteLine(NSpace, $"{nameof(ProcessDirectory)}: {ProcessDirectory}");
-        ConditionalDebug.WriteLine(NSpace, $"{nameof(ConfigDirectory)}: {ConfigDirectory}");
-        ConditionalDebug.WriteLine(NSpace, $"{nameof(DataDirectory)}: {DataDirectory}");
-        ConditionalDebug.WriteLine(NSpace, $"{nameof(DownloadDirectory)}: {DownloadDirectory}");
-        ConditionalDebug.WriteLine(NSpace, $"{nameof(RuntimeDirectory)}: {RuntimeDirectory}");
+        Diag.WriteLine(NSpace, $"OS: {RuntimeInformation.OSDescription}");
+        Diag.WriteLine(NSpace, $"{nameof(AppId)}: {AppId}");
+        Diag.WriteLine(NSpace, $"{nameof(IsFlatpak)}: {IsFlatpak}");
+        Diag.WriteLine(NSpace, $"{nameof(ProcessDirectory)}: {ProcessDirectory}");
+        Diag.WriteLine(NSpace, $"{nameof(ConfigDirectory)}: {ConfigDirectory}");
+        Diag.WriteLine(NSpace, $"{nameof(DataDirectory)}: {DataDirectory}");
+        Diag.WriteLine(NSpace, $"{nameof(RuntimeDirectory)}: {RuntimeDirectory}");
+
+        Diag.WriteLine(NSpace, $"{nameof(IsInitialized)}: {IsInitialized}");
+        Diag.WriteLine(NSpace, $"{nameof(HasFileSystemPermission)}: {HasFileSystemPermission}");
+        Diag.WriteLine(NSpace, $"{nameof(IsLockAcquired)}: {IsLockAcquired}");
     }
 }

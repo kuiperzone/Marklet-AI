@@ -58,7 +58,7 @@ internal static class CrossContextMenu
     private static void ContextOpenedHandler(object? _, EventArgs __)
     {
         const string NSpace = $"{nameof(CrossContextMenu)}.{nameof(ContextOpenedHandler)}";
-        ConditionalDebug.WriteLine(NSpace, "Opened menu");
+        Diag.WriteLine(NSpace, "Opened menu");
 
         var parent = Global.FindLogicalAncestorOfType<ICrossTrackOwner>();
 
@@ -71,14 +71,14 @@ internal static class CrossContextMenu
 
             if (tracker != null)
             {
-                ConditionalDebug.WriteLine(NSpace, "Has tracker");
+                Diag.WriteLine(NSpace, "Has tracker");
                 copy.IsEnabled = tracker.SelectionCount > 0;
                 return;
             }
 
             if (parent is ICrossTrackable cross)
             {
-                ConditionalDebug.WriteLine(NSpace, "Is cross-trackable");
+                Diag.WriteLine(NSpace, "Is cross-trackable");
                 copy.IsEnabled = cross.HasSelection;
                 return;
             }
@@ -90,7 +90,7 @@ internal static class CrossContextMenu
     private static void CopyHandler(object? _, RoutedEventArgs e)
     {
         const string NSpace = $"{nameof(CrossContextMenu)}.{nameof(CopyHandler)}";
-        ConditionalDebug.WriteLine(NSpace, "Copy text");
+        Diag.WriteLine(NSpace, "Copy text");
 
         e.Handled = true;
         var parent = Global.FindLogicalAncestorOfType<ICrossTrackOwner>();
@@ -101,14 +101,14 @@ internal static class CrossContextMenu
 
             if (tracker != null)
             {
-                ConditionalDebug.WriteLine(NSpace, "Has tracker");
+                Diag.WriteLine(NSpace, "Has tracker");
                 tracker.CopyText(WhatText.SelectedOrNull);
                 return;
             }
 
             if (parent is ICrossTrackable cross && parent is Visual visual)
             {
-                ConditionalDebug.WriteLine(NSpace, "Is cross-trackable");
+                Diag.WriteLine(NSpace, "Is cross-trackable");
                 visual.CopyToClipboard(cross.GetEffectiveText(WhatText.SelectedOrNull));
                 return;
             }
@@ -118,7 +118,7 @@ internal static class CrossContextMenu
     private static void SelectAllHandler(object? _, RoutedEventArgs e)
     {
         const string NSpace = $"{nameof(CrossContextMenu)}.{nameof(SelectAllHandler)}";
-        ConditionalDebug.WriteLine(NSpace, "Select all");
+        Diag.WriteLine(NSpace, "Select all");
 
         e.Handled = true;
         var parent = Global.FindLogicalAncestorOfType<ICrossTrackOwner>();
@@ -129,14 +129,14 @@ internal static class CrossContextMenu
 
             if (tracker != null)
             {
-                ConditionalDebug.WriteLine(NSpace, "Has tracker");
+                Diag.WriteLine(NSpace, "Has tracker");
                 tracker.SelectAll();
                 return;
             }
 
             if (parent is ICrossTrackable cross)
             {
-                ConditionalDebug.WriteLine(NSpace, "Is cross-trackable");
+                Diag.WriteLine(NSpace, "Is cross-trackable");
                 cross.SelectAll();
                 return;
             }

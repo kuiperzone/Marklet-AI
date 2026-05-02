@@ -24,7 +24,6 @@ using Avalonia.Input;
 using Avalonia.Media;
 using Avalonia.Media.Immutable;
 using Avalonia.Threading;
-using Avalonia.VisualTree;
 using KuiperZone.Marklet.PixieChrome.Shared;
 using KuiperZone.Marklet.Tooling;
 
@@ -636,18 +635,18 @@ public class MarkControl : Border
     public virtual bool HandleKeyGesture(KeyEventArgs e)
     {
         const string NSpace = $"{nameof(MarkControl)}.{nameof(HandleKeyGesture)}";
-        ConditionalDebug.WriteLine(NSpace, $"KEY: {e.Key}, {e.KeyModifiers}");
+        Diag.WriteLine(NSpace, $"KEY: {e.Key}, {e.KeyModifiers}");
 
         if (e.Handled)
         {
-            ConditionalDebug.WriteLine(NSpace, "Already handled");
+            Diag.WriteLine(NSpace, "Already handled");
             return false;
         }
 
         if (e.Key == Key.C && e.KeyModifiers == KeyModifiers.Control && Tracker.SelectionCount != 0)
         {
             e.Handled = true;
-            ConditionalDebug.WriteLine(NSpace, $"CTRL-C accepted");
+            Diag.WriteLine(NSpace, $"CTRL-C accepted");
 
             Tracker.CopyText(WhatText.SelectedOrNull);
             return true;
@@ -657,7 +656,7 @@ public class MarkControl : Border
         if (e.Key == Key.A && e.KeyModifiers == KeyModifiers.Control)
         {
             e.Handled = true;
-            ConditionalDebug.WriteLine(NSpace, $"CTRL-A accepted");
+            Diag.WriteLine(NSpace, $"CTRL-A accepted");
 
             Tracker.SelectAll();
             return true;
@@ -666,7 +665,7 @@ public class MarkControl : Border
         if (e.Key == Key.Escape && e.KeyModifiers == KeyModifiers.None && Tracker.SelectionCount != 0)
         {
             e.Handled = true;
-            ConditionalDebug.WriteLine(NSpace, $"ESCAPE accepted");
+            Diag.WriteLine(NSpace, $"ESCAPE accepted");
 
             Tracker.SelectNone();
             return true;

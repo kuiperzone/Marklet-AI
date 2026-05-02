@@ -254,8 +254,7 @@ public static partial class HelperExt
     }
 
     /// <summary>
-    /// Where "src" may contain multiple flag values, returns a single <see cref="DialogButtons"/> flag according to the
-    /// given key press.
+    /// Returns single <see cref="DialogButtons"/> flag pertaining to Enter or Escpace key.
     /// </summary>
     public static DialogButtons GetCloseAction(this DialogButtons src, Key key)
     {

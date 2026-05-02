@@ -42,16 +42,16 @@ public sealed class DeckPropertiesWindow : ChromeDialog
     {
         _source = source;
 
-        var kind = source.Kind;
-        bool ephem = source.IsEphemeral;
-        Title = kind.DisplayName(DisplayKind.Default, ephem) + " Properties";
+        var format = source.Format;
+        var ephem = source.Ephemeral;
+        Title = format.DisplayName(DisplayStyle.Default, ephem) + " Properties";
 
         MaxWidth = 450;
         _combo.MinSubjectWidth = 250;
         _combo.MaxSubjectWidth = 250;
 
         _combo.Title = "Folder Name";
-        _combo.Footer = $"Select a new folder to move the {kind.DisplayName(DisplayKind.Lower, false)}.";
+        _combo.Footer = $"Select a new folder to move the {format.DisplayName(DisplayStyle.Lower)}.";
 
         _combo.Items.Add("[None]");
         _combo.SelectedIndex = 0;
@@ -61,9 +61,9 @@ public sealed class DeckPropertiesWindow : ChromeDialog
         _pinned.Footer = $"Pinned items may optionally be sorted to the top and pinned items in the {BasketKind.Recent.DisplayName()} bin will not be moved to {BasketKind.Waste.DisplayName()} as a result of housekeeping.";
         Children.Add(_pinned);
 
-        if (ephem)
+        if (ephem != EphemeralStatus.Persistant)
         {
-            Details = $"{kind.DisplayName(DisplayKind.Plural, true)} are lost when application exits.";
+            Details = $"{format.DisplayName(DisplayStyle.Plural)} are lost when application exits.";
         }
 
         Buttons = AcceptButton | DialogButtons.Cancel;
@@ -99,10 +99,9 @@ public sealed class DeckPropertiesWindow : ChromeDialog
         base.OnOpened(e);
 
         _combo.Focus();
-
-        var folders = _source.Garden?.GetBasket(_source.Basket).GetFolderNames();
-
         _pinned.IsChecked = _source.IsPinned;
+
+        var folders = _source.Garden?[_source.CurrentBasket].GetFolderNames();
 
         if (folders != null)
         {

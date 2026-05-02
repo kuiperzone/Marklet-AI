@@ -20,7 +20,6 @@
 
 using System.Diagnostics.CodeAnalysis;
 using Avalonia;
-using Avalonia.Controls;
 using KuiperZone.Marklet.Tooling;
 
 namespace KuiperZone.Marklet.PixieChrome.Controls;
@@ -113,7 +112,7 @@ public readonly struct CrossKey : IComparable<CrossKey>, IEquatable<CrossKey>
             {
                 // Endless loop otherwise
                 // Can only occur if given a non-parent root
-                ConditionalDebug.ThrowIfNull(visual.Parent);
+                Diag.ThrowIfNull(visual.Parent);
 
                 y += visual.Bounds.TopLeft.Y;
                 x += visual.Bounds.TopLeft.X;

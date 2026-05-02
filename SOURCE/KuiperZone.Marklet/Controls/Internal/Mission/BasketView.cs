@@ -40,7 +40,7 @@ internal sealed class BasketView : DockPanel
     public const int MaxDefaultRootHistory = 10;
     public static readonly TimeSpan ScheduleSpan = TimeSpan.FromMilliseconds(200);
 
-    private static readonly MemoryGarden Garden = GardenGrounds.Global;
+    private static readonly MemoryGarden Garden = GlobalGarden.Global;
     private static readonly IReadOnlyDictionary<string, FolderView> EmptyCache = new Dictionary<string, FolderView>();
 
     private readonly DispatcherTimer _timer = new();
@@ -61,7 +61,7 @@ internal sealed class BasketView : DockPanel
     public BasketView(MainMission mission, BasketKind kind)
     {
         Kind = kind;
-        Basket = Garden.GetBasket(kind);
+        Basket = Garden[kind];
         Mission = mission;
 
         FolderHeader = new("Folders", false);
@@ -96,7 +96,7 @@ internal sealed class BasketView : DockPanel
         _editor.HasBackButton = false;
         _editor.HasMatchCaseButton = true;
         _editor.HasMatchWordButton = true;
-        _editor.MaxLength = Math.Min(64, FindOptions.MaxLength);
+        _editor.MaxLength = Math.Min(64, SearchOptions.MaxLength);
         _editor.MaxLines = 1;
         _editor.Watermark = "Press enter to search\u2026";
         _editor.Submitted += SearchSubmittedHandler;
@@ -116,19 +116,23 @@ internal sealed class BasketView : DockPanel
         _noResults.Foreground = ChromeStyling.GrayForeground;
         _noResults.Margin = FolderHeader.Margin;
 
+        _toolbar.SearchButton.IsVisible = mission.IsSearchButtonVisible;
+        mission.PropertyChanged += MissionPropertyChangedHandler;
+
         _timer.Interval = ScheduleSpan;
         _timer.Tick += (_, __) => Rebuild();
     }
 
-    /// <summary>
-    /// Fixed margin size.
-    /// </summary>
-    public static readonly Thickness ToolMargin = new(ChromeSizes.TwoCh, 0.0, ChromeSizes.TwoCh, ChromeSizes.TwoCh);
 
     /// <summary>
     /// Fixed margin size.
     /// </summary>
-    public static readonly Thickness ScrollMargin = new(ChromeSizes.TwoCh, 0.0, 3.0 * ChromeSizes.OneCh, 0.0);
+    static readonly Thickness ToolMargin = new(ChromeSizes.TwoCh, 0.0, ChromeSizes.TwoCh, ChromeSizes.TwoCh);
+
+    /// <summary>
+    /// Fixed margin size.
+    /// </summary>
+    static readonly Thickness ScrollMargin = new(ChromeSizes.TwoCh, 0.0, 3.0 * ChromeSizes.OneCh, 0.0);
 
     /// <summary>
     /// Defines the <see cref="IsPinTop"/> property.
@@ -141,9 +145,9 @@ internal sealed class BasketView : DockPanel
     /// Occurs after the view is updated.
     /// </summary>
     /// <remarks>
-    /// This occurs after any <see cref="GardenBasket.Changed"/> event while the basket is visible.
+    /// This occurs while the basket is visible.
     /// </remarks>
-    public event EventHandler<EventArgs>? ViewChanged;
+    public event EventHandler<EventArgs>? Changed;
 
     /// <summary>
     /// Gets the basket kind. For search, the value is <see cref="BasketKind.None"/>.
@@ -273,7 +277,7 @@ internal sealed class BasketView : DockPanel
 
         if (window.IsPositiveResult)
         {
-            Basket.NewEmptyFolder(window.FolderName);
+            Basket.CreateFolder(window.FolderName);
             ScheduleRebuild();
         }
     }
@@ -314,13 +318,13 @@ internal sealed class BasketView : DockPanel
     public void Rebuild()
     {
         const string NSpace = $"{nameof(BasketView)}.{nameof(Rebuild)}";
-        ConditionalDebug.WriteLine(NSpace, "UPDATING: " + Kind);
+        Diag.WriteLine(NSpace, "UPDATING: " + Kind);
 
         _timer.Stop();
 
         if (!IsVisible)
         {
-            ConditionalDebug.WriteLine(NSpace, "NOT VISIBLE: " + Kind);
+            Diag.WriteLine(NSpace, "NOT VISIBLE: " + Kind);
             return;
         }
 
@@ -328,12 +332,12 @@ internal sealed class BasketView : DockPanel
         List<Control>? buffer = null;
 
         // Null unless mission search active
-        var findOpts = GetFindOptions();
-        bool isSearching = IsSearching && findOpts?.Subtext != null;
+        var searchOpts = GetSearchOptions();
+        bool isSearching = IsSearching && searchOpts?.Keyword != null;
 
         // COLLATE COLLATE FOLDERS
         int count = 0;
-        var collation = Basket.CollateByFolder(findOpts, SortOrder);
+        var collation = Basket.CollateByFolder(searchOpts, SortOrder);
         var folders = new List<FolderView>(collation.Count + 8);
         var newCache = new Dictionary<string, FolderView>(folders.Capacity);
 
@@ -342,23 +346,23 @@ internal sealed class BasketView : DockPanel
         foreach (var item in collation)
         {
             // Cannot have empty name
-            ConditionalDebug.ThrowIfNullOrEmpty(item.Key);
+            Diag.ThrowIfNullOrEmpty(item.Key);
 
             if (!_folderCache.TryGetValue(item.Key, out FolderView? folder))
             {
-                ConditionalDebug.WriteLine(NSpace, "New folder instance");
+                Diag.WriteLine(NSpace, "New folder instance");
                 folder = new FolderView(this, item.Key);
             }
 
-            ConditionalDebug.WriteLine(NSpace, "Updating folder");
-            ConditionalDebug.ThrowIfNotEqual(item.Key, folder.FolderName);
+            Diag.WriteLine(NSpace, "Updating folder");
+            Diag.ThrowIfNotEqual(item.Key, folder.FolderName);
             newCache.Add(item.Key, folder);
 
             // Start to assign timestamp
             folder.StartRebuild(item.Value, isSearching);
             folders.Add(folder);
 
-            if (findOpts != null)
+            if (searchOpts != null)
             {
                 folder.IsOpen = true;
             }
@@ -366,7 +370,7 @@ internal sealed class BasketView : DockPanel
             count += item.Value.Count;
         }
 
-        if (findOpts == null || newCache.Count > _folderCache.Count)
+        if (searchOpts == null || newCache.Count > _folderCache.Count)
         {
             // Store for next time
             _folderCache = newCache;
@@ -379,13 +383,15 @@ internal sealed class BasketView : DockPanel
         if (!FolderMore.IsMoreChecked && folders.Count > MaxDefaultFolders)
         {
             // Trim what we add to visual tree
-            ConditionalDebug.WriteLine(NSpace, $"Trim end folders");
+            Diag.WriteLine(NSpace, $"Trim end folders");
             folders.RemoveRange(MaxDefaultFolders, folders.Count - MaxDefaultFolders);
         }
 
         foreach (var item in folders)
         {
-            recent ??= item.FinishRebuild();
+            // Careful - always call Finish
+            var r0 = item.FinishRebuild();
+            recent ??= r0;
         }
 
         // We need a copy because type difference
@@ -403,10 +409,10 @@ internal sealed class BasketView : DockPanel
 
 
         // ROOT HISTORY
-        var root = Basket.GetFolderContents(null, findOpts, SortOrder) ??
+        var root = Basket.GetFolderContents(null, searchOpts, SortOrder) ??
             throw new InvalidOperationException("Null not expected");
 
-        ConditionalDebug.WriteLine(NSpace, "Updating history");
+        Diag.WriteLine(NSpace, "REBUILD HISTORY");
         buffer.Add(RootHeader);
         buffer.Add(_rootFolder);
         RootHeader.Count = root.Count;
@@ -417,12 +423,15 @@ internal sealed class BasketView : DockPanel
 
         if (root.Count > MaxDefaultRootHistory && !HistoryMore.IsMoreChecked)
         {
-            ConditionalDebug.WriteLine(NSpace, $"Trim root end");
+            Diag.WriteLine(NSpace, $"Trim root end");
             root.RemoveRange(MaxDefaultRootHistory, root.Count - MaxDefaultRootHistory);
         }
 
         _rootFolder.StartRebuild(root, isSearching);
-        recent ??= _rootFolder.FinishRebuild();
+
+        // Careful - always call Finish
+        var r1 = _rootFolder.FinishRebuild();
+        recent ??= r1;
 
         if (isSearching && count == 0)
         {
@@ -436,17 +445,17 @@ internal sealed class BasketView : DockPanel
         if (recent != null)
         {
             recent.IsFocused = true;
-            SetCardChecked(recent);
+            SetCardCheckState(recent);
         }
         else
         {
             Garden.Focused?.IsFocused = false;
         }
 
-        // Need to set Find here,
+        // Need to set Search here,
         // MainMission invokes further event.
-        GardenGrounds.Find = findOpts;
-        ViewChanged?.Invoke(this, EventArgs.Empty);
+        GlobalGarden.Search = searchOpts;
+        Changed?.Invoke(this, EventArgs.Empty);
     }
 
     /// <summary>
@@ -457,7 +466,7 @@ internal sealed class BasketView : DockPanel
         const string NSpace = $"{nameof(BasketView)}.{nameof(OnKeyDown)}";
 
         base.OnKeyDown(e);
-        ConditionalDebug.WriteLine(NSpace, $"Key: {e.Key}, {e.KeyModifiers}");
+        Diag.WriteLine(NSpace, $"Key: {e.Key}, {e.KeyModifiers}");
 
         if (e.Handled)
         {
@@ -532,7 +541,7 @@ internal sealed class BasketView : DockPanel
     protected override void OnAttachedToVisualTree(VisualTreeAttachmentEventArgs e)
     {
         base.OnAttachedToVisualTree(e);
-        Basket.Changed += BasketChangedHandler;
+        Garden.Changed += BasketChangedHandler;
         Garden.FocusChanged += FocusChangedHandler;
     }
 
@@ -542,11 +551,11 @@ internal sealed class BasketView : DockPanel
     protected override void OnDetachedFromVisualTree(VisualTreeAttachmentEventArgs e)
     {
         base.OnDetachedFromVisualTree(e);
-        Basket.Changed -= BasketChangedHandler;
+        Garden.Changed -= BasketChangedHandler;
         Garden.FocusChanged -= FocusChangedHandler;
     }
 
-    private static void SetCardChecked(GardenDeck? deck)
+    private static void SetCardCheckState(GardenDeck? deck)
     {
         if (deck?.VisualComponent is DeckCard card)
         {
@@ -555,6 +564,7 @@ internal sealed class BasketView : DockPanel
             if (deck.IsFocused)
             {
                 card.Group?.IsOpen = true;
+                card.BringIntoView();
             }
         }
     }
@@ -569,20 +579,20 @@ internal sealed class BasketView : DockPanel
         return y.Updated.CompareTo(x.Updated);
     }
 
-    private FindOptions? GetFindOptions()
+    private SearchOptions? GetSearchOptions()
     {
         if (IsSearching && !string.IsNullOrEmpty(_editor.Text))
         {
-            var opts = new FindOptions(_editor.Text);
+            var opts = new SearchOptions(_editor.Text);
 
             if (!_editor.IsMatchCaseChecked)
             {
-                opts.Flags |= FindFlags.IgnoreCase;
+                opts.Flags |= SearchFlags.IgnoreCase;
             }
 
             if (_editor.IsMatchWordChecked)
             {
-                opts.Flags |= FindFlags.Word;
+                opts.Flags |= SearchFlags.Word;
             }
 
             return opts;
@@ -597,27 +607,31 @@ internal sealed class BasketView : DockPanel
 
         if (IsVisible)
         {
-            SetCardChecked(Basket.Recent);
+            SetCardCheckState(Basket.RecentFocused);
 
             if (Basket.Contains(e.Previous))
             {
                 // Needed as last select may be in different folder
-                SetCardChecked(e.Previous);
+                SetCardCheckState(e.Previous);
             }
         }
     }
 
-    private void BasketChangedHandler(object? _, EventArgs __)
+    private void BasketChangedHandler(object? _, GardenChangedEventArgs e)
     {
         const string NSpace = $"{nameof(BasketView)}.{nameof(BasketChangedHandler)}";
-        ConditionalDebug.WriteLine(NSpace, "BASKET: " + Kind);
-        ScheduleRebuild();
+
+        if (Kind == e.Basket)
+        {
+            Diag.WriteLine(NSpace, "BASKET: " + Kind);
+            ScheduleRebuild();
+        }
     }
 
     private void ScrollerChangedHandler(object? _, ScrollChangedEventArgs e)
     {
         const string NSpace = $"{nameof(BasketView)}.{nameof(ScrollerChangedHandler)}";
-        ConditionalDebug.WriteLine(NSpace, $"NormY: {_scroller.NormalizedY:R}");
+        Diag.WriteLine(NSpace, $"NormY: {_scroller.NormalizedY:R}");
         HistoryMore.IsGotoTopVisible = _scroller.NormalizedY > 0.0;
     }
 
@@ -641,4 +655,14 @@ internal sealed class BasketView : DockPanel
         }
     }
 
+    private void MissionPropertyChangedHandler(object? _, AvaloniaPropertyChangedEventArgs e)
+    {
+        const string NSpace = $"{nameof(BasketView)}.{nameof(MissionPropertyChangedHandler)}";
+
+        if (e.Property == MainMission.IsSearchButtonVisibleProperty)
+        {
+            Diag.WriteLine(NSpace, $"Search button visible: " + e.GetNewValue<bool>());
+            _toolbar.SearchButton.IsVisible = e.GetNewValue<bool>();
+        }
+    }
 }

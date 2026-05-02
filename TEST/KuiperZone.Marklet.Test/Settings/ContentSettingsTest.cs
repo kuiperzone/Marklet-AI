@@ -28,7 +28,7 @@ public class ContentSettingsTest
     [Fact]
     public void Reset_EqualsDefault()
     {
-        var obj = NewObj();
+        var obj = CreateObj();
         obj.Reset();
 
         Assert.Equal(new ContentSettings(), obj);
@@ -37,7 +37,7 @@ public class ContentSettingsTest
     [Fact]
     public void CopyFrom_EqualsSource()
     {
-        var obj0 = NewObj();
+        var obj0 = CreateObj();
         var obj1 = new ContentSettings();
 
         obj1.CopyFrom(obj0);
@@ -47,7 +47,7 @@ public class ContentSettingsTest
     [Fact]
     public void Serialize_Deserializes()
     {
-        var obj0 = NewObj();
+        var obj0 = CreateObj();
         var json = obj0.Serialize();
 
         var obj1 = new ContentSettings();
@@ -55,7 +55,7 @@ public class ContentSettingsTest
         Assert.Equal(obj0, obj1);
     }
 
-    private static ContentSettings NewObj()
+    private static ContentSettings CreateObj()
     {
         var obj = new ContentSettings();
 

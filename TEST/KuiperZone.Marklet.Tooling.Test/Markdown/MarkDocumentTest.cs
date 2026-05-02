@@ -33,14 +33,14 @@ public partial class MarkDocumentTest : BaseTest
     }
 
     [Fact]
-    public void FindHighlight_Edge()
+    public void SearchHighlight_Edge()
     {
         var text = @"a sub1 b";
 
         var obj0 = new MarkDocument(text);
-        Assert.Null(obj0.Find("", FindFlags.None));
-        Assert.Null(obj0.Find("notfound", FindFlags.None));
-        Assert.NotNull(obj0.Find(" ", FindFlags.None));
+        Assert.Null(obj0.Search("", SearchFlags.None));
+        Assert.Null(obj0.Search("notfound", SearchFlags.None));
+        Assert.NotNull(obj0.Search(" ", SearchFlags.None));
     }
 
     [Fact]
@@ -57,7 +57,7 @@ asub
 subb";
 
         var obj0 = new MarkDocument(text);
-        var obj = obj0.Find("sub", FindFlags.None);
+        var obj = obj0.Search("sub", SearchFlags.None);
         Assert.NotNull(obj);
         WriteTestCode(obj);
 
@@ -118,7 +118,7 @@ subb";
     }
 
     [Fact]
-    public void FindHighlight_Word()
+    public void SearchHighlight_Word()
     {
         var text = @"a sub0 b
 
@@ -131,7 +131,7 @@ asub
 subb";
 
         var obj0 = new MarkDocument(text);
-        var obj = obj0.Find("sub", FindFlags.Word);
+        var obj = obj0.Search("sub", SearchFlags.Word);
         Assert.NotNull(obj);
         WriteTestCode(obj);
 
@@ -184,7 +184,7 @@ subb";
     }
 
     [Fact]
-    public void FindHighlight_IgnoreCase()
+    public void SearchHighlight_IgnoreCase()
     {
         var text = @"a sub0 b
 
@@ -197,7 +197,7 @@ asub
 subb";
 
         var obj0 = new MarkDocument(text);
-        var obj = obj0.Find("sub", FindFlags.IgnoreCase);
+        var obj = obj0.Search("sub", SearchFlags.IgnoreCase);
         Assert.NotNull(obj);
         WriteTestCode(obj);
 
@@ -267,7 +267,7 @@ subb";
 
 Normal text";
 
-        var obj = NewObj(text);
+        var obj = CreateObj(text);
         // <blockquote>\n    <p>Text</p>\n</blockquote>
         Assert.Equal(BlockKind.IndentedCode, obj[0].Kind);
         Assert.Equal(0, obj[0].QuoteLevel);
@@ -307,7 +307,7 @@ Normal text";
 ";
         text = text.Replace("    ", "\t");
 
-        var obj = NewObj(text);
+        var obj = CreateObj(text);
         // * Unordered 1 level 1
         Assert.Equal(BlockKind.Para, obj[0].Kind);
         Assert.Equal(0, obj[0].QuoteLevel);
@@ -379,7 +379,7 @@ Normal text";
   ```
 - e";
 
-        var obj = NewObj(text);
+        var obj = CreateObj(text);
         // - a
         Assert.Equal(BlockKind.Para, obj[0].Kind);
         Assert.Equal(0, obj[0].QuoteLevel);

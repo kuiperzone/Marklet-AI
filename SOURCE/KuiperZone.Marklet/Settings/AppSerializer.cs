@@ -36,6 +36,7 @@ namespace KuiperZone.Marklet.Settings;
 
 [JsonSerializable(typeof(AppSettings))]
 [JsonSerializable(typeof(ContentSettings))]
+[JsonSerializable(typeof(DatabaseSettings))]
 internal partial class AppSerializer : JsonSerializerContext
 {
 }

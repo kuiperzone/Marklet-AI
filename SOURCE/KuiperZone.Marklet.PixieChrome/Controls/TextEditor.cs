@@ -71,7 +71,7 @@ public class TextEditor : TextBox
         _stack.HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Right;
         _stack.VerticalAlignment = Avalonia.Layout.VerticalAlignment.Center;
 
-        _backButton = NewButton(Symbols.Backspace, DeleteClickHandler, false);
+        _backButton = CreateButton(Symbols.Backspace, DeleteClickHandler, false);
         UpdateButtons();
 
         PastingFromClipboard += PastingFromClipboardHandler;
@@ -395,6 +395,16 @@ public class TextEditor : TextBox
             UpdateButtons();
             return;
         }
+
+        if (p == IsReadOnlyProperty)
+        {
+            var enabled = !change.GetNewValue<bool>();
+            _backButton.IsEnabled = enabled;
+            _wordButton?.IsEnabled = enabled;
+            _caseButton?.IsEnabled = enabled;
+            return;
+        }
+
     }
 
     /// <summary>
@@ -579,7 +589,7 @@ public class TextEditor : TextBox
     private static int GetStartOfLine(string text, int index, bool wordStop)
     {
         const string NSpace = $"{nameof(TextEditor)}.{nameof(GetStartOfLine)}";
-        ConditionalDebug.WriteLine(NSpace, $"Index: {index}, wordStop: {wordStop}");
+        Diag.WriteLine(NSpace, $"Index: {index}, wordStop: {wordStop}");
 
         int x = -1;
 
@@ -592,8 +602,8 @@ public class TextEditor : TextBox
 
             if (IsStartOfLine(text, n))
             {
-                ConditionalDebug.WriteLine(NSpace, $"Start of line at n: {n}");
-                ConditionalDebug.WriteLine(NSpace, $"WordStop at: {x}");
+                Diag.WriteLine(NSpace, $"Start of line at n: {n}");
+                Diag.WriteLine(NSpace, $"WordStop at: {x}");
                 return x > -1 ? x : n;
             }
         }
@@ -617,7 +627,7 @@ public class TextEditor : TextBox
     private static bool Normalize(ref int s0, ref int s1)
     {
         const string NSpace = $"{nameof(TextEditor)}.{nameof(Normalize)}";
-        ConditionalDebug.WriteLine(NSpace, $"Initial s0, s1: {s0}, {s1}");
+        Diag.WriteLine(NSpace, $"Initial s0, s1: {s0}, {s1}");
 
         if (s0 != s1)
         {
@@ -626,7 +636,7 @@ public class TextEditor : TextBox
                 (s1, s0) = (s0, s1);
             }
 
-            ConditionalDebug.WriteLine(NSpace, $"Normalized s0, s1: {s0}, {s1}");
+            Diag.WriteLine(NSpace, $"Normalized s0, s1: {s0}, {s1}");
             return true;
         }
 
@@ -693,7 +703,7 @@ public class TextEditor : TextBox
         return text;
     }
 
-    private static LightButton NewButton(string content, EventHandler<RoutedEventArgs> click, bool canToggle, bool isChecked = false)
+    private static LightButton CreateButton(string content, EventHandler<RoutedEventArgs> click, bool canToggle, bool isChecked = false)
     {
         var b = new LightButton();
         b.Classes.Add("accent-checked");
@@ -788,18 +798,18 @@ public class TextEditor : TextBox
 
         if (e != null)
         {
-            ConditionalDebug.WriteLine(NSpace, $"START: {e.Key} + {e.KeyModifiers}");
-            ConditionalDebug.WriteLine(NSpace, $"SelStart: {SelectionStart}, SelEnd: {SelectionEnd}, Caret: {CaretIndex}");
+            Diag.WriteLine(NSpace, $"START: {e.Key} + {e.KeyModifiers}");
+            Diag.WriteLine(NSpace, $"SelStart: {SelectionStart}, SelEnd: {SelectionEnd}, Caret: {CaretIndex}");
             return;
         }
 
-        ConditionalDebug.WriteLine(NSpace, $"END: SelStart: {SelectionStart}, SelEnd: {SelectionEnd}, Caret: {CaretIndex}");
+        Diag.WriteLine(NSpace, $"END: SelStart: {SelectionStart}, SelEnd: {SelectionEnd}, Caret: {CaretIndex}");
     }
 
     private int ShiftUp(int offset)
     {
         const string NSpace = $"{nameof(TextEditor)}.{nameof(ShiftUp)}";
-        ConditionalDebug.WriteLine(NSpace, $"offset: {offset}");
+        Diag.WriteLine(NSpace, $"offset: {offset}");
 
         if (string.IsNullOrEmpty(Text))
         {
@@ -808,7 +818,7 @@ public class TextEditor : TextBox
 
         var cx = CaretIndex;
         int index = IterateLineUp(Text, cx, ref offset);
-        ConditionalDebug.WriteLine(NSpace, $"Caret: {cx}, index: {index}");
+        Diag.WriteLine(NSpace, $"Caret: {cx}, index: {index}");
 
         int anchor = (SelectionStart != SelectionEnd)
             ? ((cx == SelectionStart) ? SelectionEnd : SelectionStart) : cx;
@@ -829,7 +839,7 @@ public class TextEditor : TextBox
     private int ShiftDown(int offset)
     {
         const string NSpace = $"{nameof(TextEditor)}.{nameof(ShiftDown)}";
-        ConditionalDebug.WriteLine(NSpace, $"offset: {offset}");
+        Diag.WriteLine(NSpace, $"offset: {offset}");
 
         if (string.IsNullOrEmpty(Text))
         {
@@ -838,7 +848,7 @@ public class TextEditor : TextBox
 
         var cx = CaretIndex;
         int index = IterateLineDown(Text, cx, ref offset);
-        ConditionalDebug.WriteLine(NSpace, $"Caret: {cx}, index: {index}");
+        Diag.WriteLine(NSpace, $"Caret: {cx}, index: {index}");
 
         var anchor = (SelectionStart != SelectionEnd)
             ? ((cx == SelectionStart) ? SelectionEnd : SelectionStart) : cx;
@@ -854,8 +864,8 @@ public class TextEditor : TextBox
     private int PageUp(bool shift, int offset)
     {
         const string NSpace = $"{nameof(TextEditor)}.{nameof(PageUp)}";
-        ConditionalDebug.WriteLine(NSpace, $"shift: {shift}");
-        ConditionalDebug.WriteLine(NSpace, $"offset: {offset}");
+        Diag.WriteLine(NSpace, $"shift: {shift}");
+        Diag.WriteLine(NSpace, $"offset: {offset}");
 
         if (string.IsNullOrEmpty(Text))
         {
@@ -864,7 +874,7 @@ public class TextEditor : TextBox
 
         var cx = CaretIndex;
         int index = IteratePageUp(Text, cx, ref offset);
-        ConditionalDebug.WriteLine(NSpace, $"Caret: {cx}, index: {index}");
+        Diag.WriteLine(NSpace, $"Caret: {cx}, index: {index}");
 
         if (shift)
         {
@@ -891,8 +901,8 @@ public class TextEditor : TextBox
     private int PageDown(bool shift, int offset)
     {
         const string NSpace = $"{nameof(TextEditor)}.{nameof(PageDown)}";
-        ConditionalDebug.WriteLine(NSpace, $"shift: {shift}");
-        ConditionalDebug.WriteLine(NSpace, $"offset: {offset}");
+        Diag.WriteLine(NSpace, $"shift: {shift}");
+        Diag.WriteLine(NSpace, $"offset: {offset}");
 
         if (string.IsNullOrEmpty(Text))
         {
@@ -901,7 +911,7 @@ public class TextEditor : TextBox
 
         var cx = CaretIndex;
         int index = IteratePageDown(Text, cx, ref offset);
-        ConditionalDebug.WriteLine(NSpace, $"Caret: {cx}, index: {index}");
+        Diag.WriteLine(NSpace, $"Caret: {cx}, index: {index}");
 
         if (shift)
         {
@@ -923,11 +933,11 @@ public class TextEditor : TextBox
     private void Home(bool shift)
     {
         const string NSpace = $"{nameof(TextEditor)}.{nameof(Home)}";
-        ConditionalDebug.WriteLine(NSpace, $"shift: {shift}");
+        Diag.WriteLine(NSpace, $"shift: {shift}");
 
         var cx = CaretIndex;
         int index = GetStartOfLine(Text ?? "", cx, true);
-        ConditionalDebug.WriteLine(NSpace, $"Caret: {cx}, index: {index}");
+        Diag.WriteLine(NSpace, $"Caret: {cx}, index: {index}");
 
         if (shift)
         {
@@ -947,11 +957,11 @@ public class TextEditor : TextBox
     private void End(bool shift)
     {
         const string NSpace = $"{nameof(TextEditor)}.{nameof(End)}";
-        ConditionalDebug.WriteLine(NSpace, $"shift: {shift}");
+        Diag.WriteLine(NSpace, $"shift: {shift}");
 
         var cx = CaretIndex;
         int index = GetEndOfLine(Text ?? "", cx);
-        ConditionalDebug.WriteLine(NSpace, $"Caret: {cx}, index: {index}");
+        Diag.WriteLine(NSpace, $"Caret: {cx}, index: {index}");
 
         if (shift)
         {
@@ -980,13 +990,13 @@ public class TextEditor : TextBox
             Normalize(ref s0, ref s1);
             int index0 = GetStartOfLine(text, s0, false);
             int index1 = GetEndOfLine(text, s1);
-            ConditionalDebug.WriteLine(NSpace, $"index0, index1: {index0}, {index1}");
+            Diag.WriteLine(NSpace, $"index0, index1: {index0}, {index1}");
 
             var t0 = text.Substring(0, index0);
             var t1 = Unindent(text.Substring(index0, index1 - index0), out int d0, out int d1);
             var t2 = text.Substring(index1);
-            ConditionalDebug.WriteLine(NSpace, $"d0: {d0}");
-            ConditionalDebug.WriteLine(NSpace, $"d1: {d1}");
+            Diag.WriteLine(NSpace, $"d0: {d0}");
+            Diag.WriteLine(NSpace, $"d1: {d1}");
 
             Text = string.Concat(t0, t1, t2);
 
@@ -1010,7 +1020,7 @@ public class TextEditor : TextBox
         {
             int index0 = GetStartOfLine(text, s0, false);
             int index1 = GetEndOfLine(text, s1);
-            ConditionalDebug.WriteLine(NSpace, $"index0, index1: {index0}, {index1}");
+            Diag.WriteLine(NSpace, $"index0, index1: {index0}, {index1}");
 
             if (index1 <= index0)
             {
@@ -1027,7 +1037,7 @@ public class TextEditor : TextBox
                 text = string.Concat(t0, "\t", t1.Replace("\n", "\n\t"), t2);
 
                 int delta = text.Length - l0;
-                ConditionalDebug.WriteLine(NSpace, $"delta: {delta}");
+                Diag.WriteLine(NSpace, $"delta: {delta}");
 
                 Text = text;
                 SelectionStart = index0 == s0 ? s0 : s0 + 1;
@@ -1042,7 +1052,7 @@ public class TextEditor : TextBox
     private int IterateLineUp(string text, int startIndex, ref int offset)
     {
         const string NSpace = $"{nameof(TextEditor)}.{nameof(IterateLineUp)}";
-        ConditionalDebug.WriteLine(NSpace, $"startIndex: {startIndex}");
+        Diag.WriteLine(NSpace, $"startIndex: {startIndex}");
 
         return IterateUp(text, startIndex, 2, ref offset);
     }
@@ -1050,7 +1060,7 @@ public class TextEditor : TextBox
     private int IteratePageUp(string text, int startIndex, ref int offset)
     {
         const string NSpace = $"{nameof(TextEditor)}.{nameof(IteratePageUp)}";
-        ConditionalDebug.WriteLine(NSpace, $"startIndex: {startIndex}");
+        Diag.WriteLine(NSpace, $"startIndex: {startIndex}");
 
         // Plus 1 deliberate
         return IterateUp(text, startIndex, GetPageHeight() + 1, ref offset);
@@ -1059,8 +1069,8 @@ public class TextEditor : TextBox
     private int IterateUp(string text, int startIndex, int height, ref int offset)
     {
         const string NSpace = $"{nameof(TextEditor)}.{nameof(IterateUp)}";
-        ConditionalDebug.WriteLine(NSpace, $"Height: {height}");
-        ConditionalDebug.ThrowIfNegativeOrZero(height);
+        Diag.WriteLine(NSpace, $"Height: {height}");
+        Diag.ThrowIfNegativeOrZero(height);
 
         startIndex = Math.Min(startIndex, text.Length - 1);
 
@@ -1094,7 +1104,7 @@ public class TextEditor : TextBox
     private int IterateLineDown(string text, int startIndex, ref int offset)
     {
         const string NSpace = $"{nameof(TextEditor)}.{nameof(IterateLineDown)}";
-        ConditionalDebug.WriteLine(NSpace, $"startIndex: {startIndex}");
+        Diag.WriteLine(NSpace, $"startIndex: {startIndex}");
 
         // Just 1 here
         return IterateDown(text, startIndex, 1, ref offset);
@@ -1103,7 +1113,7 @@ public class TextEditor : TextBox
     private int IteratePageDown(string text, int startIndex, ref int offset)
     {
         const string NSpace = $"{nameof(TextEditor)}.{nameof(IteratePageDown)}";
-        ConditionalDebug.WriteLine(NSpace, $"startIndex: {startIndex}");
+        Diag.WriteLine(NSpace, $"startIndex: {startIndex}");
 
         // Plus 1 deliberate
         return IterateDown(text, startIndex, GetPageHeight() + 1, ref offset);
@@ -1112,8 +1122,8 @@ public class TextEditor : TextBox
     private int IterateDown(string text, int startIndex, int height, ref int offset)
     {
         const string NSpace = $"{nameof(TextEditor)}.{nameof(IterateDown)}";
-        ConditionalDebug.WriteLine(NSpace, $"Height: {height}");
-        ConditionalDebug.ThrowIfNegativeOrZero(height);
+        Diag.WriteLine(NSpace, $"Height: {height}");
+        Diag.ThrowIfNegativeOrZero(height);
 
         for (int n = startIndex; n < text.Length; ++n)
         {
@@ -1185,7 +1195,7 @@ public class TextEditor : TextBox
         // 1. REVEAL
         if (HasRevealButton)
         {
-            _revealButton ??= NewButton(Symbols.Visibility, RevealClickHandler, true, RevealPassword);
+            _revealButton ??= CreateButton(Symbols.Visibility, RevealClickHandler, true, RevealPassword);
             _revealButton.Tip = "Reveal";
             childs.Add(_revealButton);
         }
@@ -1197,7 +1207,7 @@ public class TextEditor : TextBox
         // 2. COPY
         if (HasCopyButton)
         {
-            _copyButton ??= NewButton(Symbols.ContentCopy, CopyClickHandler, false);
+            _copyButton ??= CreateButton(Symbols.ContentCopy, CopyClickHandler, false);
             _copyButton.Tip = "Copy";
             childs.Add(_copyButton);
         }
@@ -1209,7 +1219,7 @@ public class TextEditor : TextBox
         // 3. CASE
         if (HasMatchCaseButton)
         {
-            _caseButton ??= NewButton(Symbols.MatchCase, CaseWordClickHandler, true);
+            _caseButton ??= CreateButton(Symbols.MatchCase, CaseWordClickHandler, true);
             _caseButton.Tip = "Match case";
             childs.Add(_caseButton);
         }
@@ -1221,7 +1231,7 @@ public class TextEditor : TextBox
         // 4. WORD
         if (HasMatchWordButton)
         {
-            _wordButton ??= NewButton(Symbols.MatchWord, CaseWordClickHandler, true);
+            _wordButton ??= CreateButton(Symbols.MatchWord, CaseWordClickHandler, true);
             _wordButton.Tip = "Match words";
             childs.Add(_wordButton);
         }

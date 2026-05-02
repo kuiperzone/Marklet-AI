@@ -344,9 +344,9 @@ public class PixieCombo : PixieControl
     /// <summary>
     /// Overrides and also searches <see cref="Items"/>.
     /// </summary>
-    public override bool Find(string? keyword, List<PixieFinding>? findings)
+    public override bool Search(string? keyword, List<PixieFinding>? findings)
     {
-        if (base.Find(keyword, findings))
+        if (base.Search(keyword, findings))
         {
             return true;
         }
@@ -482,12 +482,12 @@ public class PixieCombo : PixieControl
         }
 
         var info = e.GetCurrentPoint(this);
-        ConditionalDebug.WriteLine(NSpace, "Left pressed A");
-        ConditionalDebug.WriteLine(NSpace, "Pointer over Combo: " + _box.IsPointerOver);
+        Diag.WriteLine(NSpace, "Left pressed A");
+        Diag.WriteLine(NSpace, "Pointer over Combo: " + _box.IsPointerOver);
 
         if (info.Properties.IsLeftButtonPressed && !_isEditable && !_box.IsPointerOver)
         {
-            ConditionalDebug.WriteLine(NSpace, "Left pressed B");
+            Diag.WriteLine(NSpace, "Left pressed B");
             e.Handled = true;
             _box.IsDropDownOpen = true;
             return;
@@ -526,7 +526,7 @@ public class PixieCombo : PixieControl
     {
         // Occurs asynchronously after text changes and the new text is rendered.
         const string NSpace = $"{nameof(PixieCombo)}.{nameof(BoxTextChangedHandler)}";
-        ConditionalDebug.WriteLine(NSpace, $"Text: {_box.Text}");
+        Diag.WriteLine(NSpace, $"Text: {_box.Text}");
         _text = _box.Text;
     }
 
@@ -556,7 +556,7 @@ public class PixieCombo : PixieControl
     private void BoxKeyDownHandler(object? _, KeyEventArgs e)
     {
         const string NSpace = $"{nameof(PixieCombo)}.{nameof(BoxKeyDownHandler)}";
-        ConditionalDebug.WriteLine(NSpace, $"Key: {e.Key}");
+        Diag.WriteLine(NSpace, $"Key: {e.Key}");
 
         if (e.Key == Key.Enter && IsEditable && !_box.IsDropDownOpen)
         {
@@ -639,7 +639,7 @@ public class PixieCombo : PixieControl
             // Fighting fluent
             // Locates the internal TextBox and disables its separate jankey FocusAdorner.
             _edit = e.NameScope.Find<TextBox>("PART_EditableTextBox");
-            ConditionalDebug.ThrowIfNull(_edit);
+            Diag.ThrowIfNull(_edit);
 
             if (_edit != null)
             {

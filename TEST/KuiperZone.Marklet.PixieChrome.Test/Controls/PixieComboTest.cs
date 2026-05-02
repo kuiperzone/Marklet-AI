@@ -27,13 +27,13 @@ public class PixieComboTest : ControlTestBase
     [Fact]
     public void DirectProperties_ChangeCorrectly()
     {
-        var obj = NewObj();
+        var obj = CreateObj();
         AssertDirect(obj, PixieCombo.SelectedIndexProperty, -1, 2);
         AssertDirect(obj, PixieCombo.IsEditableProperty, false, true);
         AssertDirect(obj, PixieCombo.MaxEditLengthProperty, 256, 3);
 
         // Must enable first
-        obj = NewObj();
+        obj = CreateObj();
         obj.IsEditable = true;
         AssertDirect(obj, PixieCombo.TextProperty, null, "Text");
     }
@@ -41,7 +41,7 @@ public class PixieComboTest : ControlTestBase
     [Fact]
     public void StyledProperties_ChangeAndClear()
     {
-        var obj = NewObj();
+        var obj = CreateObj();
 
         // Initial values may be subject to change
         AssertStyled(obj, PixieCombo.MaxDropHeightProperty, 300.0, 30);
@@ -52,7 +52,7 @@ public class PixieComboTest : ControlTestBase
     [Fact]
     public void SelectedIndex_ValueChangedOccurs()
     {
-        var obj = NewObj();
+        var obj = CreateObj();
         var receiver = new ChangeReceiver();
         obj.ValueChanged += receiver.ChangedHandler;
         Assert.Equal(-1, obj.SelectedIndex);
@@ -65,7 +65,7 @@ public class PixieComboTest : ControlTestBase
     [Fact]
     public void Text_NotEditable_NotChanged()
     {
-        var obj = NewObj();
+        var obj = CreateObj();
         obj.Text = "Hello";
         Assert.Null(obj.Text);
         Assert.Equal(-1, obj.SelectedIndex);
@@ -79,7 +79,7 @@ public class PixieComboTest : ControlTestBase
     [Fact]
     public void Text_Editable_ValueChangedNotOccurs()
     {
-        var obj = NewObj();
+        var obj = CreateObj();
 
         var receiver = new ChangeReceiver();
         obj.ValueChanged += receiver.ChangedHandler;
@@ -94,7 +94,7 @@ public class PixieComboTest : ControlTestBase
     [Fact]
     public void Text_Editable_SelectedIndexTracks()
     {
-        var obj = NewObj();
+        var obj = CreateObj();
 
         // Expect initial
         Assert.Null(obj.Text);
@@ -114,7 +114,7 @@ public class PixieComboTest : ControlTestBase
         Assert.Equal(WhatText.SelectedOrAll.ToString(), obj.Text);
     }
 
-    private static PixieCombo NewObj()
+    private static PixieCombo CreateObj()
     {
         var obj = new PixieCombo();
 

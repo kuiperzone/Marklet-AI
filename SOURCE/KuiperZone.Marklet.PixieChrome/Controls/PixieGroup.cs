@@ -81,9 +81,9 @@ public class PixieGroup : StackPanel
     /// </summary>
     public PixieGroup()
     {
-        ConditionalDebug.ThrowIfTrue(base.UseLayoutRounding);
-        ConditionalDebug.ThrowIfNotEqual(Avalonia.Layout.Orientation.Vertical, base.Orientation);
-        ConditionalDebug.ThrowIfNotEqual(Avalonia.Layout.HorizontalAlignment.Stretch, HorizontalAlignment);
+        Diag.ThrowIfTrue(base.UseLayoutRounding);
+        Diag.ThrowIfNotEqual(Avalonia.Layout.Orientation.Vertical, base.Orientation);
+        Diag.ThrowIfNotEqual(Avalonia.Layout.HorizontalAlignment.Stretch, HorizontalAlignment);
 
         _titleBlock.IsVisible = false;
         _titleBlock.FontWeight = FontWeight.Bold;
@@ -454,7 +454,7 @@ public class PixieGroup : StackPanel
     /// Results are appended to "results" and may include self. The return value is always false for null or empty
     /// strings.
     /// </remarks>
-    public bool Find(string? keyword, List<PixieFinding> findings)
+    public bool Search(string? keyword, List<PixieFinding> findings)
     {
         const StringComparison Comp = StringComparison.OrdinalIgnoreCase;
 
@@ -469,14 +469,14 @@ public class PixieGroup : StackPanel
         {
             if (item is PixieControl control)
             {
-                flag |= control.Find(keyword, findings);
+                flag |= control.Search(keyword, findings);
                 continue;
             }
 
             if (item is PixieGroup group)
             {
                 // Group within a group
-                flag |= group.Find(keyword, findings);
+                flag |= group.Search(keyword, findings);
                 continue;
             }
         }
@@ -539,7 +539,7 @@ public class PixieGroup : StackPanel
             return false;
         }
 
-        ConditionalDebug.ThrowIfNotSame(this, child.Group);
+        Diag.ThrowIfNotSame(this, child.Group);
         int index = base.Children.IndexOf(child);
 
         if (index < 0)
@@ -695,7 +695,7 @@ public class PixieGroup : StackPanel
         {
             var text = change.GetNewValue<string?>();
 
-            if (!string.IsNullOrEmpty(text))
+            if (text != null)
             {
                 _titleBlock.Text = text;
                 _titleBlock.IsVisible = true;
@@ -711,7 +711,7 @@ public class PixieGroup : StackPanel
         {
             var text = change.GetNewValue<string?>();
 
-            if (!string.IsNullOrEmpty(text))
+            if (text != null)
             {
                 _taglineBlock.Text = text;
                 _taglineBlock.IsVisible = true;
@@ -733,7 +733,7 @@ public class PixieGroup : StackPanel
 
         if (p == IsCollapsibleProperty)
         {
-            _collapser = change.GetNewValue<bool>() ? NewCollapser() : null;
+            _collapser = change.GetNewValue<bool>() ? CreateCollapser() : null;
             _rebuild.Post();
             _update.Cancel();
             return;
@@ -792,7 +792,7 @@ public class PixieGroup : StackPanel
         }
     }
 
-    private PixieCard NewCollapser()
+    private PixieCard CreateCollapser()
     {
         var obj = new PixieCard();
         obj.Group = this;

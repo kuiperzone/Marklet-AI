@@ -32,7 +32,7 @@ internal enum DeckMods
     None = 0x00000000,
 
     /// <summary>
-    /// The <see cref="GardenDeck.Basket"/> has changed.
+    /// The <see cref="GardenDeck.CurrentBasket"/> has changed.
     /// </summary>
     Basket = 0x00000002,
 
@@ -57,9 +57,9 @@ internal enum DeckMods
     Folder = 0x00000010,
 
     /// <summary>
-    /// The <see cref="GardenDeck.IsPinned"/> has changed.
+    /// The <see cref="GardenDeck.Flags"/> has changed.
     /// </summary>
-    Pinned = 0x00000020,
+    Flags = 0x00000020,
 
     /// <summary>
     /// A <see cref="GardenLeaf"/> child has changed.

@@ -45,7 +45,7 @@ internal abstract class CardMenu : ContextMenu
         PinItem.InputGesture = BasketKeys.PinnedGesture;
         PinItem.Click += PinnedHandler;
 
-        TouchItem.Header = ChromeFonts.NewRunBlock($"{Symbols.SwipeUp} Touch");
+        TouchItem.Header = ChromeFonts.CreateRunBlock($"{Symbols.SwipeUp} Touch");
         TouchItem.InputGesture = BasketKeys.TouchGesture;
         TouchItem.Click += TouchHandler;
 
@@ -53,11 +53,11 @@ internal abstract class CardMenu : ContextMenu
         RenameItem.InputGesture = BasketKeys.RenameGesture;
         RenameItem.Click += RenameHandler;
 
-        PropertiesItem.Header = ChromeFonts.NewRunBlock($"{Symbols.Info} Properties");
+        PropertiesItem.Header = ChromeFonts.CreateRunBlock($"{Symbols.Info} Properties");
         PropertiesItem.InputGesture = BasketKeys.PropertiesGesture;
         PropertiesItem.Click += PropertiesHandler;
 
-        ArchiveItem.Header = ChromeFonts.NewRunBlock($"{Symbols.Archive} Move to {BasketKind.Archive.DisplayName()}");
+        ArchiveItem.Header = ChromeFonts.CreateRunBlock($"{Symbols.Archive} Move to {BasketKind.Archive.DisplayName()}");
         ArchiveItem.InputGesture = BasketKeys.ArchiveGesture;
         ArchiveItem.Click += ArchiveHandler;
 
@@ -65,11 +65,11 @@ internal abstract class CardMenu : ContextMenu
         RestoreItem.InputGesture = BasketKeys.RestoreGesture;
         RestoreItem.Click += RestoreHandler;
 
-        WasteItem.Header = ChromeFonts.NewRunBlock($"{Symbols.Delete} Move to {BasketKind.Waste.DisplayName()}");
+        WasteItem.Header = ChromeFonts.CreateRunBlock($"{Symbols.Delete} Move to {BasketKind.Waste.DisplayName()}");
         WasteItem.InputGesture = BasketKeys.WasteGesture;
         WasteItem.Click += WasteHandler;
 
-        DeleteItem.Header = ChromeFonts.NewRunBlock($"{Symbols.DeleteForever} Delete Permanently");
+        DeleteItem.Header = ChromeFonts.CreateRunBlock($"{Symbols.DeleteForever} Delete Permanently");
         DeleteItem.InputGesture = BasketKeys.DeleteGesture;
         DeleteItem.Click += DeleteHandler;
     }
@@ -134,7 +134,7 @@ internal abstract class CardMenu : ContextMenu
     /// </summary>
     public static CardMenu Get(DeckCard card)
     {
-        switch (card.Source.Basket)
+        switch (card.Source.CurrentBasket)
         {
             case BasketKind.Recent:
                 HomeMenu.Global.Close();
@@ -149,7 +149,7 @@ internal abstract class CardMenu : ContextMenu
                 WasteMenu.Global.Close();
                 return WasteMenu.Global;
             default:
-                throw new ArgumentException($"Invalid {nameof(BasketKind)} {card.Source.Basket}", nameof(card));
+                throw new ArgumentException($"Invalid {nameof(BasketKind)} {card.Source.CurrentBasket}", nameof(card));
         }
     }
 
@@ -213,53 +213,57 @@ internal abstract class CardMenu : ContextMenu
             return;
         }
 
-        var deck = caller.Source;
-        var name = deck.Kind.DisplayName(DisplayKind.Default, deck.IsEphemeral);
-        RenameItem.Header = ChromeFonts.NewRunBlock($"{Symbols.Edit} Rename {name}");
+        var src = caller.Source;
+        var name = src.Format.DisplayName(DisplayStyle.Default, src.Ephemeral);
+        RenameItem.Header = ChromeFonts.CreateRunBlock($"{Symbols.Edit} Rename {name}");
 
-        PinItem.IsChecked = deck.IsPinned;
-        PinItem.Header = ChromeFonts.NewRunBlock(deck.IsPinned ? $"{Symbols.KeepOff} Remove Pin" : $"{Symbols.Keep} Add Pin");
+        PinItem.IsChecked = src.IsPinned;
+        PinItem.Header = ChromeFonts.CreateRunBlock(src.IsPinned ? $"{Symbols.KeepOff} Remove Pin" : $"{Symbols.Keep} Add Pin");
 
-        RestoreItem.IsVisible = deck.Basket != deck.Origin;
-        RestoreItem.Header = ChromeFonts.NewRunBlock($"{Symbols.RestorePage} Restore to {deck.Origin.DisplayName()}");
+        RestoreItem.IsVisible = src.CurrentBasket != src.OriginBasket;
+        RestoreItem.Header = ChromeFonts.CreateRunBlock($"{Symbols.RestorePage} Restore to {src.OriginBasket.DisplayName()}");
     }
 
     private void OpenedHandler(object? _, EventArgs __)
     {
         Init(this.FindLogicalAncestorOfType<DeckCard>());
-        ConditionalDebug.ThrowIfNull(Caller);
+        Diag.ThrowIfNull(Caller);
         Focus();
     }
 
     private void PinnedHandler(object? _, EventArgs __)
     {
         const string NSpace = $"{nameof(CardMenu)}.{nameof(PinnedHandler)}";
-        ConditionalDebug.WriteLine(NSpace, "CALLER: " + Caller);
-        ConditionalDebug.ThrowIfNull(Caller);
-        Caller?.Source.IsPinned = !Caller.Source.IsPinned;
+        Diag.WriteLine(NSpace, "CALLER: " + Caller);
+
+        var src = Caller?.Source;
+        Diag.ThrowIfNull(src);
+
+        // Toggle
+        src?.IsPinned = !src.IsPinned;
     }
 
     private void TouchHandler(object? _, EventArgs __)
     {
         const string NSpace = $"{nameof(CardMenu)}.{nameof(TouchHandler)}";
-        ConditionalDebug.WriteLine(NSpace, "CALLER: " + Caller);
-        ConditionalDebug.ThrowIfNull(Caller);
+        Diag.WriteLine(NSpace, "CALLER: " + Caller);
+        Diag.ThrowIfNull(Caller);
         Caller?.Source.Touch();
     }
 
     private void RenameHandler(object? _, EventArgs __)
     {
         const string NSpace = $"{nameof(CardMenu)}.{nameof(RenameHandler)}";
-        ConditionalDebug.WriteLine(NSpace, "CALLER: " + Caller);
-        ConditionalDebug.ThrowIfNull(Caller);
+        Diag.WriteLine(NSpace, "CALLER: " + Caller);
+        Diag.ThrowIfNull(Caller);
         Caller?.StartRename(MemoryGarden.MaxMetaLength);
     }
 
     private void PropertiesHandler(object? _, EventArgs __)
     {
         const string NSpace = $"{nameof(CardMenu)}.{nameof(PropertiesHandler)}";
-        ConditionalDebug.WriteLine(NSpace, "CALLER: " + Caller);
-        ConditionalDebug.ThrowIfNull(Caller);
+        Diag.WriteLine(NSpace, "CALLER: " + Caller);
+        Diag.ThrowIfNull(Caller);
         Caller?.ShowPropertiesWindow();
     }
 
@@ -268,12 +272,12 @@ internal abstract class CardMenu : ContextMenu
         if (Caller != null)
         {
             var src = Caller.Source;
-            src.Basket = src.Origin;
+            src.CurrentBasket = src.OriginBasket;
             src.VisualSignals |= SignalFlags.ItemAttention | SignalFlags.OpenFolder;
             return;
         }
 
-        ConditionalDebug.Fail("Failed to find Caller");
+        Diag.Fail("Failed to find Caller");
         return;
     }
 
@@ -282,12 +286,12 @@ internal abstract class CardMenu : ContextMenu
         if (Caller != null)
         {
             var src = Caller.Source;
-            src.Basket = BasketKind.Archive;
+            src.CurrentBasket = BasketKind.Archive;
             src.VisualSignals |= SignalFlags.ItemAttention | SignalFlags.OpenFolder;
             return;
         }
 
-        ConditionalDebug.Fail("Failed to find Caller");
+        Diag.Fail("Failed to find Caller");
         return;
     }
 
@@ -296,11 +300,11 @@ internal abstract class CardMenu : ContextMenu
         if (Caller != null)
         {
             var src = Caller.Source;
-            src.Basket = BasketKind.Waste;
+            src.CurrentBasket = BasketKind.Waste;
             return;
         }
 
-        ConditionalDebug.Fail("Failed to find Caller");
+        Diag.Fail("Failed to find Caller");
         return;
     }
 
@@ -319,7 +323,7 @@ internal abstract class CardMenu : ContextMenu
 
             var window = new ChromeDialog();
 
-            var kind = caller.Source.Kind.DisplayName(DisplayKind.Lower, false);
+            var kind = caller.Source.Format.DisplayName(DisplayStyle.Lower);
             window.Message = $"Delete {kind} permanently?";
             window.Details = "\n" + caller.Source.Title;
             window.Buttons = DialogButtons.Delete | DialogButtons.Cancel;

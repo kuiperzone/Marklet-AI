@@ -37,22 +37,20 @@ internal sealed class BufferButton : LightButton, IDeckDrop
     private const double CheckedWidth = 4.0;
     private const double ButtonFontSize = ChromeFonts.HugeSymbolFontSize;
     private static readonly ChromeStyling Styling = ChromeStyling.Global;
-    private static readonly MemoryGarden Garden = GardenGrounds.Global;
+    private static readonly MemoryGarden Garden = GlobalGarden.Global;
 
     public const double ButtonSize = CheckedWidth + MinBoxSize * ButtonFontSize / ChromeFonts.SymbolFontSize;
 
     /// <summary>
     /// Basket constructor.
     /// </summary>
-    public BufferButton(BasketKind basket)
+    public BufferButton(BasketKind kind)
         : this()
     {
-        Basket = basket;
-
+        Basket = kind;
         CanToggle = true;
-        Content = basket.MaterialSymbol();
         VerticalAlignment = VerticalAlignment.Top;
-
+        Content = kind.MaterialSymbol();
         CheckedChanged += CheckedChangedHandler;
     }
 
@@ -103,15 +101,7 @@ internal sealed class BufferButton : LightButton, IDeckDrop
     {
         if (CanToggle)
         {
-            if (CanDrop(obj))
-            {
-                Background = null;
-                Foreground = Styling.Foreground;
-                return;
-            }
-
-            Background = ChromeBrushes.CriticalHover;
-            Foreground = ChromeStyling.GrayForeground;
+            Foreground = CanDrop(obj) ? ChromeBrushes.ReadyBrush : ChromeBrushes.CriticalBrush;
         }
     }
 
@@ -124,7 +114,7 @@ internal sealed class BufferButton : LightButton, IDeckDrop
         if (deck != null)
         {
             // That's it. The event handlers will take care of themselves.
-            deck.Basket = Basket;
+            deck.CurrentBasket = Basket;
             deck.VisualSignals |= SignalFlags.ItemAttention | SignalFlags.OpenFolder;
             return true;
         }
@@ -134,7 +124,7 @@ internal sealed class BufferButton : LightButton, IDeckDrop
         if (folder != null)
         {
             // Move to this
-            Garden.GetBasket(folder.Owner.Kind).MoveBasket(folder.FolderName, Basket);
+            Garden[folder.Owner.Kind].MoveBasket(folder.FolderName, Basket);
             return true;
         }
 
@@ -164,7 +154,7 @@ internal sealed class BufferButton : LightButton, IDeckDrop
 
         if (obj is GardenDeck deck)
         {
-            if (Basket != deck.Basket && (Basket == deck.Origin || Basket == BasketKind.Waste || Basket == BasketKind.Archive))
+            if (Basket != deck.CurrentBasket && (Basket == deck.OriginBasket || Basket == BasketKind.Waste || Basket == BasketKind.Archive))
             {
                 return deck;
             }
@@ -176,7 +166,7 @@ internal sealed class BufferButton : LightButton, IDeckDrop
         {
             deck = card.Source;
 
-            if (Basket != deck.Basket && (Basket == deck.Origin || Basket == BasketKind.Waste || Basket == BasketKind.Archive))
+            if (Basket != deck.CurrentBasket && (Basket == deck.OriginBasket || Basket == BasketKind.Waste || Basket == BasketKind.Archive))
             {
                 return deck;
             }

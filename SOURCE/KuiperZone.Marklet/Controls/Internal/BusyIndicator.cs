@@ -24,7 +24,6 @@ using KuiperZone.Marklet.PixieChrome;
 using Avalonia.Controls.Shapes;
 using Avalonia.Threading;
 using Avalonia.Media;
-using Avalonia.VisualTree;
 
 namespace KuiperZone.Marklet.Controls.Internal;
 

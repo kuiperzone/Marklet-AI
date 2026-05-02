@@ -189,7 +189,7 @@ internal sealed class ChromeBar : Panel, IChromeBar
 
         if (_titleBlock.IsEffectivelyVisible)
         {
-            ConditionalDebug.WriteLine(NSpace, "Align title");
+            Diag.WriteLine(NSpace, "Align title");
             const int StarColumn = ButtonGrid.StarColumn;
             const int ColumnCount = ButtonGrid.ColumnCount;
 
@@ -201,7 +201,7 @@ internal sealed class ChromeBar : Panel, IChromeBar
 
             if (tw > sw - uw)
             {
-                ConditionalDebug.WriteLine(NSpace, "Recalculating");
+                Diag.WriteLine(NSpace, "Recalculating");
 
                 for (int n = 0; n < ColumnCount; ++n)
                 {

@@ -44,7 +44,7 @@ internal sealed class BasketToolbar : DockPanel
         Kind = view.Kind;
         Basket = view.Basket;
         View = view;
-        ConditionalDebug.ThrowIfNotEqual(view.Kind, Basket.Kind);
+        Diag.ThrowIfNotEqual(view.Kind, Basket.Kind);
 
         HorizontalSpacing = 4.0;
         VerticalAlignment = Avalonia.Layout.VerticalAlignment.Top;
@@ -84,7 +84,7 @@ internal sealed class BasketToolbar : DockPanel
         {
             _rightButton = _buttons.AddButton("New " + Symbols.EditSquare);
             _rightButton.Classes.Add("accent-background");
-            _rightButton.Tip = "Start new " + Kind.DefaultDeck().DisplayName(DisplayKind.Lower);
+            _rightButton.Tip = "Start new " + Kind.DefaultDeck().DisplayName(DisplayStyle.Lower);
             _rightButton.Click += NewClickHandler;
         }
         else
@@ -96,7 +96,7 @@ internal sealed class BasketToolbar : DockPanel
             _rightButton.Click += (_, __) => ShowPurgeWindow();
         }
 
-        view.ViewChanged += ViewChangedHandler;
+        view.Changed += ViewChangedHandler;
     }
 
     /// <summary>
@@ -140,12 +140,12 @@ internal sealed class BasketToolbar : DockPanel
     private void NewClickHandler(object? _, EventArgs __)
     {
         const string NSpace = $"{nameof(BasketToolbar)}.{nameof(NewClickHandler)}";
-        ConditionalDebug.WriteLine(NSpace, "Clicked: " + Kind);
-        ConditionalDebug.ThrowIfFalse(Kind.CanInstigateNew());
+        Diag.WriteLine(NSpace, "Clicked: " + Kind);
+        Diag.ThrowIfFalse(Kind.CanInstigateNew());
 
         if (Kind.CanInstigateNew())
         {
-            View.Mission.OnNewClicked(false);
+            View.Mission.OnNewClick(false);
         }
     }
 
@@ -155,7 +155,7 @@ internal sealed class BasketToolbar : DockPanel
     public async void ShowPruningWindow()
     {
         const string NSpace = $"{nameof(BasketToolbar)}.{nameof(ShowPruningWindow)}";
-        ConditionalDebug.WriteLine(NSpace, "Clicked: " + Kind);
+        Diag.WriteLine(NSpace, "Clicked: " + Kind);
 
         var basket = View.Basket;
         var window = new PruneWindow(basket);
@@ -173,7 +173,7 @@ internal sealed class BasketToolbar : DockPanel
     public async void ShowPurgeWindow()
     {
         const string NSpace = $"{nameof(BasketToolbar)}.{nameof(ShowPurgeWindow)}";
-        ConditionalDebug.WriteLine(NSpace, "Clicked: " + Kind);
+        Diag.WriteLine(NSpace, "Clicked: " + Kind);
 
         var basket = View.Basket;
         var confirm = new ChromeDialog();
@@ -190,12 +190,12 @@ internal sealed class BasketToolbar : DockPanel
     private void NewEphemeralHandler(object? _, EventArgs __)
     {
         const string NSpace = $"{nameof(BasketToolbar)}.{nameof(NewEphemeralHandler)}";
-        ConditionalDebug.WriteLine(NSpace, "Clicked: " + Kind);
-        ConditionalDebug.ThrowIfFalse(Kind.CanInstigateNew());
+        Diag.WriteLine(NSpace, "Clicked: " + Kind);
+        Diag.ThrowIfFalse(Kind.CanInstigateNew());
 
         if (Kind.CanInstigateNew())
         {
-            View.Mission.OnNewClicked(true);
+            View.Mission.OnNewClick(true);
         }
     }
 

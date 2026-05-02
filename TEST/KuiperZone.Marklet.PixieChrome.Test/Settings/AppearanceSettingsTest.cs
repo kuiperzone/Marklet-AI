@@ -27,7 +27,7 @@ public class AppearanceSettingsTest
     [Fact]
     public void Reset_EqualsDefault()
     {
-        var obj = NewObj();
+        var obj = CreateObj();
         obj.Reset();
 
         Assert.Equal(new AppearanceSettings(), obj);
@@ -36,7 +36,7 @@ public class AppearanceSettingsTest
     [Fact]
     public void CopyFrom_EqualsSource()
     {
-        var obj0 = NewObj();
+        var obj0 = CreateObj();
         var obj1 = new AppearanceSettings();
 
         obj1.CopyFrom(obj0);
@@ -46,7 +46,7 @@ public class AppearanceSettingsTest
     [Fact]
     public void Serialize_Deserializes()
     {
-        var obj0 = NewObj();
+        var obj0 = CreateObj();
         var json = obj0.Serialize();
 
         var obj1 = new AppearanceSettings();
@@ -54,7 +54,7 @@ public class AppearanceSettingsTest
         Assert.Equal(obj0, obj1);
     }
 
-    private static AppearanceSettings NewObj()
+    private static AppearanceSettings CreateObj()
     {
         var obj = new AppearanceSettings();
 

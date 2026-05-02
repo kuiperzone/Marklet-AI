@@ -67,37 +67,37 @@ public static class DeckMenu
     private static void ContextOpenedHandler(object? _, EventArgs __)
     {
         const string NSpace = $"{nameof(DeckMenu)}.{nameof(ContextOpenedHandler)}";
-        ConditionalDebug.WriteLine(NSpace, "Opened menu");
+        Diag.WriteLine(NSpace, "Opened menu");
 
         // First menu is Copy
-        var parent = Global.FindLogicalAncestorOfType<DeckLeaf>();
+        var parent = Global.FindLogicalAncestorOfType<LeafView>();
         ((MenuItem)Global.Items[0]!).IsEnabled = parent?.Tracker.SelectionCount > 0;
     }
 
     private static void CopyHandler(object? _, RoutedEventArgs e)
     {
         const string NSpace = $"{nameof(DeckMenu)}.{nameof(CopyHandler)}";
-        ConditionalDebug.WriteLine(NSpace, "Copy text");
+        Diag.WriteLine(NSpace, "Copy text");
 
         e.Handled = true;
-        Global.FindLogicalAncestorOfType<DeckLeaf>()?.Tracker.CopyText(WhatText.SelectedOrNull);
+        Global.FindLogicalAncestorOfType<LeafView>()?.Tracker.CopyText(WhatText.SelectedOrNull);
     }
 
     private static void SelectAllHandler(object? _, RoutedEventArgs e)
     {
         const string NSpace = $"{nameof(DeckMenu)}.{nameof(SelectAllHandler)}";
-        ConditionalDebug.WriteLine(NSpace, "Select all");
+        Diag.WriteLine(NSpace, "Select all");
 
         e.Handled = true;
-        Global.FindLogicalAncestorOfType<DeckLeaf>()?.SelectAll();
+        Global.FindLogicalAncestorOfType<LeafView>()?.SelectAll();
     }
 
     private static void SelectMessageHandler(object? _, RoutedEventArgs e)
     {
         const string NSpace = $"{nameof(DeckMenu)}.{nameof(SelectAllHandler)}";
-        ConditionalDebug.WriteLine(NSpace, "Select all");
+        Diag.WriteLine(NSpace, "Select all");
 
         e.Handled = true;
-        Global.FindLogicalAncestorOfType<DeckLeaf>()?.SelectBlock();
+        Global.FindLogicalAncestorOfType<LeafView>()?.SelectBlock();
     }
 }

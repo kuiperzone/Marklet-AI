@@ -19,6 +19,9 @@
 // with Marklet. If not, see <https://www.gnu.org/licenses/>.
 
 using KuiperZone.Marklet.PixieChrome;
+using KuiperZone.Marklet.PixieChrome.Controls;
+using KuiperZone.Marklet.PixieChrome.Windows;
+using KuiperZone.Marklet.Settings;
 using KuiperZone.Marklet.Stack.Garden;
 
 namespace KuiperZone.Marklet.Shared;
@@ -26,7 +29,7 @@ namespace KuiperZone.Marklet.Shared;
 /// <summary>
 /// Display name form.
 /// </summary>
-public enum DisplayKind
+public enum DisplayStyle
 {
     /// <summary>
     /// Default singular title case.
@@ -96,30 +99,30 @@ public static partial class HelperExt
     /// <summary>
     /// Gets the display name string.
     /// </summary>
-    public static string DisplayName(this DeckKind src, DisplayKind kind, bool ephemeral = false)
+    public static string DisplayName(this DeckFormat src, DisplayStyle style, EphemeralStatus ephemeral = EphemeralStatus.Persistant)
     {
         // Follow type value for name
         var s = src.ToString();
 
-        if (src == DeckKind.None)
+        if (src == DeckFormat.None)
         {
             s = "Item";
         }
 
-        if (ephemeral)
+        if (ephemeral == EphemeralStatus.Explicit)
         {
             s = "Ephemeral " + s;
         }
 
-        switch (kind)
+        switch (style)
         {
-            case DisplayKind.Plural:
+            case DisplayStyle.Plural:
                 return s + "s";
-            case DisplayKind.Lower:
+            case DisplayStyle.Lower:
                 return s.ToLowerInvariant();
-            case DisplayKind.Upper:
+            case DisplayStyle.Upper:
                 return s.ToUpperInvariant();
-            case DisplayKind.LowerPlural:
+            case DisplayStyle.LowerPlural:
                 return (s + "s").ToLowerInvariant();
             default:
                 return s;
@@ -127,23 +130,91 @@ public static partial class HelperExt
     }
 
     /// <summary>
-    /// Gets a Material icon symbol for the <see cref="DeckKind"/> value.
+    /// Gets a Material icon symbol for the <see cref="DeckFormat"/> value.
     /// </summary>
-    public static string? MaterialSymbol(this DeckKind src, bool ephemeral)
+    public static string? MaterialSymbol(this DeckFormat src, EphemeralStatus ephemeral)
     {
-        if (ephemeral)
+        if (ephemeral == EphemeralStatus.Explicit)
         {
             return Symbols.HourglassBottom;
         }
+
         switch (src)
         {
-            case DeckKind.Chat:
+            case DeckFormat.Chat:
                 return Symbols.Chat;
-            case DeckKind.Note:
+            case DeckFormat.Note:
                 return Symbols.EditNote;
             default:
                 return null;
         }
     }
 
+    /// <summary>
+    /// Gets whether the data is loaded from <see cref="DatabaseSettings.DefaultPath"/>.
+    /// </summary>
+    public static bool IsDefault(this MemoryGarden src)
+    {
+        return src.Provider?.Source == DatabaseSettings.DefaultPath;
+    }
+
+    /// <summary>
+    /// Opens (or re-opens) <see cref="MemoryGarden"/> showing an error message dialogue on failure..
+    /// </summary>
+    /// <remarks>
+    /// The result is true if the database is open on return. if "source" is null, setting path is used.
+    /// </remarks>
+    public static async Task<bool> OpenAsync(this MemoryGarden src, object? visual, string? source = null)
+    {
+        string? details;
+        source ??= DatabaseSettings.Global.GetActualPath();
+
+        try
+        {
+            if (src.Open(new SqliteProvider(source, ProviderFlags.WalNormal)).IsOpen())
+            {
+                return true;
+            }
+
+            details = src.Status.ToMessage();
+            return true;
+        }
+        catch (Exception e)
+        {
+            details = e.Message;
+        }
+
+        if (visual != null)
+        {
+            var dialog = CreatePathDialog("Failed to open database", details, src.Provider?.Source ?? source);
+            await dialog.ShowDialog(visual);
+        }
+
+        return false;
+    }
+
+    private static ChromeDialog CreatePathDialog(string? message, string? details, string? source)
+    {
+        var obj = new ChromeDialog();
+        obj.Message = message;
+        obj.Details = details;
+        obj.Buttons = DialogButtons.Ok;
+
+        if (!string.IsNullOrEmpty(source))
+        {
+            var text = new PixieSelectableText();
+            obj.Children.Add(text);
+
+            text.LeftSymbol = Symbols.Database;
+            text.Text = source;
+
+            text.RightButton.IsVisible = true;
+            text.RightButton.Content = Symbols.ContentCopy;
+            text.RightButton.Click += (_, __) => text.CopyToClipboard(text.Text);
+
+            text.Footer = "Ensure full access to the database location";
+        }
+
+        return obj;
+    }
 }

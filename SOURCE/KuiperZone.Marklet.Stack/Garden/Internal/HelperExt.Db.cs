@@ -19,6 +19,7 @@
 // with Marklet. If not, see <https://www.gnu.org/licenses/>.
 
 using System.Data.Common;
+using System.Diagnostics.CodeAnalysis;
 
 namespace KuiperZone.Marklet.Stack.Garden.Internal;
 
@@ -30,43 +31,97 @@ internal static partial class HelperExt
     /// <summary>
     /// Returns field value of given "name".
     /// </summary>
-    public static bool GetBoolean(this DbDataReader src, string name)
+    public static bool GetBooleanOrThrow(this DbDataReader src, string name)
     {
+        // Throws if value is NULL (not expected)
         return src.GetBoolean(src.GetOrdinal(name));
     }
 
     /// <summary>
+    /// Returns field value of given "name" or a default value if the column does not exist or is null.
+    /// </summary>
+    public static bool GetBooleanOrDefault(this DbDataReader src, string name, bool def = false)
+    {
+        try
+        {
+            int ordinal = src.GetOrdinal(name);
+            return src.IsDBNull(ordinal) ? def : src.GetBoolean(ordinal);
+        }
+        catch (IndexOutOfRangeException)
+        {
+            return def;
+        }
+    }
+
+    /// <summary>
     /// Returns field value of given "name".
     /// </summary>
-    public static int GetInt32(this DbDataReader src, string name)
+    public static int GetInt32OrThrow(this DbDataReader src, string name)
     {
+        // Could do?
+        // int ordinal = reader.GetOrdinal(columnName);
+        // return reader.IsDBNull(ordinal) ? 0 : reader.GetInt32(ordinal);
+
+        // Throws if value is NULL (not expected)
         return src.GetInt32(src.GetOrdinal(name));
     }
 
     /// <summary>
+    /// Returns field value of given "name" or a default value if the column does not exist or is null.
+    /// </summary>
+    public static int GetInt32OrDefault(this DbDataReader src, string name, int def = 0)
+    {
+        try
+        {
+            int ordinal = src.GetOrdinal(name);
+            return src.IsDBNull(ordinal) ? def : src.GetInt32(ordinal);
+        }
+        catch (IndexOutOfRangeException)
+        {
+            return def;
+        }
+    }
+
+    /// <summary>
     /// Returns field value of given "name".
     /// </summary>
-    public static long GetInt64(this DbDataReader src, string name)
+    public static long GetInt64OrThrow(this DbDataReader src, string name)
     {
+        // Throws if value is NULL (not expected)
         return src.GetInt64(src.GetOrdinal(name));
     }
 
     /// <summary>
-    /// Returns field string value given "name", or null.
+    /// Returns field value of given "name" or a default value if the column does not exist or is null.
     /// </summary>
-    public static string? GetStringOrNull(this DbDataReader src, string name)
+    public static long GetInt64OrDefault(this DbDataReader src, string name, long def = 0)
     {
-        var ord = src.GetOrdinal(name);
-        return src.IsDBNull(ord) ? null : src.GetString(ord);
+        try
+        {
+            int ordinal = src.GetOrdinal(name);
+            return src.IsDBNull(ordinal) ? def : src.GetInt64(ordinal);
+        }
+        catch (IndexOutOfRangeException)
+        {
+            return def;
+        }
     }
 
     /// <summary>
-    /// Returns field value given "name".
+    /// Returns field value of given "name" or a default value if the column does not exist or is null.
     /// </summary>
-    public static string GetStringOrEmpty(this DbDataReader src, string name)
+    [return: NotNullIfNotNull(nameof(def))]
+    public static string? GetStringOrDefault(this DbDataReader src, string name, string? def = null)
     {
-        var ord = src.GetOrdinal(name);
-        return src.IsDBNull(ord) ? "" : src.GetString(ord);
+        try
+        {
+            var ord = src.GetOrdinal(name);
+            return src.IsDBNull(ord) ? def : src.GetString(ord);
+        }
+        catch (IndexOutOfRangeException)
+        {
+            return def;
+        }
     }
 
     /// <summary>

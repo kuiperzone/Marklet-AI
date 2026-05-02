@@ -162,25 +162,25 @@ public sealed class MarkDocument : IReadOnlyList<IReadOnlyMarkBlock>, IEquatable
     }
 
     /// <summary>
-    /// Overload of <see cref="Find(string?, FindFlags, out int)"/>.
+    /// Overload of <see cref="Search(string?, SearchFlags, out int)"/>.
     /// </summary>
-    public MarkDocument? Find(string? subtext, FindFlags flags)
+    public MarkDocument? Search(string? keyword, SearchFlags flags)
     {
-        return Find(subtext, flags, out _);
+        return Search(keyword, flags, out _);
     }
 
     /// <summary>
-    /// Searches the content for "subtext" and returns a new <see cref="MarkDocument"/> instance if found.
+    /// Searches the content for "keyword" and returns a new <see cref="MarkDocument"/> instance if found.
     /// </summary>
     /// <remarks>
-    /// If any occurrences of "subtext" are found, the call returns a new <see cref="MarkDocument"/> instance with
+    /// If any occurrences of "keyword" are found, the call returns a new <see cref="MarkDocument"/> instance with
     /// occurrences highlighted using <see cref="InlineStyling.Keyword"/>. If no occurrences are found, the result is
     /// null. The source <see cref="MarkDocument"/> instance is not modified.
     /// </remarks>
-    public MarkDocument? Find(string? subtext, FindFlags flags, out int counter)
+    public MarkDocument? Search(string? keyword, SearchFlags flags, out int counter)
     {
         counter = 0;
-        int sublen = subtext?.Length ?? 0;
+        int sublen = keyword?.Length ?? 0;
 
         if (sublen == 0)
         {
@@ -201,7 +201,7 @@ public sealed class MarkDocument : IReadOnlyList<IReadOnlyMarkBlock>, IEquatable
             for (int eN = 0; eN < elems0.Count; ++eN)
             {
                 MarkElement? elem = elems0[eN];
-                int index = elem.Text.Find(subtext, flags);
+                int index = elem.Text.Search(keyword, flags);
 
                 if (index < 0)
                 {
@@ -223,7 +223,7 @@ public sealed class MarkDocument : IReadOnlyList<IReadOnlyMarkBlock>, IEquatable
                 {
                     counter += 1;
                     var split = elem.Split(index, sublen, InlineStyling.Keyword);
-                    ConditionalDebug.ThrowIfZero(split.Length);
+                    Diag.ThrowIfZero(split.Length);
 
                     elems1[eN] = split[0];
 
@@ -237,7 +237,7 @@ public sealed class MarkDocument : IReadOnlyList<IReadOnlyMarkBlock>, IEquatable
                     if (elem.Styling != InlineStyling.Keyword)
                     {
 
-                        index = elem.Text.Find(subtext, flags);
+                        index = elem.Text.Search(keyword, flags);
                         continue;
                     }
 
@@ -328,7 +328,7 @@ public sealed class MarkDocument : IReadOnlyList<IReadOnlyMarkBlock>, IEquatable
 
             if (para != null)
             {
-                ConditionalDebug.ThrowIfNegative(index);
+                Diag.ThrowIfNegative(index);
 
                 index += 1;
                 int c = n - index;
@@ -424,46 +424,46 @@ public sealed class MarkDocument : IReadOnlyList<IReadOnlyMarkBlock>, IEquatable
     private void AppendMarkdig(ContainerBlock container, MarkOptions opts, int quoteLevel, int listLevel, char listBullet)
     {
         const string NSpace = nameof(MarkDocument) + "." + nameof(AppendMarkdig);
-        ConditionalDebug.WriteLine(NSpace, "ENTERED");
+        Diag.WriteLine(NSpace, "ENTERED");
 
         foreach (var item in container)
         {
-            ConditionalDebug.WriteLine(NSpace, $"Source line {item.Line}");
-            ConditionalDebug.WriteLine(NSpace, $"quoteLevel: {quoteLevel}, listLevel: {listLevel}");
+            Diag.WriteLine(NSpace, $"Source line {item.Line}");
+            Diag.WriteLine(NSpace, $"quoteLevel: {quoteLevel}, listLevel: {listLevel}");
 
             MarkBlock? block = null;
 
             switch (item)
             {
                 case ParagraphBlock leaf:
-                    ConditionalDebug.WriteLine(NSpace, nameof(ParagraphBlock));
+                    Diag.WriteLine(NSpace, nameof(ParagraphBlock));
                     block = new(leaf, opts);
                     break;
                 case HeadingBlock leaf:
-                    ConditionalDebug.WriteLine(NSpace, $"HeadingBlock {leaf.Level}");
+                    Diag.WriteLine(NSpace, $"HeadingBlock {leaf.Level}");
                     block = new(leaf, opts);
                     break;
                 case ThematicBreakBlock leaf:
-                    ConditionalDebug.WriteLine(NSpace, nameof(ThematicBreakBlock));
+                    Diag.WriteLine(NSpace, nameof(ThematicBreakBlock));
                     block = new(leaf, opts);
                     break;
                 case CodeBlock leaf:
                     // Handles fenced, indented and math
-                    ConditionalDebug.WriteLine(NSpace, nameof(CodeBlock));
+                    Diag.WriteLine(NSpace, nameof(CodeBlock));
                     block = new(leaf, opts);
                     break;
                 case Table leaf:
-                    ConditionalDebug.WriteLine(NSpace, nameof(Table));
-                    ConditionalDebug.WriteLine(NSpace, $"IsValid: {leaf.IsValid()}");
+                    Diag.WriteLine(NSpace, nameof(Table));
+                    Diag.WriteLine(NSpace, $"IsValid: {leaf.IsValid()}");
                     block = new(leaf, opts);
                     break;
                 case HtmlBlock leaf:
-                    ConditionalDebug.WriteLine(NSpace, nameof(HtmlBlock));
-                    ConditionalDebug.WriteLine(NSpace, $"{leaf.Type}");
+                    Diag.WriteLine(NSpace, nameof(HtmlBlock));
+                    Diag.WriteLine(NSpace, $"{leaf.Type}");
                     block = new(leaf, opts);
                     break;
                 case QuoteBlock quoteBlock:
-                    ConditionalDebug.WriteLine(nameof(MarkDocument), nameof(QuoteBlock));
+                    Diag.WriteLine(nameof(MarkDocument), nameof(QuoteBlock));
 
                     // Don't increment quote level inside lists.
                     // Our data structure can't represent this properly.
@@ -471,20 +471,20 @@ public sealed class MarkDocument : IReadOnlyList<IReadOnlyMarkBlock>, IEquatable
                     AppendMarkdig(quoteBlock, opts, ql, listLevel, listBullet);
                     continue;
                 case ListBlock listBlock:
-                    ConditionalDebug.WriteLine(NSpace, nameof(ListBlock));
-                    ConditionalDebug.WriteLine(NSpace, $"Count: {listBlock.Count}");
-                    ConditionalDebug.WriteLine(NSpace, $"BulletType: {listBlock.BulletType}");
-                    ConditionalDebug.WriteLine(NSpace, $"IsOrdered: {listBlock.IsOrdered}");
-                    ConditionalDebug.WriteLine(NSpace, $"OrderedStart: {listBlock.OrderedStart}");
-                    ConditionalDebug.WriteLine(NSpace, $"DefaultOrderedStart: {listBlock.DefaultOrderedStart}");
+                    Diag.WriteLine(NSpace, nameof(ListBlock));
+                    Diag.WriteLine(NSpace, $"Count: {listBlock.Count}");
+                    Diag.WriteLine(NSpace, $"BulletType: {listBlock.BulletType}");
+                    Diag.WriteLine(NSpace, $"IsOrdered: {listBlock.IsOrdered}");
+                    Diag.WriteLine(NSpace, $"OrderedStart: {listBlock.OrderedStart}");
+                    Diag.WriteLine(NSpace, $"DefaultOrderedStart: {listBlock.DefaultOrderedStart}");
 
                     AppendMarkdig(listBlock, opts, quoteLevel, listLevel + 1, listBlock.BulletType);
                     continue;
                 case ListItemBlock listItem:
-                    ConditionalDebug.WriteLine(NSpace, nameof(ListItemBlock));
-                    ConditionalDebug.WriteLine(NSpace, $"Count: {listItem.Count}");
-                    ConditionalDebug.WriteLine(NSpace, $"Order: {listItem.Order}");
-                    ConditionalDebug.ThrowIfZero(listLevel);
+                    Diag.WriteLine(NSpace, nameof(ListItemBlock));
+                    Diag.WriteLine(NSpace, $"Count: {listItem.Count}");
+                    Diag.WriteLine(NSpace, $"Order: {listItem.Order}");
+                    Diag.ThrowIfZero(listLevel);
 
                     var block0 = _blocks.Count;
 
@@ -508,15 +508,15 @@ public sealed class MarkDocument : IReadOnlyList<IReadOnlyMarkBlock>, IEquatable
 
                     continue;
                 default:
-                    ConditionalDebug.WriteLine(NSpace, $"UNKNOWN: {item.GetType().Name}");
+                    Diag.WriteLine(NSpace, $"UNKNOWN: {item.GetType().Name}");
                     continue;
             }
 
             if (block != null)
             {
-                ConditionalDebug.WriteLine(NSpace, $"CONTENT: {block}");
-                ConditionalDebug.WriteLine(NSpace, $"IsOpen: {item.IsOpen}");
-                ConditionalDebug.WriteLine(NSpace, $"IsBreakable: {item.IsBreakable}");
+                Diag.WriteLine(NSpace, $"CONTENT: {block}");
+                Diag.WriteLine(NSpace, $"IsOpen: {item.IsOpen}");
+                Diag.WriteLine(NSpace, $"IsBreakable: {item.IsBreakable}");
                 block.QuoteLevel = quoteLevel;
                 _blocks.Add(block);
             }

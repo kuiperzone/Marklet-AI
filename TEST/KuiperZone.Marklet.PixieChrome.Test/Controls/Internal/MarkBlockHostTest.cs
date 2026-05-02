@@ -123,7 +123,7 @@ public class MarkRuleHostTest
 
     private static MarkBlockHost Assert_New_ConsumeUpdates(int blockIndex, Type expectType)
     {
-        var doc = NewDoc();
+        var doc = CreateDoc();
 
         int index = blockIndex;
         var obj = MarkBlockHost.New(new MarkShim(new MarkControl()), doc, ref index);
@@ -143,7 +143,7 @@ public class MarkRuleHostTest
         {
             // Change value
             // Not test for Rule
-            doc = NewDoc("change");
+            doc = CreateDoc("change");
 
             index = blockIndex;
             Assert.Equal(MarkConsumed.Changed, obj.ConsumeUpdates(doc, ref index));
@@ -153,7 +153,7 @@ public class MarkRuleHostTest
         return obj;
     }
 
-    private static MarkDocument NewDoc(string value = "value")
+    private static MarkDocument CreateDoc(string value = "value")
     {
         // Block 0: rule
         // Block 1: para

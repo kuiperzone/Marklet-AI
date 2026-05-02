@@ -295,7 +295,7 @@ public sealed class Prompter : Panel
     protected override void OnKeyDown(KeyEventArgs e)
     {
         const string NSpace = $"{nameof(Prompter)}.{nameof(OnKeyDown)}";
-        ConditionalDebug.WriteLine(NSpace, $"Key: {e.Key}, {e.KeyModifiers}");
+        Diag.WriteLine(NSpace, $"Key: {e.Key}, {e.KeyModifiers}");
 
         base.OnKeyDown(e);
         _bar.HandleKeyGesture(e);

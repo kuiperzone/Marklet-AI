@@ -34,6 +34,7 @@ public class PixieNumericTest : ControlTestBase
         AssertDirect(obj, PixieNumeric.MinValueProperty, 0m, 2m);
         AssertDirect(obj, PixieNumeric.MaxValueProperty, 10m, 100m);
         AssertDirect(obj, PixieNumeric.IncrementProperty, 1m, 2m);
+        AssertDirect(obj, PixieNumeric.RepeatIntervalProperty, 100, 500);
         AssertDirect(obj, PixieNumeric.AcceptFractionInputProperty, true, false);
         AssertDirect(obj, PixieNumeric.AlwaysShowBorderProperty, false, true);
         AssertDirect(obj, PixieNumeric.CanEditProperty, true, false);

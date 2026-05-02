@@ -339,11 +339,11 @@ public sealed class MarkBlock : StyledContainer,
 
         if (listKind == ListKind.Ordered)
         {
-            ConditionalDebug.ThrowIfZero(_listOrder);
+            Diag.ThrowIfZero(_listOrder);
             return _listOrder.ToString(CultureInfo.InvariantCulture) + ".";
         }
 
-        ConditionalDebug.ThrowIfZero(_listBullet);
+        Diag.ThrowIfZero(_listBullet);
 
         if (format == TextFormat.Markdown)
         {

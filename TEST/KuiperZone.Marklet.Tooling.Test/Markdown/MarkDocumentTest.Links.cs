@@ -29,7 +29,7 @@ public partial class MarkDocumentTest : BaseTest
     {
         var text = @"https://local.com.";
 
-        var obj = NewObj(text);
+        var obj = CreateObj(text);
         Assert.Equal(BlockKind.Para, obj[0].Kind);
         Assert.Equal(0, obj[0].QuoteLevel);
         Assert.Equal(0, obj[0].ListLevel);
@@ -51,7 +51,7 @@ public partial class MarkDocumentTest : BaseTest
     {
         var text = @"https://local.com.";
 
-        var obj = NewObj(text, MarkOptions.Markdown & ~MarkOptions.Inlines);
+        var obj = CreateObj(text, MarkOptions.Markdown & ~MarkOptions.Inlines);
         Assert.Equal(BlockKind.Para, obj[0].Kind);
         Assert.Equal(0, obj[0].QuoteLevel);
         Assert.Equal(0, obj[0].ListLevel);
@@ -73,7 +73,7 @@ public partial class MarkDocumentTest : BaseTest
     {
         var text = @"https://local.com.";
 
-        var obj = NewObj(text, MarkOptions.Markdown & ~MarkOptions.PlainLinks);
+        var obj = CreateObj(text, MarkOptions.Markdown & ~MarkOptions.PlainLinks);
 
         // https://local.com.
         Assert.Equal(BlockKind.Para, obj[0].Kind);
@@ -92,7 +92,7 @@ public partial class MarkDocumentTest : BaseTest
     {
         var text = @"<https://local.com>.";
 
-        var obj = NewObj(text);
+        var obj = CreateObj(text);
         // [https://local.com](https://local.com).
         Assert.Equal(BlockKind.Para, obj[0].Kind);
         Assert.Equal(0, obj[0].QuoteLevel);
@@ -113,7 +113,7 @@ public partial class MarkDocumentTest : BaseTest
     [Fact]
     public void Constructor_IdentifiesLink()
     {
-        var obj = NewObj("Start [Link](http://local.com) End");
+        var obj = CreateObj("Start [Link](http://local.com) End");
 
         // Start [Link](http://local.com) End
         Assert.Equal(BlockKind.Para, obj[0].Kind);

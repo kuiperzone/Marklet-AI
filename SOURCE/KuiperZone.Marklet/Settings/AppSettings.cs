@@ -101,7 +101,7 @@ public sealed class AppSettings : SettingsBase, IEquatable<SettingsBase>
         }
         catch (Exception e)
         {
-            ConditionalDebug.Fail(e.ToString());
+            Diag.Fail(e.ToString());
             return +1;
         }
     }

@@ -32,7 +32,7 @@
         <Setter Property="CornerRadius" Value="{Binding SmallCornerRadius, Source={x:Static vm:ChromeStyling.Global}}"/>
     </Style>
 
-    <!-- Visible background, click hover etc. to button -->
+    <!-- Visible background, click hover etc. on button -->
     <Style Selector=":is(controls|LightButton).regular-background">
         <Setter Property="Background" Value="{x:Static vm:ChromeStyling.ButtonBrush}"/>
     </Style>
@@ -48,6 +48,16 @@
         <Setter Property="Background" Value="{Binding Accent35, Source={x:Static vm:ChromeStyling.Global}}"/>
         <Setter Property="HoverBackground" Value="{Binding Accent25, Source={x:Static vm:ChromeStyling.Global}}"/>
         <Setter Property="CheckedPressedBackground" Value="{Binding Accent50, Source={x:Static vm:ChromeStyling.Global}}"/>
+    </Style>
+
+    <!-- TBD, use this? -->
+    <!-- Minimal hover change, not to be used combination -->
+    <Style Selector=":is(controls|LightButton).silent-hover">
+        <Setter Property="Foreground" Value="{x:Static vm:ChromeStyling.GrayForeground}"/>
+        <Setter Property="HoverForeground" Value="{Binding Foreground, Source={x:Static vm:ChromeStyling.Global}}"/>
+        <Setter Property="HoverBackground" Value="Transparent"/>
+        <Setter Property="CheckedPressedForeground" Value="{Binding Foreground, Source={x:Static vm:ChromeStyling.Global}}"/>
+        <Setter Property="CheckedPressedBackground" Value="Transparent"/>
     </Style>
 
     <!-- Critical, background hover and checked -->

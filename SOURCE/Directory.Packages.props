@@ -2,19 +2,20 @@
 
     <PropertyGroup>
         <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
+        <GenerateDocumentationFile>false</GenerateDocumentationFile>
     </PropertyGroup>
 
     <ItemGroup>
-        <PackageVersion Include="Avalonia" Version="11.3.13" />
-        <PackageVersion Include="Avalonia.Desktop" Version="11.3.13" />
-        <PackageVersion Include="Avalonia.Themes.Fluent" Version="11.3.13" />
-        <PackageVersion Include="Avalonia.Diagnostics" Version="11.3.13" />
+        <PackageVersion Include="Avalonia" Version="11.3.14" />
+        <PackageVersion Include="Avalonia.Desktop" Version="11.3.14" />
+        <PackageVersion Include="Avalonia.Themes.Fluent" Version="11.3.14" />
+        <PackageVersion Include="Avalonia.Diagnostics" Version="11.3.14" />
 
-        <PackageVersion Include="Avalonia.Fonts.Inter" Version="11.3.13" />
+        <PackageVersion Include="Avalonia.Fonts.Inter" Version="11.3.14" />
         <PackageVersion Include="ReactiveUI.Avalonia" Version="11.3.8" />
 
-        <PackageVersion Include="Markdig.Signed" Version="0.44.0" />
-        <PackageVersion Include="Microsoft.Data.Sqlite" Version="10.0.2" />
+        <PackageVersion Include="Markdig.Signed" Version="1.1.3" />
+        <PackageVersion Include="Microsoft.Data.Sqlite" Version="10.0.7" />
     </ItemGroup>
 
 </Project>

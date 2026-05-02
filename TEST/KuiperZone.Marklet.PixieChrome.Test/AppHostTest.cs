@@ -51,10 +51,6 @@ public class AppHostTest
         _out.WriteLine(host.DataDirectory);
         Assert.NotEmpty(host.DataDirectory);
 
-        _out.WriteLine(nameof(host.DownloadDirectory) + ":");
-        _out.WriteLine(host.DownloadDirectory);
-        Assert.NotEmpty(host.DownloadDirectory);
-
         _out.WriteLine(nameof(host.RuntimeDirectory) + ":");
         _out.WriteLine(host.RuntimeDirectory);
         Assert.NotEmpty(host.RuntimeDirectory);

@@ -27,7 +27,7 @@ public class WindowPersistenceTest
     [Fact]
     public void Reset_EqualsDefault()
     {
-        var obj = NewObj();
+        var obj = CreateObj();
         obj.Reset();
 
         Assert.Equal(new WindowPersistence(), obj);
@@ -36,7 +36,7 @@ public class WindowPersistenceTest
     [Fact]
     public void CopyFrom_EqualsSource()
     {
-        var obj0 = NewObj();
+        var obj0 = CreateObj();
         var obj1 = new WindowPersistence();
 
         obj1.CopyFrom(obj0);
@@ -46,7 +46,7 @@ public class WindowPersistenceTest
     [Fact]
     public void Serialize_Deserializes()
     {
-        var obj0 = NewObj();
+        var obj0 = CreateObj();
         var json = obj0.Serialize();
 
         var obj1 = new WindowPersistence();
@@ -54,7 +54,7 @@ public class WindowPersistenceTest
         Assert.Equal(obj0, obj1);
     }
 
-    private static WindowPersistence NewObj()
+    private static WindowPersistence CreateObj()
     {
         var obj = new WindowPersistence();
 

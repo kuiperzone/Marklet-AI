@@ -18,7 +18,8 @@
 // You should have received a copy of the GNU Affero General Public License along
 // with Marklet. If not, see <https://www.gnu.org/licenses/>.
 
-using KuiperZone.Marklet.CarouselPages;
+using KuiperZone.Marklet.Carousels;
+using KuiperZone.Marklet.PixieChrome.Carousels;
 using KuiperZone.Marklet.PixieChrome.Windows;
 
 namespace KuiperZone.Marklet.Windows;
@@ -33,6 +34,11 @@ public sealed class AppSettingsWindow : SettingsWindow
     /// </summary>
     public AppSettingsWindow()
     {
-        Pages.Add(new ContentSettingsCarouselPage());
+
+        Pages.Add(new AppearanceCarousel());
+        Pages.Add(new WindowCarousel());
+        Pages.Add(new ContentCarousel());
+
+        Pages.Add(new DatabaseCarousel() { IsSectionStart = true });
     }
 }

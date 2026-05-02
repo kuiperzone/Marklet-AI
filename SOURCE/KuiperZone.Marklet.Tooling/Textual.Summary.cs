@@ -41,6 +41,7 @@ public static partial class Textual
     /// </remarks>
     public static double EstimateTokens(this string src)
     {
+        // TBD. For possible removal.
         // Acknowledgement: Implementation of algorithm described by "stoerr" with changes. Thank you!
         // https://community.openai.com/t/how-to-do-a-quick-estimation-of-token-count-of-a-text/277764
 
@@ -230,20 +231,20 @@ public static partial class Textual
 
     /// <summary>
     /// Returns the first "significant text" fragment intended to be an algorithmic means of determining a "title" for a
-    /// block of text.
+    /// block of text, or null if none.
     /// </summary>
     /// <remarks>
     /// The "weight" provides a weighting value output, with higher values better. Text within markdown fences or pipe
-    /// tables is not considered in text, while indented text will have low "weight" values. Newlines in the result
+    /// tables is not considered ignored, while indented text will have low "weight" values. Newlines in the result
     /// string are substituted for spaces, and consecutive spaces are removed. If the result exceeds "maxLength", it is
     /// truncated and, optionally, appended with ellipses. The "maxLength" value has no effect on the result, but only
     /// its truncation. Serves as a string extension. This is annoying as there is no perfect algorithm and you can
     /// fiddle with this for ages. But it provides a crude fast algorithmic alternative to calling on a model.
     /// </remarks>
     /// <exception cref="ArgumentOutOfRangeException">Max less than 0</exception>
-    public static string SigText(this string src, out double weight, int maxLength = int.MaxValue, SigOptions? opts = null)
+    public static string? SigText(this string src, out double weight, int maxLength = int.MaxValue, SigOptions? opts = null)
     {
-        // This is over-engineered. I enjoyed writing it. Sorry about that.
+        // This is over-engineered. I enjoyed writing it.
         opts ??= DefaultSigOpts;
 
         src = src.TrimStart();
@@ -265,13 +266,13 @@ public static partial class Textual
             }
         }
 
-        return "";
+        return null;
     }
 
     /// <summary>
     /// Overloaded variant of <see cref="SigText(string, out double, int, SigOptions)"/>.
     /// </summary>
-    public static string SigText(this string src, int maxLength = int.MaxValue, SigOptions? opts = null)
+    public static string? SigText(this string src, int maxLength = int.MaxValue, SigOptions? opts = null)
     {
         return SigText(src, out _, maxLength, opts);
     }
@@ -356,7 +357,7 @@ public static partial class Textual
 
     private static double TrySig(string src, int recCount, SigOptions opts, int n0, out int n1, out int length1)
     {
-        ConditionalDebug.ThrowIfNegativeOrZero(recCount);
+        Diag.ThrowIfNegativeOrZero(recCount);
 
         if (src.Length == 0 || recCount > MaxSigRecursion)
         {

@@ -29,22 +29,19 @@ namespace KuiperZone.Marklet.PixieChrome.Windows;
 
 /// <summary>
 /// A <see cref="ChromeWindow"/> subclass class primarily intended to display message text, but may also show complex
-/// vertically arranged <see cref="Children"/>.
+/// vertically arranged <see cref="Children"/> within a single <see cref="PixieGroup"/> control.
 /// </summary>
 public class ChromeDialog : ChromeWindow
 {
-    private static readonly DialogButtons[] AllButtons = Enum.GetValues<DialogButtons>();
     private readonly ScrollViewer _scroller = new();
     private readonly Grid _grid = new();
     private readonly PixieGroup _group = new();
-    private readonly StackPanel _buttonPanel = new();
-    private DialogButtons _buttons = DialogButtons.Close;
-    private DialogButtons _disabledButtons;
+    private readonly DialogControls _controls = new();
 
     static ChromeDialog()
     {
         MinWidthProperty.OverrideDefaultValue<ChromeDialog>(400.0);
-        MaxWidthProperty.OverrideDefaultValue<ChromeDialog>(800.0);
+        MaxWidthProperty.OverrideDefaultValue<ChromeDialog>(600.0);
         MinHeightProperty.OverrideDefaultValue<ChromeDialog>(190.0);
         MaxHeightProperty.OverrideDefaultValue<ChromeDialog>(800.0);
         SizeToContentProperty.OverrideDefaultValue<ChromeDialog>(SizeToContent.WidthAndHeight);
@@ -56,21 +53,18 @@ public class ChromeDialog : ChromeWindow
     public ChromeDialog()
         : base(true)
     {
-        const double MarginH = 20.0;
-
         // Expect
-        ConditionalDebug.ThrowIfNotEqual(SizeToContent.WidthAndHeight, SizeToContent);
-        ConditionalDebug.ThrowIfNotEqual(ScrollBarVisibility.Auto, _scroller.VerticalScrollBarVisibility);
-        ConditionalDebug.ThrowIfNotEqual(ScrollBarVisibility.Disabled, _scroller.HorizontalScrollBarVisibility);
+        Diag.ThrowIfNotEqual(SizeToContent.WidthAndHeight, SizeToContent);
+        Diag.ThrowIfNotEqual(ScrollBarVisibility.Auto, _scroller.VerticalScrollBarVisibility);
+        Diag.ThrowIfNotEqual(ScrollBarVisibility.Disabled, _scroller.HorizontalScrollBarVisibility);
 
-        _grid.Margin = new(0.0, MarginH);
+        const double UniPad = DialogControls.UniformPadding;
+        _grid.Margin = new(0.0, UniPad, 0.0, 0.0);
         _grid.RowDefinitions.Add(new(GridLength.Star));
         _grid.RowDefinitions.Add(new(GridLength.Auto));
 
-        _group.MinWidth = MinWidth - MarginH * 2.0;
-        _group.Margin = new(MarginH, 12.0, MarginH, 0.0);
-        _group.Classes.Add("shade-background");
-        _group.Classes.Add("pill-list");
+        _group.MinWidth = MinWidth - UniPad * 2.0;
+        _group.Margin = new(UniPad, 12.0, UniPad, 0.0);
         Children = _group.Children;
 
         _scroller.Content = _group;
@@ -78,16 +72,15 @@ public class ChromeDialog : ChromeWindow
         Grid.SetRow(_scroller, 0);
         _grid.Children.Add(_scroller);
 
-        _buttonPanel.Margin = new(MarginH, 36.0, MarginH, 0.0);
-        _buttonPanel.Spacing = 8.0;
-        _buttonPanel.Orientation = Avalonia.Layout.Orientation.Horizontal;
-        _buttonPanel.HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Right;
-        _buttonPanel.VerticalAlignment = Avalonia.Layout.VerticalAlignment.Bottom;
-
-        Grid.SetRow(_buttonPanel, 1);
-        _grid.Children.Add(_buttonPanel);
+        Grid.SetRow(_controls, 1);
+        _grid.Children.Add(_controls);
+        _controls.Click += (_, e) => Close(e.Button);
 
         Content = _grid;
+        ButtonText = _controls.ButtonText;
+
+        GroupClasses.Add("pill-list");
+        GroupClasses.Add("shade-background");
     }
 
     /// <summary>
@@ -109,33 +102,36 @@ public class ChromeDialog : ChromeWindow
     }
 
     /// <summary>
-    /// Gets additional child controls shown within a <see cref="PixieGroup"/>.
+    /// Gets child controls shown within a <see cref="PixieGroup"/>.
     /// </summary>
     /// <remarks>
-    /// It is intended that this be used to display <see cref="PixieControl"/> items.
+    /// A non-static caller may populate this. Children will be displayed within an <see cref="PixieGroup"/> container,
+    /// and it is expected, but not enforced, that children be <see cref="PixieControl"/> items.
     /// </remarks>
     public Avalonia.Controls.Controls Children { get; }
+
+    /// <summary>
+    /// Gets a list of XAML style class names to add to the <see cref="PixieGroup"/> container of <see
+    /// cref="Children"/>.
+    /// </summary>
+    /// <remarks>
+    /// The sequence should be populated prior to the window becoming visible. The sequence should be clear to display
+    /// with the default background.
+    /// </remarks>
+    public List<string> GroupClasses { get; } = new();
 
     /// <summary>
     /// Gets or sets the buttons shown in the bottom panel.
     /// </summary>
     /// <remarks>
     /// Setting has no effect once the window is open. The value must not contain an illegal combination of multiple
-    /// "default" or "cancel" buttons otherwise the setter throws.
+    /// "default" or "cancel" buttons otherwise the setter throws. The default is <see cref="DialogButtons.Close"/>.
     /// </remarks>
+    /// <exception cref="ArgumentException">Illegal combined button flag</exception>
     public DialogButtons Buttons
     {
-        get { return _buttons; }
-
-        set
-        {
-            if (_buttons != value && !value.IsCombinedLegal())
-            {
-                throw new ArgumentException("Illegal button combination", nameof(Buttons));
-            }
-
-            _buttons = value;
-        }
+        get { return _controls.Buttons; }
+        set { _controls.Buttons = value; }
     }
 
     /// <summary>
@@ -145,26 +141,19 @@ public class ChromeDialog : ChromeWindow
     /// This may be used be subclass do disable selected buttons. The default is <see cref="DialogButtons.None"/> which
     /// implies all buttons are enabled.
     /// </remarks>
-    protected DialogButtons DisabledButtons
+    public DialogButtons DisabledButtons
     {
-        get { return _disabledButtons; }
-
-        set
-        {
-            if (_disabledButtons != value)
-            {
-                _disabledButtons = value;
-
-                foreach (var item in _buttonPanel.Children)
-                {
-                    if (item.Tag is DialogButtons flag)
-                    {
-                        item.IsEnabled = !value.HasFlag(flag);
-                    }
-                }
-            }
-        }
+        get { return _controls.DisabledButtons; }
+        set { _controls.DisabledButtons = value; }
     }
+
+    /// <summary>
+    /// Gets a mutable button text dictionary.
+    /// </summary>
+    /// <remarks>
+    /// The window may use this to change default button text before the control is displayed. Default is empty.
+    /// </remarks>
+    public Dictionary<DialogButtons, string> ButtonText { get; }
 
     /// <summary>
     /// Gets the result of the window.
@@ -194,58 +183,58 @@ public class ChromeDialog : ChromeWindow
     /// Shows an instance of <see cref="ChromeDialog"/> with the given "message" and application default title.
     /// </summary>
     /// <remarks>
-    /// The "owner" must be a non-null instance of <see cref="Visual"/> with an owning window otherwise the call throws.
+    /// The "visual" must be a non-null instance of <see cref="Visual"/> with an owning window otherwise the call throws.
     /// The result is a single <see cref="DialogButtons"/> flag value pertaining to the button clicked.
     /// </remarks>
-    /// <exception cref="ArgumentNullException">owner</exception>
+    /// <exception cref="ArgumentNullException">visual</exception>
     /// <exception cref="ArgumentException">Not instance of Visual, or Visual has no owning window</exception>
-    public static Task<DialogButtons> ShowDialog(object? owner, string message, DialogButtons buttons = DialogButtons.Ok)
+    public static Task<DialogButtons> ShowDialog(object? visual, string message, DialogButtons buttons = DialogButtons.Ok)
     {
-        return ShowDialog(GetWindow(owner), message, buttons);
+        return ShowInternal(GetWindow(visual), message, null, null, buttons);
     }
 
     /// <summary>
     /// Shows an instance of <see cref="ChromeDialog"/> with the given "message" and window "title".
     /// </summary>
     /// <remarks>
-    /// The "owner" must be a non-null instance of <see cref="Visual"/> with an owning window otherwise the call throws.
+    /// The "visual" must be a non-null instance of <see cref="Visual"/> with an owning window otherwise the call throws.
     /// The result is a single <see cref="DialogButtons"/> flag value pertaining to the button clicked.
     /// </remarks>
-    /// <exception cref="ArgumentNullException">owner</exception>
+    /// <exception cref="ArgumentNullException">visual</exception>
     /// <exception cref="ArgumentException">Not instance of Visual, or Visual has no owning window</exception>
-    public static Task<DialogButtons> ShowDialog(object? owner, string message, string? title, DialogButtons buttons = DialogButtons.Ok)
+    public static Task<DialogButtons> ShowDialog(object? visual, string message, string? title, DialogButtons buttons = DialogButtons.Ok)
     {
-        return ShowDialog(GetWindow(owner), message, title, buttons);
+        return ShowInternal(GetWindow(visual), message, title, null, buttons);
     }
 
     /// <summary>
     /// Shows Exception information.
     /// </summary>
     /// <remarks>
-    /// The "owner" must be a non-null instance of <see cref="Visual"/> with an owning window otherwise the call throws.
+    /// The "visual" must be a non-null instance of <see cref="Visual"/> with an owning window otherwise the call throws.
     /// The result is a single <see cref="DialogButtons"/> flag value pertaining to the button clicked. Where
     /// "showStack" is true, the full error stack is shown, whereas only the message is shown if false. If null, the
     /// stack is shown only for DEBUG.
     /// </remarks>
-    /// <exception cref="ArgumentNullException">owner</exception>
+    /// <exception cref="ArgumentNullException">visual</exception>
     /// <exception cref="ArgumentException">Not instance of Visual, or Visual has no owning window</exception>
-    public static Task<DialogButtons> ShowDialog(object? owner, Exception error, bool? showStack = null)
+    public static Task<DialogButtons> ShowDialog(object? visual, Exception error, bool? showStack = null)
     {
-        return ShowDialog(GetWindow(owner), error, showStack);
+        return ShowInternal(GetWindow(visual), error, showStack);
     }
 
     /// <summary>
     /// Shows the window as a dialog.
     /// </summary>
     /// <remarks>
-    /// The "owner" must be a non-null instance of <see cref="Visual"/> with an owning window otherwise the call throws.
+    /// The "visual" must be a non-null instance of <see cref="Visual"/> with an owning window otherwise the call throws.
     /// The result is a single <see cref="DialogButtons"/> flag value pertaining to the button clicked.
     /// </remarks>
-    /// <exception cref="ArgumentNullException">sender</exception>
+    /// <exception cref="ArgumentNullException">visual</exception>
     /// <exception cref="ArgumentException">Not instance of Visual, or Visual has no owning window</exception>
-    public Task<DialogButtons> ShowDialog(object? owner)
+    public Task<DialogButtons> ShowDialog(object? visual)
     {
-        return ShowDialog<DialogButtons>(GetWindow(owner));
+        return ShowDialog<DialogButtons>(GetWindow(visual));
     }
 
     /// <summary>
@@ -269,14 +258,12 @@ public class ChromeDialog : ChromeWindow
     }
 
     /// <summary>
-    /// Gets the display text for the given "button".
+    /// Overrides.
     /// </summary>
-    /// <remarks>
-    /// May be overridden.
-    /// </remarks>
-    protected virtual string GetButtonText(DialogButtons button)
+    protected override void OnOpened(EventArgs e)
     {
-        return button == DialogButtons.Ok ? "OK" : button.ToString().GetFriendlyNameOf();
+        _group.Classes.AddRange(GroupClasses);
+        base.OnOpened(e);
     }
 
     /// <summary>
@@ -284,43 +271,10 @@ public class ChromeDialog : ChromeWindow
     /// </summary>
     protected override void OnKeyDown(KeyEventArgs e)
     {
-        const string NSpace = $"{nameof(ChromeDialog)}.{nameof(OnKeyDown)}";
-        ConditionalDebug.WriteLine(NSpace, $"Physical key: {e.PhysicalKey}");
-
-        if (e.KeyModifiers == KeyModifiers.None)
+        if (!_controls.HandleKeyGesture(e))
         {
-            var flag = Buttons.GetCloseAction(e.Key);
-
-            if (flag != DialogButtons.None)
-            {
-                ConditionalDebug.WriteLine(NSpace, $"Close result: {flag}");
-                e.Handled = true;
-                base.Close(flag);
-                return;
-            }
+            base.OnKeyDown(e);
         }
-
-        base.OnKeyDown(e);
-    }
-
-    /// <summary>
-    /// Overrides.
-    /// </summary>
-    protected override void OnApplyTemplate(TemplateAppliedEventArgs e)
-    {
-        base.OnApplyTemplate(e);
-
-        if (!HasOpened)
-        {
-            foreach (var item in AllButtons)
-            {
-                if (item != DialogButtons.None && Buttons.HasFlag(item))
-                {
-                    AddButton(item);
-                }
-            }
-        }
-
     }
 
     private static Window GetWindow(object? sender)
@@ -341,26 +295,20 @@ public class ChromeDialog : ChromeWindow
         throw new ArgumentException("Not instance of Visual", nameof(sender));
     }
 
-    private static Task<DialogButtons> ShowDialog(Window owner, string message, string? title, DialogButtons buttons = DialogButtons.Ok)
+    private static Task<DialogButtons> ShowInternal(Window owner, string message, string? title, string? details, DialogButtons buttons)
     {
         var window = new ChromeDialog();
         window.Message = message;
+        window.Details = details;
         window.Buttons = buttons;
 
-        if (string.IsNullOrWhiteSpace(title))
-        {
-            window.Title = ChromeApplication.Current.Name;
-        }
-        else
-        {
-            window.Title = title;
-        }
-
+        window.Title = string.IsNullOrWhiteSpace(title) ? ChromeApplication.Current.Name : title;
         window.ChromeBar.Title = title;
+
         return window.ShowDialog<DialogButtons>(owner);
     }
 
-    private static Task<DialogButtons> ShowDialog(Window owner, Exception error, bool? showStack = null)
+    private static Task<DialogButtons> ShowInternal(Window owner, Exception error, bool? showStack = null)
     {
 #if DEBUG
         showStack ??= true;
@@ -370,31 +318,5 @@ public class ChromeDialog : ChromeWindow
         window.Message = error.Message;
         window.Details = showStack == true ? error.ToString() : error.GetType().Name;
         return window.ShowDialog<DialogButtons>(owner);
-    }
-
-    private void AddButton(DialogButtons button)
-    {
-        var obj = new LightButton();
-        obj.Classes.Add("dialog-button");
-        obj.Content = GetButtonText(button);
-        obj.Tag = button;
-        obj.IsEnabled = !_disabledButtons.HasFlag(button);
-        obj.Click += (_, __) => { Close(button); };
-
-        if (button.IsCritical())
-        {
-            obj.Classes.Add("critical-background");
-        }
-        else
-        if (button.IsDefault())
-        {
-            obj.Classes.Add("accent-background");
-        }
-        else
-        {
-            obj.Classes.Add("regular-background");
-        }
-
-        _buttonPanel.Children.Add(obj);
     }
 }

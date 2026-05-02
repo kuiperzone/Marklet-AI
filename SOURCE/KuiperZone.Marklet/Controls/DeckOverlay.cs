@@ -67,18 +67,31 @@ public sealed class DeckOverlay : Border
         {
             if (pending != null)
             {
-                var kind = pending.Kind;
-                bool ephem = pending.IsEphemeral;
-                var text = "New " + kind.DisplayName(DisplayKind.Default, ephem);
+                var kind = pending.Format;
+                var ephem = pending.Ephemeral;
+                var status = GlobalGarden.Global.Status;
+                var text = "New " + kind.DisplayName(DisplayStyle.Default, ephem);
 
-                if (pending.Kind == DeckKind.Note)
+                if (pending.Format == DeckFormat.Note)
                 {
                     text += $"\n\nAssistant does not respond to notes.";
                 }
 
-                if (pending.IsEphemeral)
+                if (!status.IsOpen() || ephem == EphemeralStatus.Explicit)
                 {
-                    text += $"\n\n{kind.DisplayName(DisplayKind.Plural, ephem)} are lost when the application exits.";
+                    text += "\n\n";
+
+                    if (status == GardenStatus.Readonly)
+                    {
+                        text += "DATABASE READ-ONLY\n";
+                    }
+                    else
+                    if (!status.IsOpen())
+                    {
+                        text += "DATABASE DISCONNECTED\n";
+                    }
+
+                    text += $"{kind.DisplayName(DisplayStyle.Plural, ephem)} are lost when the application exits.";
                 }
 
                 ShowPrompt(kind.MaterialSymbol(ephem), text);
@@ -105,7 +118,7 @@ public sealed class DeckOverlay : Border
     /// </summary>
     public void ShowPrompt(string? symbol, string prompt)
     {
-        var obj = NewPrompt(symbol, prompt);
+        var obj = CreatePrompt(symbol, prompt);
 
         if (obj != null)
         {
@@ -132,7 +145,7 @@ public sealed class DeckOverlay : Border
     public void ShowMarkdown(string? symbol, string prompt)
     {
         MarkView? mark = null;
-        var obj = NewPrompt(symbol, "");
+        var obj = CreatePrompt(symbol, "");
 
         if (!string.IsNullOrEmpty(prompt))
         {
@@ -176,7 +189,7 @@ public sealed class DeckOverlay : Border
         _panel.Children.Clear();
     }
 
-    private static TextBlock? NewPrompt(string? symbol, string? prompt)
+    private static TextBlock? CreatePrompt(string? symbol, string? prompt)
     {
         InlineCollection? inline = null;
 

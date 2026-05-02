@@ -28,35 +28,50 @@ namespace KuiperZone.Marklet.Stack.Garden;
 /// <summary>
 /// Provides a sequence of <see cref="GardenDeck"/> items pertaining to a "basket" grouping.
 /// </summary>
-public sealed class GardenBasket : IReadOnlyCollection<GardenDeck>
+public sealed partial class GardenBasket : IReadOnlyCollection<GardenDeck>
 {
     private const int DefaultCapacity = 32;
     private const int DefaultFolderCapacity = 4;
 
-    // Choice of sorted over hash container deliberate. The number of items are expected to be in 10s or 100s, not
+    // Throttles memory cache per basket
+    private const double CacheF = 0.025; // <- 2.5% of 16GB, = 410MB
+    private const long MinCache = 100 * 1024 * 1024; // 100MB
+    private static readonly long SystemMemory = GC.GetGCMemoryInfo().TotalAvailableMemoryBytes;
+    private static readonly double CacheBytes = Math.Max((long)(CacheF * SystemMemory), MinCache);
+
+    // Choice of sorted over hash container deliberate. The number of items are expected to be in 100s, not
     // 10,000s. Items are inserted from database in order (or reverse order) and opening should be faster than HashSet.
-    // Also the sorted order avoids significant re-sorting with the Sort() method which is heavily used. Note we
+    // Also the sort order avoids significant re-sorting with the Sort() method which is heavily used. Note we
     // actually store in reverse order to database, i.e. newest first for sorting reasons. We could keep a hashed
     // container if number becomes huge but this is not expected.
     private readonly IndexableSet<GardenDeck> _master = new(DefaultCapacity);
 
-    private readonly IndexableSet<GardenDeck> _root = new(8);
+    private readonly IndexableSet<GardenDeck> _root = new(DefaultFolderCapacity);
     private readonly Dictionary<string, IndexableSet<GardenDeck>> _folders = new(DefaultFolderCapacity);
 
+    /// <summary>
+    /// Constructor.
+    /// </summary>
     internal GardenBasket(MemoryGarden garden, BasketKind kind)
     {
-        ConditionalDebug.ThrowIfFalse(kind.IsLegal());
+        Diag.ThrowIfFalse(kind.IsLegal());
         Garden = garden;
         Kind = kind;
     }
 
     /// <summary>
-    /// Occurs when one or more items in this basket are modified, added or removed.
+    /// Clone constructor.
     /// </summary>
-    /// <remarks>
-    /// The event does not identify which instance has changed.
-    /// </remarks>
-    public event EventHandler<EventArgs>? Changed;
+    internal GardenBasket(MemoryGarden garden, GardenBasket other)
+    {
+        Garden = garden;
+        Kind = other.Kind;
+
+        foreach(var item in other._master)
+        {
+            InsertCache(new GardenDeck(garden, item));
+        }
+    }
 
     /// <summary>
     /// Gets the owner.
@@ -95,7 +110,7 @@ public sealed class GardenBasket : IReadOnlyCollection<GardenDeck>
     /// <summary>
     /// Gets the most recent focused instance in this basket.
     /// </summary>
-    public GardenDeck? Recent { get; private set; }
+    public GardenDeck? RecentFocused { get; private set; }
 
     /// <summary>
     /// Gets of value intended to approximate memory consumed by child items in bytes.
@@ -128,28 +143,38 @@ public sealed class GardenBasket : IReadOnlyCollection<GardenDeck>
         }
 
         // Fast
-        bool member = obj.Garden == Garden && obj.Basket == Kind;
+        bool member = obj.Garden == Garden && obj.CurrentBasket == Kind;
 
         // Must have valid id
-        ConditionalDebug.ThrowIfTrue(member && obj.Id.IsEmpty);
+        Diag.ThrowIfTrue(member && obj.Id.IsEmpty);
 
         // Must be in master list or not
-        ConditionalDebug.ThrowIfTrue(member && !_master.Contains(obj));
-        ConditionalDebug.ThrowIfTrue(!member && _master.Contains(obj));
+        Diag.ThrowIfTrue(member && !_master.Contains(obj));
+        Diag.ThrowIfTrue(!member && _master.Contains(obj));
 
         // Must have a folder entry, even if just empty
-        ConditionalDebug.ThrowIfTrue(member && GetFolder(obj.Folder) == null);
+        Diag.ThrowIfTrue(member && GetFolder(obj.Folder) == null);
 
         return member;
     }
 
     /// <summary>
-    /// Finds the child in this basket or returns null.
+    /// Finds based on the <see cref="GardenDeck.Id"/> or returns null.
     /// </summary>
-    public GardenDeck? Find(Zuid id)
+    public GardenDeck? FindOnId(Zuid id)
     {
         // Find with stub instance
-        return FindInternal(new GardenDeck(id));
+        if (!id.IsEmpty)
+        {
+            int index = _master.IndexOf(GardenDeck.CreateStub(id));
+
+            if (index > -1)
+            {
+                return _master[index];
+            }
+        }
+
+        return null;
     }
 
     /// <summary>
@@ -211,14 +236,14 @@ public sealed class GardenBasket : IReadOnlyCollection<GardenDeck>
 
     /// <summary>
     /// Returns the sorted sequence of children with <see cref="GardenDeck.Folder"/> equal to "name" while also
-    /// restricting results to only those items which match the given <see cref="FindOptions"/>.
+    /// restricting results to only those items which match the given <see cref="SearchOptions"/>.
     /// </summary>
     /// <remarks>
     /// Folder names are compared case sensitively. A null or empty "name" will return root items. If the folder name
     /// does not exist, the result is null. If the folder exists but no items meet the "match" criteria, the result is
     /// an empty list. If "match" is null, behaves as <see cref="GetFolderContents(string?, GardenSort)"/>.
     /// </remarks>
-    public List<GardenDeck>? GetFolderContents(string? name, FindOptions? match, GardenSort sort = GardenSort.Default)
+    public List<GardenDeck>? GetFolderContents(string? name, SearchOptions? match, GardenSort sort = GardenSort.Default)
     {
         var folder = GetFolder(MemoryGarden.Sanitize(name, MemoryGarden.MaxMetaLength));
 
@@ -234,14 +259,14 @@ public sealed class GardenBasket : IReadOnlyCollection<GardenDeck>
 
         List<GardenDeck> list = new(16);
 
-        if (match.MaxResults <= 0 || match.Subtext == null)
+        if (match.MaxResults <= 0 || match.Keyword == null)
         {
             return list;
         }
 
         foreach (var item in folder)
         {
-            if (item.FindInContent(match))
+            if (item.SearchInContent(match))
             {
                 list.Add(item);
             }
@@ -271,14 +296,14 @@ public sealed class GardenBasket : IReadOnlyCollection<GardenDeck>
 
     /// <summary>
     /// Collates <see cref="GardenDeck"/> children on <see cref="GardenDeck.Folder"/>, while returning only those items
-    /// which match the given <see cref="FindOptions"/>.
+    /// which match the given <see cref="SearchOptions"/>.
     /// </summary>
     /// <remarks>
     /// A new instance is returned on each call. The result does not include children with no folder (root). In each
     /// entry, items are sorted according to "sort". If "match" is null, behaves as <see
     /// cref="CollateByFolder(GardenSort)"/>.
     /// </remarks>
-    public Dictionary<string, List<GardenDeck>> CollateByFolder(FindOptions? match, GardenSort sort = GardenSort.Default)
+    public Dictionary<string, List<GardenDeck>> CollateByFolder(SearchOptions? match, GardenSort sort = GardenSort.Default)
     {
         int count = 0;
         var dict = new Dictionary<string, List<GardenDeck>>(_folders.Count);
@@ -293,7 +318,7 @@ public sealed class GardenBasket : IReadOnlyCollection<GardenDeck>
             return dict;
         }
 
-        if (match.MaxResults <= 0 || match.Subtext == null)
+        if (match.MaxResults <= 0 || match.Keyword == null)
         {
             return dict;
         }
@@ -304,7 +329,7 @@ public sealed class GardenBasket : IReadOnlyCollection<GardenDeck>
 
             foreach (var deck in item.Value)
             {
-                if (deck.FindInContent(match))
+                if (deck.SearchInContent(match))
                 {
                     list ??= new(8);
                     list.Add(deck);
@@ -334,7 +359,7 @@ public sealed class GardenBasket : IReadOnlyCollection<GardenDeck>
     /// equal to the name. Folders are naturally created by assigning <see cref="GardenDeck.Folder"/>. This method
     /// provides only a visual means of creating an initial folder in memory for the UI workflow.
     /// </remarks>
-    public bool NewEmptyFolder(string? folderName)
+    public bool CreateFolder(string? folderName)
     {
         folderName = MemoryGarden.Sanitize(folderName, MemoryGarden.MaxMetaLength + 1);
 
@@ -351,18 +376,18 @@ public sealed class GardenBasket : IReadOnlyCollection<GardenDeck>
     /// renamed.
     /// </summary>
     /// <remarks>
-    /// A null or empty folder name will match all items with no folder. The "oldName" must exist. If "allowMerge" is
-    /// false, the "newFolder" must not exist". If "allowMerge" is true and the new name exists, contents will be
+    /// A null or empty "oldFolder" will match all items with no folder, otherwise "oldFolder" must exist. If "merge" is
+    /// false, "newFolder" must not exist. If "allowMerge" is true and the new name exists, contents will be
     /// merged. The result false if names are equal.
     /// </remarks>
-    public bool RenameFolders(string? oldFolder, string? newFolder, bool allowMerge = false)
+    public bool RenameFolder(string? oldFolder, string? newFolder, bool merge = false)
     {
-        const string NSpace = $"{nameof(GardenBasket)}.{nameof(RenameFolders)}";
-        ConditionalDebug.WriteLine(NSpace, $"RENAME FOLDER: '{oldFolder}' to: '{newFolder}'");
+        const string NSpace = $"{nameof(GardenBasket)}.{nameof(RenameFolder)}";
+        Diag.WriteLine(NSpace, $"RENAME FOLDER: '{oldFolder}' to: '{newFolder}'");
 
         if (IsEmpty)
         {
-            ConditionalDebug.WriteLine(NSpace, "Empty or closed");
+            Diag.WriteLine(NSpace, "Empty or closed");
             return false;
         }
 
@@ -371,13 +396,13 @@ public sealed class GardenBasket : IReadOnlyCollection<GardenDeck>
 
         if (oldFolder == newFolder)
         {
-            ConditionalDebug.WriteLine(NSpace, "Names are same");
+            Diag.WriteLine(NSpace, "Names are same");
             return false;
         }
 
-        if (!allowMerge && (newFolder == null || _folders.ContainsKey(newFolder)))
+        if (!merge && (newFolder == null || _folders.ContainsKey(newFolder)))
         {
-            ConditionalDebug.WriteLine(NSpace, "Destination already exists");
+            Diag.WriteLine(NSpace, "Destination already exists");
             return false;
         }
 
@@ -385,7 +410,7 @@ public sealed class GardenBasket : IReadOnlyCollection<GardenDeck>
 
         if (source == null)
         {
-            ConditionalDebug.WriteLine(NSpace, "Folder not exist");
+            Diag.WriteLine(NSpace, "Folder not exist");
             return false;
         }
 
@@ -395,7 +420,7 @@ public sealed class GardenBasket : IReadOnlyCollection<GardenDeck>
         if (oldFolder == null)
         {
             _root.Clear();
-            _root.TrimCapacity();
+            _root.TrimCapacity(DefaultFolderCapacity);
         }
         else
         {
@@ -409,16 +434,22 @@ public sealed class GardenBasket : IReadOnlyCollection<GardenDeck>
         {
             foreach (var item in array)
             {
-                con ??= Garden.Gardener?.Connect();
+                con ??= Garden.Provider?.Connect();
                 item.SetFolderNoRaise(con, newFolder);
             }
+        }
+        catch (Exception e)
+        {
+            Diag.WriteLine(NSpace, e);
+            Garden.SetStatus(GardenStatus.Lost);
+            return false;
         }
         finally
         {
             con?.Dispose();
         }
 
-        OnChangedInternal(true);
+        Garden.OnChanged(Kind);
         return true;
     }
 
@@ -432,9 +463,9 @@ public sealed class GardenBasket : IReadOnlyCollection<GardenDeck>
     public bool MoveBasket(string? folderName, BasketKind dest)
     {
         const string NSpace = $"{nameof(GardenBasket)}.{nameof(MoveBasket)}";
-        ConditionalDebug.WriteLine(NSpace, $"MOVE FOLDER: {Kind}, {folderName}, {dest}");
+        Diag.WriteLine(NSpace, $"MOVE FOLDER: {Kind}, {folderName}, {dest}");
 
-        if (IsEmpty || Kind == dest || Garden.Gardener == null)
+        if (IsEmpty || Kind == dest)
         {
             return false;
         }
@@ -444,32 +475,40 @@ public sealed class GardenBasket : IReadOnlyCollection<GardenDeck>
 
         if (folder == null)
         {
-            ConditionalDebug.WriteLine(NSpace, "Not found");
+            Diag.WriteLine(NSpace, "Not found");
             return false;
         }
 
         if (folder.Count != 0)
         {
-            using var con = Garden.Gardener.Connect();
-
-            foreach (var item in folder.ToArray())
+            try
             {
-                // IMPORTANT
-                // This will call back on this class instance for the remove
-                item.SetBasketNoRaise(con, dest);
-            }
+                using var con = Garden.Provider?.Connect();
 
-            // Ensure this now empty
-            con.Dispose();
-            ConditionalDebug.ThrowIfTrue(folder.Count != 0);
+                foreach (var item in folder.ToArray())
+                {
+                    // IMPORTANT
+                    // This will call back on this class instance for the remove
+                    item.SetBasketNoRaise(con, dest);
+                }
+
+                // Ensure this now empty
+                Diag.ThrowIfTrue(folder.Count != 0);
+            }
+            catch (Exception e)
+            {
+                Diag.WriteLine(NSpace, e);
+                Garden.Close();
+                return false;
+            }
 
             if (folderName != null)
             {
                 _folders.Remove(folderName);
             }
 
-            OnChangedInternal(true);
-            Garden.GetBasket(dest).OnChangedInternal(true);
+            Garden.OnChanged(Kind);
+            Garden.OnChanged(dest);
             return true;
         }
 
@@ -477,7 +516,7 @@ public sealed class GardenBasket : IReadOnlyCollection<GardenDeck>
         if (folderName != null && _folders.Remove(folderName))
         {
             // Nothing on disk to remove
-            OnChangedInternal(true);
+            Garden.OnChanged(Kind);
             return true;
         }
 
@@ -490,7 +529,7 @@ public sealed class GardenBasket : IReadOnlyCollection<GardenDeck>
     public bool RestoreFolder(string? folderName)
     {
         const string NSpace = $"{nameof(GardenBasket)}.{nameof(RestoreFolder)}";
-        ConditionalDebug.WriteLine(NSpace, $"MOVE FOLDER: {Kind}, {folderName}");
+        Diag.WriteLine(NSpace, $"MOVE FOLDER: {Kind}, {folderName}");
 
         if (IsEmpty)
         {
@@ -502,28 +541,38 @@ public sealed class GardenBasket : IReadOnlyCollection<GardenDeck>
 
         if (folder == null)
         {
-            ConditionalDebug.WriteLine(NSpace, "Not found");
+            Diag.WriteLine(NSpace, "Not found");
             return false;
         }
 
         if (folder.Count != 0)
         {
             var hash = new HashSet<BasketKind>();
-            using var con = Garden.Gardener?.Connect();
 
-            foreach (var item in folder.ToArray())
+            try
             {
-                // IMPORTANT
-                // This will call back on this class instance for the remove
-                if (item.SetBasketNoRaise(con, item.Origin))
+                using var con = Garden.Provider?.Connect();
+
+                foreach (var item in folder.ToArray())
                 {
-                    hash.Add(item.Origin);
+                    // IMPORTANT
+                    // This will call back on this class instance for the remove
+                    if (item.SetBasketNoRaise(con, item.OriginBasket))
+                    {
+                        hash.Add(item.OriginBasket);
+                    }
                 }
+            }
+            catch (Exception e)
+            {
+                Diag.WriteLine(NSpace, e);
+                Garden.SetStatus(GardenStatus.Lost);
+                return false;
             }
 
             foreach (var item in hash)
             {
-                Garden.GetBasket(item).OnChangedInternal(true);
+                Garden.OnChanged(item);
             }
 
             if (folder.Count == 0 && folderName != null)
@@ -533,7 +582,7 @@ public sealed class GardenBasket : IReadOnlyCollection<GardenDeck>
 
             if (hash.Count != 0)
             {
-                OnChangedInternal(true);
+                Garden.OnChanged(Kind);
             }
 
             return true;
@@ -551,11 +600,11 @@ public sealed class GardenBasket : IReadOnlyCollection<GardenDeck>
     public bool DeleteFolder(string? folderName)
     {
         const string NSpace = $"{nameof(GardenBasket)}.{nameof(DeleteFolder)}";
-        ConditionalDebug.WriteLine(NSpace, $"DELETE FOLDER: {Kind}, {folderName}");
+        Diag.WriteLine(NSpace, $"DELETE FOLDER: {Kind}, {folderName}");
 
         if (IsEmpty)
         {
-            ConditionalDebug.WriteLine(NSpace, "Empty");
+            Diag.WriteLine(NSpace, "Empty");
             return false;
         }
 
@@ -564,53 +613,54 @@ public sealed class GardenBasket : IReadOnlyCollection<GardenDeck>
 
         if (folder == null)
         {
-            ConditionalDebug.WriteLine(NSpace, "Not found");
+            Diag.WriteLine(NSpace, "Not found");
             return false;
         }
 
         if (folder.Count != 0)
         {
-            using var con = Garden.Gardener?.Connect();
-
             try
             {
-                // Safe to iterate on folder provided "remove" below is false
+                using var con = Garden.Provider?.Connect();
+
+                // Safe to iterate on folder
                 foreach (var item in folder)
                 {
-                    if (item == Recent)
+                    if (item == RecentFocused)
                     {
                         // IMPORTANT
                         // Needed here as we are not calling RemoveCache()
-                        Recent = null;
+                        RecentFocused = null;
                     }
 
                     _master.Remove(item);
                     item.DeleteDb(con);
                 }
-
-                // Clear folder directly
-                folder.Clear();
-
-                if (folderName != null)
-                {
-                    _folders.Remove(folderName);
-                }
-
-                con?.Dispose();
-                OnChangedInternal(true);
-                return true;
             }
-            finally
+            catch (Exception e)
             {
-                con?.Dispose();
+                Diag.WriteLine(NSpace, e);
+                Garden.SetStatus(GardenStatus.Lost);
+                return false;
             }
+
+            // Clear folder directly
+            folder.Clear();
+
+            if (folderName != null)
+            {
+                _folders.Remove(folderName);
+            }
+
+            Garden.OnChanged(Kind);
+            return true;
         }
 
         // Remove empty folder
         if (folderName != null && _folders.Remove(folderName))
         {
             // Nothing on disk to remove
-            OnChangedInternal(true);
+            Garden.OnChanged(Kind);
             return true;
         }
 
@@ -627,22 +677,32 @@ public sealed class GardenBasket : IReadOnlyCollection<GardenDeck>
     public bool DeleteAll()
     {
         const string NSpace = $"{nameof(GardenBasket)}.{nameof(DeleteAll)}";
-        ConditionalDebug.WriteLine(NSpace, $"DELETE BASKET: {Kind}");
+        Diag.WriteLine(NSpace, $"DELETE BASKET: {Kind}");
 
         if (!IsEmpty)
         {
-            using var con = Garden.Gardener?.Connect();
-
-            if (con != null)
+            try
             {
-                foreach (var item in _master)
+                using var con = Garden.Provider?.Connect();
+
+                if (con != null)
                 {
-                    item.DeleteDb(con);
+                    foreach (var item in _master)
+                    {
+                        item.DeleteDb(con);
+                    }
                 }
+            }
+            catch (Exception e)
+            {
+                Diag.WriteLine(NSpace, e);
+                Garden.SetStatus(GardenStatus.Lost);
+                return false;
             }
 
             // This does the memory removal
-            ClearCache(true);
+            ClearCache();
+            Garden.OnChanged(Kind);
             return true;
         }
 
@@ -676,14 +736,13 @@ public sealed class GardenBasket : IReadOnlyCollection<GardenDeck>
     public int Prune(PruneOptions? options)
     {
         const string NSpace = $"{nameof(GardenBasket)}.{nameof(Prune)}";
-        ConditionalDebug.WriteLine(NSpace, $"PRUNE BASKET: {Kind}, {options?.Period}");
+        Diag.WriteLine(NSpace, $"PRUNE BASKET: {Kind}, {options?.Period}");
 
         int count = 0;
         long used = 0;
-        long alloc = Garden.BasketAlloc;
 
         DbConnection? con = null;
-        ConditionalDebug.WriteLine(NSpace, "Deleting");
+        Diag.WriteLine(NSpace, "Deleting");
 
         try
         {
@@ -692,27 +751,27 @@ public sealed class GardenBasket : IReadOnlyCollection<GardenDeck>
             {
                 if (options?.IsRemoveMatch(item) == true)
                 {
-                    ConditionalDebug.ThrowIfNotEqual(Kind, item.Basket);
+                    Diag.ThrowIfNotEqual(Kind, item.CurrentBasket);
 
                     count += 1;
-                    con ??= Garden.Gardener?.Connect();
+                    con ??= Garden.Provider?.Connect();
 
                     if (options.AlwaysDelete || Kind == BasketKind.Waste)
                     {
-                        ConditionalDebug.WriteLine(NSpace, "Delete: " + item);
-                        RemoveCache(item, false);
+                        Diag.WriteLine(NSpace, "Delete: " + item);
+                        RemoveCache(item);
                         item.DeleteDb(con);
                         continue;
                     }
 
-                    ConditionalDebug.WriteLine(NSpace, "Move to waste: " + item);
+                    Diag.WriteLine(NSpace, "Move to waste: " + item);
                     item.SetBasketNoRaise(con, BasketKind.Waste);
                 }
 
-                if (!item.IsFocused && used >= alloc)
+                if (!item.IsFocused && used >= CacheBytes)
                 {
                     // Free memory
-                    item.TryUnload();
+                    item.Close();
                 }
 
                 used += item.Footprint;
@@ -722,15 +781,47 @@ public sealed class GardenBasket : IReadOnlyCollection<GardenDeck>
 
             if (count != 0)
             {
-                OnChangedInternal(true);
+                Garden.OnChanged(Kind);
             }
 
             return count;
+        }
+        catch (Exception e)
+        {
+            Diag.WriteLine(NSpace, e);
+            Garden.SetStatus(GardenStatus.Lost);
+            return 0;
         }
         finally
         {
             con?.Dispose();
         }
+    }
+
+    /// <summary>
+    /// Returns whether both instances in storage contain same data.
+    /// </summary>
+    /// <remarks>
+    /// Unlike Equals(), this method calls <see cref="GardenDeck.IsConcordant(GardenDeck?)"/> on all child instances. It may be
+    /// expensive in comparison to Equals().
+    /// </remarks>
+    public bool IsConcordant([NotNullWhen(true)] GardenBasket? other)
+    {
+        if (EqualsLite(other))
+        {
+            // We only need to check master here
+            for (int n = 0; n < _master.Count; ++n)
+            {
+                if (!_master[n].IsConcordant(other._master[n]))
+                {
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
+        return false;
     }
 
     /// <summary>
@@ -746,251 +837,4 @@ public sealed class GardenBasket : IReadOnlyCollection<GardenDeck>
     {
         return _master.GetEnumerator();
     }
-
-    internal GardenDeck? FindInternal(GardenDeck stub)
-    {
-        // Binary search
-        int index = _master.IndexOf(stub);
-
-        if (index > -1)
-        {
-            return _master[index];
-        }
-
-        return null;
-    }
-
-    internal void SetRecentInternal(GardenDeck? obj)
-    {
-        ConditionalDebug.ThrowIfTrue(obj != null && obj.Basket != Kind);
-        Recent = obj;
-    }
-
-    internal void OnChangedInternal(bool raise)
-    {
-        if (raise)
-        {
-            Changed?.Invoke(this, EventArgs.Empty);
-        }
-    }
-
-    /// <summary>
-    /// Insert "obj" into cache, but does not touch database.
-    /// </summary>
-    internal bool InsertCache(GardenDeck obj, bool raise)
-    {
-        const string NSpace = $"{nameof(GardenBasket)}.{nameof(InsertCache)}";
-        ConditionalDebug.WriteLine(NSpace, $"Insert on: {Kind}");
-        ConditionalDebug.ThrowIfNotSame(obj.Garden, Garden);
-
-        if (_master.Insert(obj) > -1)
-        {
-            AddToFolderCache(obj.Folder, obj);
-
-            if (obj.IsFocused)
-            {
-                Recent = obj;
-            }
-
-            OnChangedInternal(raise);
-            return true;
-        }
-
-        return false;
-    }
-
-    /// <summary>
-    /// Removes from cache, but does not touch database.
-    /// </summary>
-    internal bool RemoveCache(GardenDeck obj, bool raise)
-    {
-        const string NSpace = $"{nameof(GardenBasket)}.{nameof(RemoveCache)}";
-        ConditionalDebug.WriteLine(NSpace, obj);
-
-        if (_master.Remove(obj))
-        {
-            ConditionalDebug.WriteLine(NSpace, "Removed from master");
-
-            if (obj == Recent)
-            {
-                Recent = null;
-            }
-
-            RemoveFromFolderCache(obj.Folder, obj, false);
-            OnChangedInternal(raise);
-            return true;
-        }
-
-        return false;
-    }
-
-    /// <summary>
-    /// Clears cache, but does not touch database.
-    /// </summary>
-    internal bool ClearCache(bool raise)
-    {
-        const string NSpace = $"{nameof(GardenBasket)}.{nameof(ClearCache)}";
-        ConditionalDebug.WriteLine(NSpace, $"Clear on: {Kind}");
-
-        Recent = null;
-
-        if (!IsEmpty)
-        {
-            ConditionalDebug.WriteLine(NSpace, "Not empty");
-
-            foreach (var item in _master)
-            {
-                item.DetachInternal();
-            }
-
-            _master.Clear();
-            _master.TrimCapacity(DefaultCapacity);
-
-            _folders.Clear();
-            _root.Clear();
-            _root.TrimCapacity(DefaultFolderCapacity);
-
-            OnChangedInternal(raise);
-            return true;
-        }
-
-        return false;
-    }
-
-    /// <summary>
-    /// Moves folder in cache, but does not touch database.
-    /// </summary>
-    internal void MoveFolderCache(GardenDeck obj, string? newFolder)
-    {
-        const string NSpace = $"{nameof(GardenBasket)}.{nameof(MoveFolderCache)}";
-        ConditionalDebug.WriteLine(NSpace, $"New folder: {newFolder}");
-        ConditionalDebug.WriteLine(NSpace, obj);
-
-        ConditionalDebug.ThrowIfEqual(obj.Folder, newFolder);
-        RemoveFromFolderCache(obj.Folder, obj, false);
-        AddToFolderCache(newFolder, obj);
-    }
-
-    private static List<GardenDeck> Sort(List<GardenDeck> clone, GardenSort sort)
-    {
-        switch (sort)
-        {
-            case GardenSort.Default:
-            case GardenSort.CreationNewestFirst:
-                // Already sorted on creation order
-                return clone;
-            case GardenSort.CreationOldestFirst:
-                clone.Reverse();
-                return clone;
-            case GardenSort.UpdateNewestFirst:
-                clone.Sort(UpdateNewestFirstCompare);
-                return clone;
-            case GardenSort.UpdateNewestPinnedFirst:
-                clone.Sort(UpdateNewestPinnedFirstCompare);
-                return clone;
-            case GardenSort.UpdateOldestFirst:
-                clone.Sort(UpdateOldestFirstCompare);
-                return clone;
-            case GardenSort.Title:
-                clone.Sort(TitleCompare);
-                return clone;
-            default:
-                throw new ArgumentException($"Invalid {nameof(GardenSort)} {sort}", nameof(sort));
-        }
-    }
-
-    private static int UpdateNewestFirstCompare(GardenDeck x, GardenDeck y)
-    {
-        return y.Updated.CompareTo(x.Updated);
-    }
-
-    private static int UpdateNewestPinnedFirstCompare(GardenDeck x, GardenDeck y)
-    {
-        if (x.IsPinned != y.IsPinned)
-        {
-            return x.IsPinned ? -1 : 1;
-        }
-
-        return y.Updated.CompareTo(x.Updated);
-    }
-
-    private static int UpdateOldestFirstCompare(GardenDeck x, GardenDeck y)
-    {
-        return x.Updated.CompareTo(y.Updated);
-    }
-
-    private static int TitleCompare(GardenDeck x, GardenDeck y)
-    {
-        // Ordinal should be OK as NormC applied
-        return StringComparer.OrdinalIgnoreCase.Compare(x.Title, y.Title);
-    }
-
-    private IndexableSet<GardenDeck>? GetFolder(string? key)
-    {
-        if (key == null)
-        {
-            return _root;
-        }
-
-        if (_folders.TryGetValue(key, out IndexableSet<GardenDeck>? folder))
-        {
-            return folder;
-        }
-
-        return null;
-    }
-
-    private void AddToFolderCache(string? key, GardenDeck obj)
-    {
-        IndexableSet<GardenDeck>? folder = _root;
-
-        if (key != null && !_folders.TryGetValue(key, out folder))
-        {
-            folder = new(DefaultFolderCapacity);
-            _folders.Add(key, folder);
-        }
-
-        folder.Insert(obj);
-    }
-
-    private void AddToFolderCache(string? key, IEnumerable<GardenDeck> array)
-    {
-        IndexableSet<GardenDeck>? folder = _root;
-
-        if (key != null && !_folders.TryGetValue(key, out folder))
-        {
-            folder = new(DefaultFolderCapacity);
-            _folders.Add(key, folder);
-        }
-
-        foreach (var item in array)
-        {
-            folder.Insert(item);
-        }
-    }
-
-    private bool RemoveFromFolderCache(string? key, GardenDeck obj, bool removeIfEmpty)
-    {
-        IndexableSet<GardenDeck>? folder = _root;
-
-        if (key != null && !_folders.TryGetValue(key, out folder))
-        {
-            // Folder not found
-            return false;
-        }
-
-        if (folder.Remove(obj))
-        {
-            if (removeIfEmpty && key != null && folder.Count == 0)
-            {
-                _folders.Remove(key);
-            }
-
-            return true;
-        }
-
-        // Not found in folder
-        return false;
-    }
-
 }

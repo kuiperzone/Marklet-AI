@@ -18,36 +18,34 @@
 // You should have received a copy of the GNU Affero General Public License along
 // with Marklet. If not, see <https://www.gnu.org/licenses/>.
 
-using KuiperZone.Marklet.PixieChrome.CarouselPages;
+using KuiperZone.Marklet.PixieChrome.Carousels;
 using KuiperZone.Marklet.PixieChrome.Settings;
 
 namespace KuiperZone.Marklet.PixieChrome.Windows;
 
 /// <summary>
-/// Settings window base class which displays <see cref="AppearanceSettings"/> and <see cref="WindowSettings"/> by
-/// default.
+/// Settings window base class.
 /// </summary>
 /// <remarks>
-/// This class adds <see cref="AppearanceCarouselPage"/> and <see cref="WindowCarouselPage"/> to <see
-/// cref="CarouselWindow.Pages"/>, and holds the selected page index. Subclass may extend.
+/// This class is concrete but expects instances of <see cref="CarouselPage{T}"/> to be added to <see
+/// cref="CarouselDialog.Pages"/> in the subclass constructor. The class holds the last selected page index statically
+/// so that new instances are shown in the same location. Subclass to extend.
 /// </remarks>
-public class SettingsWindow : CarouselWindow
+public class SettingsWindow : CarouselDialog
 {
     private static int s_globalIndex;
     private static readonly WindowPersistence s_persistence = new();
 
+
     /// <summary>
-    /// Default constructor.
+    /// Constructor with flag which determines whether settings are fluid (true), or whether the window has OK and
+    /// Cancel buttons (false).
     /// </summary>
-    /// <remarks>
-    /// <see cref="CarouselWindow.Pages"/> are populated, while <see cref="CarouselWindow.PageClasses"/> has defaults.
-    /// </remarks>
-    public SettingsWindow()
+    public SettingsWindow(bool fluid = true)
+        : base(GetButtons(fluid))
     {
         Title = "Settings";
-
-        // See ChromeStyling.axaml
-        PageClasses.Add("shade-background");
+        IsFluid = fluid;
 
         Width = 1000;
         MinWidth = 700;
@@ -55,14 +53,13 @@ public class SettingsWindow : CarouselWindow
         Height = 700;
         MinHeight = 400;
 
-        LeftPanelMinWidth = 230;
-        LeftPanelMaxWidth = 350;
-        ContentMaxWidth = 540;
-
         IsSearchVisible = true;
-        Pages.Add(new AppearanceCarouselPage());
-        Pages.Add(new WindowCarouselPage());
     }
+
+    /// <summary>
+    /// Gets whether settings are fluid.
+    /// </summary>
+    public bool IsFluid { get; }
 
     /// <summary>
     /// Overrides.
@@ -85,4 +82,13 @@ public class SettingsWindow : CarouselWindow
         base.OnClosed(e);
     }
 
+    private static DialogButtons GetButtons(bool fluid)
+    {
+        if (fluid)
+        {
+            return DialogButtons.None;
+        }
+
+        return DialogButtons.Apply | DialogButtons.Ok | DialogButtons.Cancel;
+    }
 }

@@ -26,6 +26,7 @@ using Avalonia.Threading;
 using KuiperZone.Marklet.Controls.Internal.Mission;
 using KuiperZone.Marklet.Shared;
 using Avalonia.Input;
+using Avalonia;
 
 namespace KuiperZone.Marklet.Controls;
 
@@ -34,17 +35,19 @@ namespace KuiperZone.Marklet.Controls;
 /// </summary>
 public sealed class MainMission : Border
 {
-    private static readonly MemoryGarden Garden = GardenGrounds.Global;
+    private static readonly MemoryGarden Garden = GlobalGarden.Global;
     private static readonly TimeSpan RefreshInterval = TimeSpan.FromSeconds(60);
     private readonly Panel _panel = new();
     private readonly List<BasketView> _views = new(4);
-    private readonly DispatchCoalescer _changeCoalescer = new(DispatcherPriority.Render);
+    private readonly DispatchCoalescer _coalescer = new(DispatcherPriority.Render);
     private readonly DispatcherTimer _refreshTimer = new();
 
     private BasketKind _basket;
     private GardenDeck? _pending;
     private BasketView? _currentView;
     private bool _newClicked;
+
+    private bool _isSearchButtonVisible;
 
     /// <summary>
     /// Default constructor.
@@ -54,21 +57,24 @@ public sealed class MainMission : Border
         base.Child = _panel;
         _panel.Margin = new(0.0, ChromeSizes.TwoCh, 0.0, 0.0);
 
-
         _basket = BasketKind.Recent;
 
-        foreach (var item in MemoryGarden.LegalBaskets)
+
+        foreach (var item in Enum.GetValues<BasketKind>())
         {
-            var view = new BasketView(this, item);
-            view.IsVisible = item == _basket;
-
-            _views.Add(view);
-            _panel.Children.Add(view);
-            view.ViewChanged += (_, __) => _changeCoalescer?.Post();
-
-            if (item == _basket)
+            if (item.IsLegal())
             {
-                _currentView = view;
+                var view = new BasketView(this, item);
+
+                _views.Add(view);
+                _panel.Children.Add(view);
+                view.IsVisible = item == _basket;
+                view.Changed += (_, __) => _coalescer?.Post();
+
+                if (item == _basket)
+                {
+                    _currentView = view;
+                }
             }
         }
 
@@ -76,28 +82,27 @@ public sealed class MainMission : Border
         _refreshTimer.Tick += (_, __) => _currentView?.RefreshVisual();
         _refreshTimer.Start();
 
-        Garden.FocusChanged += (_, __) => _changeCoalescer?.Post();
-        _changeCoalescer.Posted += PostedHandler;
+        Garden.FocusChanged += (_, __) => _coalescer?.Post();
+        _coalescer.Posted += ChangePostedHandler;
     }
 
     /// <summary>
-    /// Occurs immediately when <see cref="Basket"/> changes.
+    /// Defines the <see cref="IsSearchButtonVisible"/> property.
     /// </summary>
-    public event EventHandler<BasketChangedEventArgs>? BasketChanged;
+    public static readonly DirectProperty<MainMission, bool> IsSearchButtonVisibleProperty =
+        AvaloniaProperty.RegisterDirect<MainMission, bool>(nameof(IsSearchButtonVisible),
+        o => o.IsSearchButtonVisible, (o, v) => o.IsSearchButtonVisible = v);
 
     /// <summary>
-    /// Occurs when view is updated, including a change in selection.
+    /// Occurs when view is updated, including a change to <see cref="Basket"/>.
     /// </summary>
-    /// <remarks>
-    /// This occurs only after any <see cref="GardenBasket.Changed"/> or <see cref="BasketChanged"/> event.
-    /// </remarks>
-    public event EventHandler<EventArgs>? ViewChanged;
+    public event EventHandler<EventArgs>? Changed;
 
     /// <summary>
     /// Occurs when the user clicks "new".
     /// </summary>
     /// <remarks>
-    /// Always occurs after <see cref="ViewChanged"/> event.
+    /// Always occurs after <see cref="Changed"/> event.
     /// </remarks>
     public event EventHandler<EventArgs>? NewClicked;
 
@@ -124,19 +129,34 @@ public sealed class MainMission : Border
                     if (item.Kind == value)
                     {
                         _currentView = item;
+                        continue;
                     }
-                    else
-                    {
-                        item.IsVisible = false;
-                    }
+
+                    item.IsVisible = false;
                 }
 
-                // Order important
-                BasketChanged?.Invoke(this, new BasketChangedEventArgs(value));
-
                 _currentView?.IsVisible = true;
+                _coalescer.Post();
             }
         }
+    }
+
+    /// <summary>
+    /// Gets or sets whether individual search buttons are visible.
+    /// </summary>
+    public bool IsSearchButtonVisible
+    {
+        get { return _isSearchButtonVisible; }
+        set { SetAndRaise(IsSearchButtonVisibleProperty, ref _isSearchButtonVisible, value); }
+    }
+
+    /// <summary>
+    /// Gets or sets whether current view is searching.
+    /// </summary>
+    public bool IsSearching
+    {
+        get { return _currentView?.IsSearching == true; }
+        set { _currentView?.IsSearching = value; }
     }
 
     /// <summary>
@@ -144,7 +164,17 @@ public sealed class MainMission : Border
     /// </summary>
     public bool CanReply
     {
-        get { return _basket.CanReply() && (GetNew(false) != null || Garden.GetBasket(_basket).Contains(Garden.Focused)); }
+        get { return _basket.CanReply() && (GetNew(false) != null || Garden[_basket].Contains(Garden.Focused)); }
+    }
+
+    /// <summary>
+    /// Does not use.
+    /// </summary>
+    [Obsolete($"Do not use.", true)]
+    public new Control? Child
+    {
+        get { return base.Child; }
+        set { base.Child = value; }
     }
 
     /// <summary>
@@ -177,19 +207,9 @@ public sealed class MainMission : Border
     }
 
     /// <summary>
-    /// Does not use.
-    /// </summary>
-    [Obsolete($"Do not use.", true)]
-    public new Control? Child
-    {
-        get { return base.Child; }
-        set { base.Child = value; }
-    }
-
-    /// <summary>
     /// Instigates a new chat or note on the current <see cref="Basket"/>.
     /// </summary>
-    public bool OnNewClicked(bool ephemeral = false)
+    public bool OnNewClick(bool ephemeral = false)
     {
         if (_basket.CanInstigateNew() && _currentView != null)
         {
@@ -200,18 +220,18 @@ public sealed class MainMission : Border
             Garden.Focused?.IsFocused = false;
 
             _newClicked = true;
-            _changeCoalescer.Post();
+            _coalescer.Post();
             return true;
         }
 
         return false;
     }
 
-    private void PostedHandler(object? _, EventArgs __)
+    private void ChangePostedHandler(object? _, EventArgs __)
     {
-        GardenGrounds.IsMissionSearch = _currentView?.IsSearching == true;
+        GlobalGarden.IsMissionSearch = IsSearching;
 
-        ViewChanged?.Invoke(this, EventArgs.Empty);
+        Changed?.Invoke(this, EventArgs.Empty);
 
         if (_newClicked)
         {

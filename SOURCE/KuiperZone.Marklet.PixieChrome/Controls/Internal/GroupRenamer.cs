@@ -41,7 +41,7 @@ internal sealed class GroupRenamer : PixieEditor
     {
         const string NSpace = $"{nameof(GroupRenamer)}.constructor";
 
-        ConditionalDebug.WriteLine(NSpace, source.Title);
+        Diag.WriteLine(NSpace, source.Title);
         ArgumentNullException.ThrowIfNull(source.Group, nameof(source));
         ArgumentOutOfRangeException.ThrowIfNegative(minLength);
         ArgumentOutOfRangeException.ThrowIfGreaterThan(minLength, maxLength);
@@ -117,7 +117,7 @@ internal sealed class GroupRenamer : PixieEditor
 
         if (Source != null)
         {
-            ConditionalDebug.WriteLine(NSpace, "Discarding");
+            Diag.WriteLine(NSpace, "Discarding");
             Source.IsVisible = true;
             Source.Group?.Remove(this);
             Source = null;
@@ -135,8 +135,8 @@ internal sealed class GroupRenamer : PixieEditor
         {
             var t = Source;
             Renaming?.Invoke(t, e);
-            ConditionalDebug.WriteLine(NSpace, "Handled: " + e.Handled);
-            ConditionalDebug.WriteLine(NSpace, "Rejected: " + e.IsRejected);
+            Diag.WriteLine(NSpace, "Handled: " + e.Handled);
+            Diag.WriteLine(NSpace, "Rejected: " + e.IsRejected);
 
             if (!e.IsRejected)
             {
@@ -152,7 +152,7 @@ internal sealed class GroupRenamer : PixieEditor
 
         if (e.Key == Key.Escape)
         {
-            ConditionalDebug.WriteLine(NSpace, "Escape key");
+            Diag.WriteLine(NSpace, "Escape key");
             Discard();
         }
     }

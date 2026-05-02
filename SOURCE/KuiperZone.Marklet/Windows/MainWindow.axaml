@@ -15,8 +15,8 @@
         d:DesignWidth="800"
         d:DesignHeight="800"
 
-        Width="1200"
-        MinWidth="500"
+        Width="1400"
+        MinWidth="600"
 
         Height="800"
         MinHeight="400"
@@ -103,10 +103,16 @@
                 Background="{Binding BackgroundLow}"
                 BorderBrush="{Binding BorderBrush}"
                 BorderThickness="0 1 0 0">
-                <TextBlock Name="missionStatus"
-                    Classes="status"
-                    Text="missionStatus"
-                />
+                <DockPanel>
+                    <TextBlock Name="gardenSize"
+                        DockPanel.Dock="Right"
+                        Classes="status"
+                    />
+                    <TextBlock Name="gardenStatus"
+                        DockPanel.Dock="Left"
+                        Classes="status"
+                    />
+                </DockPanel>
             </Border>
 
             <!-- Note ColumnSpan -->
@@ -115,16 +121,20 @@
                 BorderBrush="{Binding BorderBrush}"
                 BorderThickness="0 1 0 0">
 
-                <Grid ColumnDefinitions="Auto * Auto">
+                <Grid ColumnDefinitions="Auto * Auto Auto">
                     <TextBlock Grid.Row="0" Grid.Column="0"
                         Name="leftStatus"
                         Classes="status"
                         Text="leftStatus"
                     />
-                    <TextBlock Grid.Row="0" Grid.Column="2"
-                        Name="rightStatus"
+
+                    <pixie-controls:LightBar Grid.Row="0" Grid.Column="2"
+                        Name="zoomBar"
+                    />
+
+                    <TextBlock Grid.Row="0" Grid.Column="3"
+                        Name="zoomStatus"
                         Classes="status"
-                        Text="rightStatus"
                     />
                 </Grid>
             </Border>

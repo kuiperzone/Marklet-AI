@@ -276,7 +276,7 @@ public sealed partial class ChromeStyling
     private void RaiseColorProperties(ThemePalette palette)
     {
         const string NSpace = $"{nameof(ChromeStyling)}.{nameof(RaiseColorProperties)}";
-        ConditionalDebug.WriteLine(NSpace, "Raising");
+        Diag.WriteLine(NSpace, "Raising");
 
         Foreground = palette.Foreground;
         Background = palette.Background;

@@ -94,7 +94,7 @@ public class StyledContainer : IReadOnlyStyledContainer, IEquatable<IReadOnlySty
     /// </summary>
     internal StyledContainer(LeafBlock leaf, MarkOptions opts)
     {
-        ConditionalDebug.WriteLine(nameof(StyledContainer), $"Leaf constructor");
+        Diag.WriteLine(nameof(StyledContainer), $"Leaf constructor");
         Elements = new(DefaultCap);
         AppendMarkdig(leaf, opts);
     }
@@ -104,7 +104,7 @@ public class StyledContainer : IReadOnlyStyledContainer, IEquatable<IReadOnlySty
     /// </summary>
     internal StyledContainer(TableCell? cell, MarkOptions opts)
     {
-        ConditionalDebug.WriteLine(nameof(StyledContainer), $"TableCell constructor");
+        Diag.WriteLine(nameof(StyledContainer), $"TableCell constructor");
         Elements = new(cell?.Count ?? 0);
 
         if (cell != null)
@@ -114,7 +114,7 @@ public class StyledContainer : IReadOnlyStyledContainer, IEquatable<IReadOnlySty
 
             foreach (var item in cell)
             {
-                ConditionalDebug.WriteLine(nameof(StyledContainer), $"Cell item: {item.GetType().Name}");
+                Diag.WriteLine(nameof(StyledContainer), $"Cell item: {item.GetType().Name}");
 
                 if (item is LeafBlock leaf)
                 {
@@ -301,7 +301,7 @@ public class StyledContainer : IReadOnlyStyledContainer, IEquatable<IReadOnlySty
 
     private void AppendMarkdig(LeafBlock leaf, MarkOptions opts)
     {
-        ConditionalDebug.WriteLine(nameof(StyledContainer), $"ProcessInLines: {leaf.ProcessInlines}");
+        Diag.WriteLine(nameof(StyledContainer), $"ProcessInLines: {leaf.ProcessInlines}");
 
         if (!leaf.ProcessInlines)
         {
@@ -340,11 +340,11 @@ public class StyledContainer : IReadOnlyStyledContainer, IEquatable<IReadOnlySty
 
     private void AppendMarkdig(ContainerInline? container, MarkOptions opts, InlineStyling styling, LinkInfo? info)
     {
-        ConditionalDebug.WriteLine(nameof(StyledContainer), $"{nameof(AppendMarkdig)} Entered");
+        Diag.WriteLine(nameof(StyledContainer), $"{nameof(AppendMarkdig)} Entered");
 
         if (container == null)
         {
-            ConditionalDebug.WriteLine(nameof(StyledContainer), $"{nameof(container)} null");
+            Diag.WriteLine(nameof(StyledContainer), $"{nameof(container)} null");
             return;
         }
 
@@ -361,65 +361,65 @@ public class StyledContainer : IReadOnlyStyledContainer, IEquatable<IReadOnlySty
             switch (item)
             {
                 case LiteralInline literal:
-                    ConditionalDebug.WriteLine(nameof(StyledContainer), "+ " + nameof(LiteralInline));
-                    ConditionalDebug.WriteLine(nameof(StyledContainer), $"Literal content: {literal.Content}");
-                    ConditionalDebug.WriteLine(nameof(StyledContainer), $"Literal styling: {styling}");
+                    Diag.WriteLine(nameof(StyledContainer), "+ " + nameof(LiteralInline));
+                    Diag.WriteLine(nameof(StyledContainer), $"Literal content: {literal.Content}");
+                    Diag.WriteLine(nameof(StyledContainer), $"Literal styling: {styling}");
                     string content = literal.Content.ToString();
 
                     if (content.Length == 0)
                     {
                         // Not expected
-                        ConditionalDebug.WriteLine(nameof(StyledContainer), "Empty");
+                        Diag.WriteLine(nameof(StyledContainer), "Empty");
                         continue;
                     }
 
                     if (inlines)
                     {
-                        ConditionalDebug.WriteLine(nameof(StyledContainer), $"{nameof(inlines)} is true");
+                        Diag.WriteLine(nameof(StyledContainer), $"{nameof(inlines)} is true");
                         Elements.Add(new(content.Replace("\n", " "), styling, info));
                         continue;
                     }
 
-                    ConditionalDebug.WriteLine(nameof(StyledContainer), $"{nameof(inlines)} is false");
+                    Diag.WriteLine(nameof(StyledContainer), $"{nameof(inlines)} is false");
                     Elements.Add(new(content, styling, info));
                     continue;
                 case EmphasisInline em:
                     var es = em.DelimiterCount == 2 ? InlineStyling.Strong : InlineStyling.Emphasis;
-                    ConditionalDebug.WriteLine(nameof(StyledContainer), "+ " + $"{nameof(EmphasisInline)}: {es}");
+                    Diag.WriteLine(nameof(StyledContainer), "+ " + $"{nameof(EmphasisInline)}: {es}");
                     AppendMarkdig(em, opts, styling | es, info);
                     continue;
                 case CodeInline code:
-                    ConditionalDebug.WriteLine(nameof(StyledContainer), "+ " + nameof(CodeInline));
-                    ConditionalDebug.WriteLine(nameof(StyledContainer), $"Code content: {code.Content}");
-                    ConditionalDebug.WriteLine(nameof(StyledContainer), $"Code styling: {styling}");
+                    Diag.WriteLine(nameof(StyledContainer), "+ " + nameof(CodeInline));
+                    Diag.WriteLine(nameof(StyledContainer), $"Code content: {code.Content}");
+                    Diag.WriteLine(nameof(StyledContainer), $"Code styling: {styling}");
                     Elements.Add(new(code.Content, styling | InlineStyling.Code));
                     continue;
                 case MathInline math:
-                    ConditionalDebug.WriteLine(nameof(StyledContainer), "+ " + nameof(MathInline));
-                    ConditionalDebug.WriteLine(nameof(StyledContainer), $"Math content: {math.Content}");
-                    ConditionalDebug.WriteLine(nameof(StyledContainer), $"Math styling: {styling}");
+                    Diag.WriteLine(nameof(StyledContainer), "+ " + nameof(MathInline));
+                    Diag.WriteLine(nameof(StyledContainer), $"Math content: {math.Content}");
+                    Diag.WriteLine(nameof(StyledContainer), $"Math styling: {styling}");
                     Elements.Add(new(math.Content.ToString(), styling | InlineStyling.Math));
                     continue;
                 case LinkInline link:
-                    ConditionalDebug.WriteLine(nameof(StyledContainer), "+ " + nameof(LinkInline));
-                    ConditionalDebug.WriteLine(nameof(StyledContainer), $"Url: {link.Url}");
-                    ConditionalDebug.WriteLine(nameof(StyledContainer), $"IsImage: {link.IsImage}");
-                    ConditionalDebug.WriteLine(nameof(StyledContainer), $"Title: {link.Title}");
-                    ConditionalDebug.WriteLine(nameof(StyledContainer), $"Pointy: {link.UrlHasPointyBrackets}");
-                    ConditionalDebug.WriteLine(nameof(StyledContainer), $"AutoLink: {link.IsAutoLink}");
+                    Diag.WriteLine(nameof(StyledContainer), "+ " + nameof(LinkInline));
+                    Diag.WriteLine(nameof(StyledContainer), $"Url: {link.Url}");
+                    Diag.WriteLine(nameof(StyledContainer), $"IsImage: {link.IsImage}");
+                    Diag.WriteLine(nameof(StyledContainer), $"Title: {link.Title}");
+                    Diag.WriteLine(nameof(StyledContainer), $"Pointy: {link.UrlHasPointyBrackets}");
+                    Diag.WriteLine(nameof(StyledContainer), $"AutoLink: {link.IsAutoLink}");
 
                     if (link.IsAutoLink)
                     {
-                        ConditionalDebug.ThrowIfNull(link.Url);
+                        Diag.ThrowIfNull(link.Url);
 
                         if (plainLinks)
                         {
-                            ConditionalDebug.WriteLine(nameof(StyledContainer), "Plain text link");
+                            Diag.WriteLine(nameof(StyledContainer), "Plain text link");
                             Elements.Add(new(link.Url ?? "", styling, new(link.Url)));
                             continue;
                         }
 
-                        ConditionalDebug.WriteLine(nameof(StyledContainer), $"{nameof(plainLinks)} is false");
+                        Diag.WriteLine(nameof(StyledContainer), $"{nameof(plainLinks)} is false");
                         Elements.Add(new(link.Url ?? "", styling));
                         continue;
                     }
@@ -427,35 +427,35 @@ public class StyledContainer : IReadOnlyStyledContainer, IEquatable<IReadOnlySty
                     AppendMarkdig(link, opts, styling, new LinkInfo(link.Url, link.IsImage && wantImages, link.Title));
                     continue;
                 case AutolinkInline autoLink:
-                    ConditionalDebug.WriteLine(nameof(StyledContainer), "+ " + nameof(AutolinkInline));
+                    Diag.WriteLine(nameof(StyledContainer), "+ " + nameof(AutolinkInline));
                     info = null;
                     Elements.Add(new(autoLink.Url, styling, new(autoLink.Url)));
                     continue;
                 case LineBreakInline brk:
-                    ConditionalDebug.WriteLine(nameof(StyledContainer), "+ " +nameof(LineBreakInline));
+                    Diag.WriteLine(nameof(StyledContainer), "+ " +nameof(LineBreakInline));
 
                     if ((!inlines || brk.IsHard) && !styling.HasFlag(InlineStyling.Code))
                     {
-                        ConditionalDebug.WriteLine(nameof(StyledContainer), "Hard link");
+                        Diag.WriteLine(nameof(StyledContainer), "Hard link");
                         Elements.Add(MarkElement.Newline);
                         continue;
                     }
 
-                    ConditionalDebug.WriteLine(nameof(StyledContainer), "Soft link");
+                    Diag.WriteLine(nameof(StyledContainer), "Soft link");
                     Elements.Add(new(" ", styling, info));
                     continue;
                 case PipeTableDelimiterInline pipe:
-                    ConditionalDebug.WriteLine(nameof(StyledContainer), $"+ {nameof(PipeTableDelimiterInline)} styling: {styling}");
+                    Diag.WriteLine(nameof(StyledContainer), $"+ {nameof(PipeTableDelimiterInline)} styling: {styling}");
                     Elements.Add(new("|", styling, info));
                     AppendMarkdig(pipe, opts, styling, info);
                     continue;
                 case HtmlInline html:
-                    ConditionalDebug.WriteLine(nameof(StyledContainer), $"+ {nameof(HtmlInline)} tag: {html.Tag}");
+                    Diag.WriteLine(nameof(StyledContainer), $"+ {nameof(HtmlInline)} tag: {html.Tag}");
 
                     if (!inlines)
                     {
                         // The HtmlInline seems to still be firing even if pipe is built with inline parser?
-                        ConditionalDebug.WriteLine(nameof(StyledContainer), $"{nameof(inlines)} is false");
+                        Diag.WriteLine(nameof(StyledContainer), $"{nameof(inlines)} is false");
                         Elements.Add(new(html.Tag, styling, info));
                         continue;
                     }
@@ -467,7 +467,7 @@ public class StyledContainer : IReadOnlyStyledContainer, IEquatable<IReadOnlySty
                         // Ensure we skip "</code>" when opened by HTML so it is picked up below
                         if (tag == null || !tag.IsClose || tag.Name != "code" || htmlTags?.Contains("code") != true)
                         {
-                            ConditionalDebug.WriteLine(nameof(StyledContainer), $"Verbatim in code: {html.Tag}, {html.IsClosed}");
+                            Diag.WriteLine(nameof(StyledContainer), $"Verbatim in code: {html.Tag}, {html.IsClosed}");
                             Elements.Add(new(html.Tag, styling, info));
                             continue;
                         }
@@ -475,20 +475,20 @@ public class StyledContainer : IReadOnlyStyledContainer, IEquatable<IReadOnlySty
 
                     if (tag == null)
                     {
-                        ConditionalDebug.WriteLine(nameof(StyledContainer), "Invalid tag ignored (not expected)");
+                        Diag.WriteLine(nameof(StyledContainer), "Invalid tag ignored (not expected)");
                         continue;
                     }
 
                     if (htmlAsCode)
                     {
-                        ConditionalDebug.WriteLine(nameof(StyledContainer), $"{nameof(htmlAsCode)} is true");
+                        Diag.WriteLine(nameof(StyledContainer), $"{nameof(htmlAsCode)} is true");
                         Elements.Add(new(html.Tag, styling | InlineStyling.Code, info));
                         continue;
                     }
 
                     if (tag.Name == "br" && tag.IsOpen)
                     {
-                        ConditionalDebug.WriteLine(nameof(StyledContainer), "Linebreak");
+                        Diag.WriteLine(nameof(StyledContainer), "Linebreak");
                         Elements.Add(new("\n", styling, info));
                         continue;
                     }
@@ -499,7 +499,7 @@ public class StyledContainer : IReadOnlyStyledContainer, IEquatable<IReadOnlySty
                         {
                             if (htmlTags?.Contains(tag.Name) != true)
                             {
-                                ConditionalDebug.WriteLine(nameof(StyledContainer), $"Open style: {hs}");
+                                Diag.WriteLine(nameof(StyledContainer), $"Open style: {hs}");
                                 styling |= hs;
 
                                 htmlTags ??= new(4);
@@ -512,13 +512,13 @@ public class StyledContainer : IReadOnlyStyledContainer, IEquatable<IReadOnlySty
                         {
                             if (htmlTags?.Remove(tag.Name) == true)
                             {
-                                ConditionalDebug.WriteLine(nameof(StyledContainer), $"Close style: {hs}");
+                                Diag.WriteLine(nameof(StyledContainer), $"Close style: {hs}");
                                 styling &= ~hs;
                                 continue;
                             }
                         }
 
-                        ConditionalDebug.WriteLine(nameof(StyledContainer), "Style tag ignored");
+                        Diag.WriteLine(nameof(StyledContainer), "Style tag ignored");
                         continue;
                     }
 
@@ -528,14 +528,14 @@ public class StyledContainer : IReadOnlyStyledContainer, IEquatable<IReadOnlySty
                         {
                             if (info == null && lk.IsImage)
                             {
-                                ConditionalDebug.WriteLine(nameof(StyledContainer), "Image tag");
+                                Diag.WriteLine(nameof(StyledContainer), "Image tag");
                                 Elements.Add(new(tag.GetAttrib("alt") ?? "", styling, lk));
                                 continue;
                             }
 
                             if (info == null && !lk.IsImage && !isHtmlLinkOpen)
                             {
-                                ConditionalDebug.WriteLine(nameof(StyledContainer), "Open link tag");
+                                Diag.WriteLine(nameof(StyledContainer), "Open link tag");
                                 info = lk;
                                 isHtmlLinkOpen = true;
                                 continue;
@@ -544,24 +544,24 @@ public class StyledContainer : IReadOnlyStyledContainer, IEquatable<IReadOnlySty
                         else
                         if (isHtmlLinkOpen)
                         {
-                            ConditionalDebug.WriteLine(nameof(StyledContainer), "Close link tag");
+                            Diag.WriteLine(nameof(StyledContainer), "Close link tag");
                             info = null;
                             isHtmlLinkOpen = false;
                             continue;
                         }
 
-                        ConditionalDebug.WriteLine(nameof(StyledContainer), "Link tag ignored");
+                        Diag.WriteLine(nameof(StyledContainer), "Link tag ignored");
                         continue;
                     }
 
-                    ConditionalDebug.WriteLine(nameof(StyledContainer), "Unknown tag ignored");
+                    Diag.WriteLine(nameof(StyledContainer), "Unknown tag ignored");
                     continue;
                 case HtmlEntityInline entity:
-                    ConditionalDebug.WriteLine(nameof(StyledContainer), $"Entity: {entity.Original}");
+                    Diag.WriteLine(nameof(StyledContainer), $"Entity: {entity.Original}");
                     Elements.Add(new(entity.Transcoded.ToString(), styling, info));
                     continue;
                 default:
-                    ConditionalDebug.WriteLine(nameof(StyledContainer), $"UNKNOWN: {item.GetType().Name}");
+                    Diag.WriteLine(nameof(StyledContainer), $"UNKNOWN: {item.GetType().Name}");
                     continue;
 
             }
