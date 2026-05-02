@@ -1,0 +1,15 @@
++ 0.4;Pre-release;2026-05-01
+- Added persistant Sqlite database storage
+- Added flatpak deployment
+- Many additions and feature iterations
+
++ 0.3;Pre-release;2026-04-03
+- Added search
+- Many additions and feature iterations
+
++ 0.2;Pre-release;2026-03-19
+- Developed Main Mission chat history control
+- Many additions and feature iterations
+
++ 0.1;Pre-release;2026-01-30
+- Initial release
