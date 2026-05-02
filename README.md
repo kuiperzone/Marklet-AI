@@ -5,7 +5,7 @@ similar runner). Its primary purpose is to do this simply and to do it well. Mar
 a near out-of-box experience, comprising everything except the runner and models. It prioritises the individual, and the use of AI
 for analysis rather than content generation. It is personal in the way a PC was once personal.
 
-<img src="SCREENSHOTS/README1.png" style="width:75%;max-width:1920px;margin-bottom:2em;"/>
+<img src="SCREENSHOTS/README1.png" style="max-width:1920px;margin-bottom:2em;"/>
 
 Above, early version 0.4 in dark mode.
 
@@ -31,7 +31,7 @@ means to test this is currently unavailable to the authors.
 Marklet is not intended to be all things to all people. The design of the software prioritises personal use employing
 local models with local data. It may not be suited for use in enterprise environments or on mobile devices.
 
-<img src="SCREENSHOTS/README2.png" style="width:65%;max-width:1490px;margin-bottom:2em;"/>
+<img src="SCREENSHOTS/README2.png" style="width:75%;max-width:1490px;margin-bottom:2em;"/>
 
 Marklet is an experiment in *sovereign AI* predicated on the idea that, while large AI services bring destruction,
 local AI will persist. Moreover, local AI will grant agency to those who can maintain their own autonomy in the
