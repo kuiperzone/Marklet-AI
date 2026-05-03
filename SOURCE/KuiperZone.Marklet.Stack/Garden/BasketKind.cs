@@ -65,7 +65,7 @@ public static partial class HelperExt
     public static bool IsLegal(this BasketKind src)
     {
         // This is for compatibility across different version
-        return (src > BasketKind.None && src <= BasketKind.Archive) || src == BasketKind.Waste;
+        return src > BasketKind.None && Enum.IsDefined(src);
     }
 
     /// <summary>
@@ -110,15 +110,6 @@ public static partial class HelperExt
     public static bool CanReply(this BasketKind src)
     {
         return src != BasketKind.Waste && IsLegal(src);
-    }
-
-    /// <summary>
-    /// Gets whether the basket may content mixed <see cref="DeckFormat"/> values.
-    /// </summary>
-    public static bool IsMixedContent(this BasketKind src)
-    {
-        // Semantic shortcut TBD
-        return DefaultDeck(src) == DeckFormat.None;
     }
 
 }

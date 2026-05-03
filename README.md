@@ -3,25 +3,26 @@
 **Marklet** is an open source alt-AI client primarily intended for use with local models (i.e. in conjunction with Ollama or a
 similar runner). Its primary purpose is to do this simply and to do it well.
 
-Marklet is a native desktop application and provides a near out-of-box experience, comprising everything except the
-runner and models. It is clean, principled and designed for those who do not want bloat or web-UIs. It prioritises the
-individual, and the use of AI for analysis rather than content generation. It is personal in the way a PC was once
-personal.
+Marklet is a native desktop application which provides a near out-of-box experience, comprising everything except the
+models and runner. It is clean, principled and designed for those who do not want bloat or web-UIs.
+
+It prioritises the individual, and is *personal* in the way a PC was once personal.
 
 <img src="SCREENSHOTS/README1.png" style="max-width:1920px;margin-bottom:2em;"/>
 
 Above, early version 0.4 in dark mode.
+
 
 ## PREVIEW RELEASE
 
 <mark>UNDER ACTIVE DEVELOPMENT 2026</mark>
 
 This is an preview release encompassing the primary aspects of the user interface and database. It does not currently
-contain the code needed to connect it to a model. There is no actual "AI" in this release. It is coming. Click
+contain the code needed to connect it to a model. *There is no actual "AI" in current releases.* It is coming. Click
 <mark>Watch</mark> for updates.
 
-That being said, you should find the user interface very polished. You can download and run it, and it will generate stub response
-messages intended to exercise the user interface.
+That being said, you should find the user interface very polished. You can download and run it, and it will generate stub
+response messages intended to exercise the user interface.
 
 It initially supports:
 
@@ -54,6 +55,9 @@ An approximate roadmap is as follows:
 7. Support for attachments, images
 8. Text to speech, yet undecided features
 9. A plugin architecture
+
+Marklet is not intended to support image or video generation capabilities. Any text-to-speech capability will be for
+accessibility only and not to mimic real human voices.
 
 There are likely to be several interim releases before an initial version 1.0. Work continues.
 
@@ -103,10 +107,11 @@ Follow author: [Substack](https://kuiperzone.substack.com/), [LinkedIn](https://
 
 ### More Information
 
-Please visit the official website for more information which will be populated as the project develops:
+Visit the official website for more information which will be populated as the project develops:
 
 https://kuiper.zone/marklet-ai
 
+If you like this project, please like and share. If you don't like it, just keep that to yourself.
 
 ## Legal Stuff
 

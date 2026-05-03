@@ -74,7 +74,7 @@ public static partial class HelperExt
     /// </summary>
     public static bool IsLegal(this LeafFormat src)
     {
-        return (src > LeafFormat.None && src <= LeafFormat.AssistantAttachment) || src == LeafFormat.Notification;
+        return src > LeafFormat.None && Enum.IsDefined(src);
     }
 
     /// <summary>

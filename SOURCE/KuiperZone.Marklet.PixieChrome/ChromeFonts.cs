@@ -53,7 +53,7 @@ public static class ChromeFonts
                 new Uri("avares://KuiperZone.Marklet.PixieChrome/Assets/Fonts", UriKind.Absolute));
 
             FontManager.Current.AddFontCollection(fc);
-            MonospaceFamily = new($"{AssetPrefix}#Source Code Pro");
+            MonospaceFamily = new($"{AssetPrefix}#JetBrains Mono");
             SymbolFamily = new($"{AssetPrefix}#Material Symbols");
         }
         catch (Exception e)

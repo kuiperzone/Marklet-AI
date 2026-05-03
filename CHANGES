@@ -1,15 +1,20 @@
-+ 0.4;Pre-release;2026-05-01
++ 0.5;Preview;TBD
+- Fix: Unicode character in titlebar not displaying on some systems
+- Change: Switched out Source Code Pro font JetBrains Mono
+- Other additions and changes
+
++ 0.4;Preview;2026-05-01
 - Added persistant Sqlite database storage
 - Added flatpak deployment
 - Many additions and feature iterations
 
-+ 0.3;Pre-release;2026-04-03
++ 0.3;Preview;2026-04-03
 - Added search
 - Many additions and feature iterations
 
-+ 0.2;Pre-release;2026-03-19
++ 0.2;Preview;2026-03-19
 - Developed Main Mission chat history control
 - Many additions and feature iterations
 
-+ 0.1;Pre-release;2026-01-30
++ 0.1;Preview;2026-01-30
 - Initial release

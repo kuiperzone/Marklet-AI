@@ -123,6 +123,15 @@ internal sealed class ChromeBar : Panel, IChromeBar
     }
 
     /// <summary>
+    /// Implements <see cref="IChromeBar.FontFamily"/>.
+    /// </summary>
+    public FontFamily FontFamily
+    {
+        get { return _titleBlock.FontFamily; }
+        set { _titleBlock.FontFamily = value; }
+    }
+
+    /// <summary>
     /// Gets the underlay control.
     /// </summary>
     public IBarUnderlay Underlay

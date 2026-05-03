@@ -94,13 +94,12 @@ This application is free software that comes with absolutely no warranty. See th
 ## Native Desktop
 
 **Marklet** is an open source alt-AI client primarily intended for use with local models (i.e. in conjunction with Ollama or a
-similar runner). Its primary purpose is to do this simply and to do it well. Marklet is a native desktop application and provides
-a near out-of-box experience, comprising everything except the runner and models.
+similar runner). Its primary purpose is to do this simply and to do it well.
 
-While it may facilitate connection to externally hosted services, the design of the software prioritises the individual, local models
-and local data, and the use of AI for analysis rather than content generation. It is personal in the way a PC was once personal.
+Marklet is a native desktop application and provides a near out-of-box experience, comprising everything except the
+models and runner. It is clean, principled and designed for those who do not want bloat or web-UIs.
 
-The Marklet software is an original work that was created using native human thought and effort. It has not been *vibe-coded*.
+It prioritises the individual, and is *personal* in the way a PC was once personal.
 
 ## Security
 
@@ -108,8 +107,7 @@ Security is provided by virtue that, by default, all data is stored locally with
 The software does not make special cryptographic provisions to protect local data. You must assume that someone with full access
 to your device can read such data as they could with other desktop application data. Likewise, if you connect the application to a
 remotely hosted service, you must assume that all ""chat messages"", attachments and all associated chat data will be read by such
-remote services at some point. Any technical measure or option that may be provided to limit or restrict this will be
-""best efforts"" only and likely to be imperfect.
+services at some point.
 
 Marklet is not the place to store sensitive information that requires protection beyond that afforded by a secure, local
 environment under your own control. It may not be suitable for use in enterprise environments in which the individual does
@@ -117,7 +115,7 @@ not have personal autonomy.
 
 ## Image Generation
 
-Marklet does not support generative image or generative video capabilities and is not designed to do so. Any text-to-speech
+Marklet does not support image or video generation capabilities and is not designed to do so. Any text-to-speech
 capability will be for accessibility only and not to mimic real human voices.
 
 ## Acknowledgements

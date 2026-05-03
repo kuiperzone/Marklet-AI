@@ -65,7 +65,9 @@ public partial class MainWindow : ChromeWindow
         InitializeComponent();
 
         ChromeBar.Title = App.DisplayTitle;
+        ChromeBar.FontFamily = AppFonts.VintageFamily;
         Title = ChromeApplication.Current.Name;
+
         _missionColumn = outerHorzGrid.ColumnDefinitions[1];
 
         _searchButton = ChromeBar.LeftGroup.AddButton(Symbols.Search, "Search");

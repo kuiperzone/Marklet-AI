@@ -54,7 +54,7 @@ public static partial class HelperExt
     /// </summary>
     public static bool IsLegal(this DeckFormat src)
     {
-        return src > DeckFormat.None && src <= DeckFormat.Note;
+        return src > DeckFormat.None && Enum.IsDefined(src);
     }
 
     /// <summary>

@@ -77,7 +77,7 @@ public partial class App : ChromeApplication<MainWindow>
     /// <summary>
     /// Gets whether the application display title.
     /// </summary>
-    public const string DisplayTitle = "M\u2219A\u2219R\u2219K\u2219L\u2219E\u2219T";
+    public const string DisplayTitle = "m\u2022a\u2022r\u2022k\u2022l\u2022e\u2022t";
 
     /// <summary>
     /// Gets the application version from the <see cref="ChromeApplication"/> subclass assembly.

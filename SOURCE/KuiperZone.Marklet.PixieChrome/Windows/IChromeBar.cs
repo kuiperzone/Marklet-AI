@@ -18,6 +18,7 @@
 // You should have received a copy of the GNU Affero General Public License along
 // with Marklet. If not, see <https://www.gnu.org/licenses/>.
 
+using Avalonia.Media;
 using KuiperZone.Marklet.PixieChrome.Controls;
 
 namespace KuiperZone.Marklet.PixieChrome.Windows;
@@ -66,4 +67,9 @@ public interface IChromeBar
     /// the Window.Title. It may, therefore, be set to an empty string to display no title. The default is null.
     /// </remarks>
     string? Title { get; set; }
+
+    /// <summary>
+    /// Gets or sets the font family used with <see cref="Title"/>.
+    /// </summary>
+    FontFamily FontFamily { get; set; }
 }
