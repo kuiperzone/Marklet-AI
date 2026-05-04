@@ -139,7 +139,7 @@ public sealed class DatabaseCarousel : CarouselPage<DatabaseSettings>
         apply.Footer = "Specify a custom path for the database on application start. This could, for example, be on an encrypted " +
             "drive. Where a directory is given, a default filename is used. A location on a NAS is not recommended.";
 
-        if (true || !DatabaseSettings.HasPermissions)
+        if (!DatabaseSettings.HasPermissions)
         {
             // Disable under flatpak
             group.IsEnabled = false;

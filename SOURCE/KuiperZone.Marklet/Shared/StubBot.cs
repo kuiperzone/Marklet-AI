@@ -147,7 +147,6 @@ public sealed class StubBot
         {
             Insert(garden, BasketKind.Recent, BasketKind.Waste, "Discussion " + n, RandOffset(365), 50);
         }
-
     }
 
     private static string NoteContent()
@@ -314,7 +313,7 @@ consequat quis, neque.");
 
         sb.AppendLine();
         sb.AppendLine("### Heading 3");
-        sb.AppendLine("This is [link text](http://example.com) to http://example.com. This is an example of `inline code`.");
+        sb.AppendLine("This is **bold**, *italic*, and `inline code`. This is a [hyperlink](http://example.com) to http://example.com.");
 
         return sb.ToString();
     }
